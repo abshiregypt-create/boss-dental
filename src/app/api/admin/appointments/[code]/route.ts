@@ -1,0 +1,49 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { requireSession } from "@/lib/server/guard";
+import { confirmAppointment, findByCode, stageOf } from "@/lib/server/appointments";
+
+/** Admin: read one appointment (with messages). */
+export async function GET(_req: Request, ctx: { params: Promise<{ code: string }> }) {
+  const { error } = await requireSession();
+  if (error) return error;
+  const { code } = await ctx.params;
+  const appt = await prisma.appointment.findUnique({
+    where: { code: code.toUpperCase() },
+    include: { messages: { orderBy: { createdAt: "asc" } } },
+  });
+  if (!appt) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  return NextResponse.json({ appointment: { ...appt, stage: stageOf(appt) } });
+}
+
+/** Admin: confirm / decline / complete a booking. Confirm fires the WhatsApp flow. */
+export async function PATCH(req: Request, ctx: { params: Promise<{ code: string }> }) {
+  const { error } = await requireSession();
+  if (error) return error;
+  const { code } = await ctx.params;
+  const { action } = await req.json().catch(() => ({}) as { action?: string });
+
+  const appt = await findByCode(code);
+  if (!appt) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  if (action === "confirm") {
+    const updated = await confirmAppointment({ id: appt.id });
+    return NextResponse.json({ ok: true, appointment: updated });
+  }
+  if (action === "decline") {
+    const updated = await prisma.appointment.update({
+      where: { id: appt.id },
+      data: { status: "declined" },
+    });
+    return NextResponse.json({ ok: true, appointment: updated });
+  }
+  if (action === "complete") {
+    const updated = await prisma.appointment.update({
+      where: { id: appt.id },
+      data: { status: "completed", completedAt: new Date() },
+    });
+    return NextResponse.json({ ok: true, appointment: updated });
+  }
+
+  return NextResponse.json({ error: "bad_action" }, { status: 400 });
+}

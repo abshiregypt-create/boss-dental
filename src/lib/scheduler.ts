@@ -1,0 +1,22 @@
+import cron from "node-cron";
+
+let started = false;
+
+/** Start the once-a-minute WhatsApp scheduler (idempotent across hot reloads). */
+export function startScheduler() {
+  if (started) return;
+  if (process.env.SCHEDULER_ENABLED === "0") return;
+  started = true;
+
+  cron.schedule("* * * * *", async () => {
+    try {
+      const { processTick } = await import("./server/appointments");
+      const r = await processTick();
+      if (r.sent > 0) console.log(`[scheduler] dispatched ${r.sent} WhatsApp message(s)`);
+    } catch (e) {
+      console.error("[scheduler] tick failed:", e);
+    }
+  });
+
+  console.log("[scheduler] started — ticking every minute");
+}

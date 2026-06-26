@@ -1,0 +1,111 @@
+// BDIC backend schema. SQLite for dev; switch `provider` to "postgresql" and
+// point DATABASE_URL at the VPS Postgres for production (run a fresh migration).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Clinic staff who can sign in to the dashboard.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("doctor") // doctor | admin | staff
+  createdAt    DateTime @default(now())
+}
+
+/// A person who has booked at least once.
+model Patient {
+  id           String        @id @default(cuid())
+  name         String
+  phone        String
+  email        String?
+  gender       String? // male | female
+  source       String        @default("booking") // booking | manual
+  notes        String?
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+
+  @@index([phone])
+}
+
+/// A booking. Drives the whole confirm -> WhatsApp -> queue flow.
+model Appointment {
+  id             String    @id @default(cuid())
+  code           String    @unique // short public code used in /track/[code]
+  patientName    String
+  phone          String
+  serviceId      String
+  serviceLabelEn String
+  serviceLabelAr String
+  scheduledAt    DateTime // absolute appointment start
+  durationMin    Int       @default(30)
+  status         String    @default("pending") // pending | confirmed | declined | completed | cancelled
+  complaint      String?
+  offerTitle     String?
+  notes          String?
+  lang           String    @default("en") // patient's preferred language for messages
+
+  confirmedAt    DateTime?
+  reminderSentAt DateTime?
+  queueOpenedAt  DateTime?
+  turnSentAt     DateTime?
+  completedAt    DateTime?
+
+  patientId String?
+  patient   Patient?  @relation(fields: [patientId], references: [id])
+  messages  Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([phone])
+}
+
+/// A WhatsApp message tied to an appointment (audit log + idempotency).
+model Message {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  phone         String
+  kind          String // reserved | reminder | queue | turn | custom
+  body          String
+  provider      String      @default("mock") // mock | metaCloud | wa.me
+  status        String      @default("queued") // queued | sent | delivered | failed
+  waLink        String?
+  error         String?
+  createdAt     DateTime    @default(now())
+  sentAt        DateTime?
+
+  @@index([appointmentId, kind])
+}
+
+/// Simple key/value config (clinic hours, feature flags, etc.).
+model Setting {
+  key       String   @id
+  value     String // JSON
+  updatedAt DateTime @updatedAt
+}
+
+/// A file attached to a patient (x-ray, intra-oral photo, scanned document).
+/// The binary lives on disk under the uploads dir; only metadata is in the DB.
+model PatientFile {
+  id          String   @id @default(cuid())
+  patientKey  String // local patient id (e.g. "pt-ahmed") or Patient.id
+  patientName String?
+  category    String   @default("xray") // xray | photo | document | medical
+  title       String?
+  fileName    String
+  mimeType    String
+  size        Int
+  storagePath String // path on disk, relative to the uploads dir
+  createdAt   DateTime @default(now())
+
+  @@index([patientKey, createdAt])
+}

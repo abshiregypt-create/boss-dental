@@ -30,6 +30,15 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# runtime logs & local server scaffolding
+*.log
+bdic-run.log
+dev.log
+
+# scratch / temp scripts (recorders, one-off probes)
+_*.mjs
+_*.py
+
 # env files (can opt-in for committing if needed)
 .env*
 
@@ -39,3 +48,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# database
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# keep example env
+!.env.example
+
+# patient file uploads (private)
+/private-uploads

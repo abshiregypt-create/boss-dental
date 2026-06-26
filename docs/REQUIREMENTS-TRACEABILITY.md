@@ -60,8 +60,8 @@ This directly answers the reviewer's "is it complete / does it match the require
 | 4.2 | Auth + route protection | ✅ JWT + bcrypt + proxy guard | — |
 | 4.3 | Version control + clean history + tags | 🟡 being established | **1** |
 | 4.4 | Technical documentation | ✅ this bundle | **1** |
-| 4.5 | SEO (sitemap/robots/OG/JSON-LD) | ⛔ not built | **2** |
-| 4.6 | Analytics (GA4 / Meta Pixel) | ⛔ not built | **2** |
+| 4.5 | SEO (sitemap/robots/OG/JSON-LD) | ✅ done | **2** |
+| 4.6 | Analytics (GA4 / Meta Pixel) | ✅ done (env-gated, off until IDs set) | **2** |
 | 4.7 | Automated tests (e2e/unit) | ⛔ none yet (Playwright available) | **3** |
 | 4.8 | Backups + restore procedure | ⛔ → RUNBOOK procedure being added | **3** |
 | 4.9 | Staging environment | ⛔ single env today | **3** |

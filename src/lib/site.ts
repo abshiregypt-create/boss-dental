@@ -1,0 +1,112 @@
+/**
+ * Single source of truth for clinic identity used by SEO (metadata, JSON-LD,
+ * sitemap, Open Graph) and anywhere else that needs canonical business data.
+ * Keep this in sync with the visible content in `content.ts`.
+ */
+
+export const site = {
+  name: "Badawi Dental Implant Center",
+  shortName: "BDIC",
+  nameAr: "مركز بدوي لزراعة الأسنان",
+  /** Public base URL — override per environment via NEXT_PUBLIC_SITE_URL. */
+  url: process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "http://localhost:3000",
+  description:
+    "Badawi Dental Implant Center (BDIC) — a specialized dental implant center in Maadi, Cairo. Replace missing teeth with world-class implants for a confident, natural smile. Book your appointment today.",
+  descriptionAr:
+    "مركز بدوي لزراعة الأسنان (BDIC) — مركز متخصص في زراعة الأسنان بالمعادي، القاهرة. عوّض أسنانك المفقودة بأحدث تقنيات الزراعة العالمية لابتسامة طبيعية وواثقة. احجز موعدك اليوم.",
+  locale: "en_US",
+  localeAlt: "ar_EG",
+  keywords: [
+    "dental implants Cairo",
+    "dentist Maadi",
+    "Badawi Dental",
+    "Hollywood smile Egypt",
+    "teeth whitening Cairo",
+    "orthodontics Maadi",
+    "زراعة الأسنان",
+    "طبيب أسنان المعادي",
+    "ابتسامة هوليوود",
+    "مركز أسنان القاهرة",
+  ],
+  phone: "+201222156274",
+  phoneDisplay: "+20 122 215 6274",
+  email: "info@bdic.clinic",
+  address: {
+    street: "3/3 El Laselky St.",
+    locality: "Maadi",
+    region: "Cairo",
+    country: "EG",
+    postalCode: "11431",
+  },
+  /** Approximate geo for Maadi, Cairo (update with exact clinic coordinates). */
+  geo: { lat: 29.9602, lng: 31.2569 },
+  /** Sat–Thu 12:00–22:00 (Friday closed). */
+  openingHours: [
+    {
+      days: ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
+      opens: "12:00",
+      closes: "22:00",
+    },
+  ],
+  priceRange: "$$",
+  logo: "/bdic-logo.jpg",
+  ogImage: "/opengraph-image",
+  social: [
+    "https://www.facebook.com/badawidentalcenter",
+    "https://instagram.com/badawi_implant_center",
+    "https://wa.me/201222156274",
+  ],
+  services: [
+    "Dental Implants",
+    "Hollywood Smile / Veneers",
+    "Orthodontics",
+    "Teeth Whitening",
+    "Root Canal Treatment",
+    "Crowns & Bridges",
+    "Pediatric Dentistry",
+    "Full-Mouth Rehabilitation",
+  ],
+} as const;
+
+/** Build the schema.org JSON-LD for the clinic (Dentist + LocalBusiness). */
+export function clinicJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Dentist",
+    "@id": `${site.url}/#clinic`,
+    name: site.name,
+    alternateName: site.nameAr,
+    description: site.description,
+    url: site.url,
+    telephone: site.phone,
+    email: site.email,
+    image: `${site.url}${site.logo}`,
+    logo: `${site.url}${site.logo}`,
+    priceRange: site.priceRange,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: site.address.street,
+      addressLocality: site.address.locality,
+      addressRegion: site.address.region,
+      postalCode: site.address.postalCode,
+      addressCountry: site.address.country,
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: site.geo.lat,
+      longitude: site.geo.lng,
+    },
+    openingHoursSpecification: site.openingHours.map((h) => ({
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: h.days,
+      opens: h.opens,
+      closes: h.closes,
+    })),
+    sameAs: site.social,
+    areaServed: { "@type": "City", name: "Cairo" },
+    makesOffer: site.services.map((s) => ({
+      "@type": "Offer",
+      itemOffered: { "@type": "Service", name: s },
+    })),
+  };
+}

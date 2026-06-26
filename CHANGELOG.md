@@ -2,6 +2,21 @@
 
 All notable changes to the BDIC site. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added — Phase 2: SEO & marketing layer
+- **Rich metadata**: `metadataBase`, Open Graph, Twitter card, keywords, canonical, AR/EN
+  `hreflang` alternates, robots directives (`src/app/layout.tsx`).
+- **JSON-LD structured data**: schema.org `Dentist`/`LocalBusiness` with real name, address,
+  geo, phone, opening hours, services, social profiles (`src/lib/site.ts`).
+- **`robots.ts`** — allows crawl of the public site, disallows `/dashboard`, `/login`, `/api/`, `/track/`; points to the sitemap.
+- **`sitemap.ts`** — XML sitemap of public routes.
+- **`manifest.ts`** — PWA web manifest (name, icons, theme).
+- **`opengraph-image.tsx`** — branded 1200×630 social share image (dynamically generated).
+- **Analytics** (`src/components/Analytics.tsx`) — Google Analytics 4 + Meta Pixel, **env-gated**
+  (`NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_FB_PIXEL_ID`); render nothing until IDs are set; load `afterInteractive`.
+- Documented `NEXT_PUBLIC_SITE_URL` / analytics env vars in `.env.example`.
+
 ## [1.0.0] — 2026-06-26
 First tagged, documented release. Landing page + doctor dashboard + booking/WhatsApp
 automation backend, hardened for handover.

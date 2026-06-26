@@ -3,6 +3,8 @@ import { Plus_Jakarta_Sans, Cairo } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/language";
 import { SiteProvider } from "@/lib/siteStore";
+import { site, clinicJsonLd } from "@/lib/site";
+import { Analytics } from "@/components/Analytics";
 
 const latin = Plus_Jakarta_Sans({
   variable: "--font-latin",
@@ -17,9 +19,49 @@ const arabic = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "BDIC — Badawi Dental Implant Center | Cairo",
-  description:
-    "Badawi Dental Implant Center (BDIC) — a specialized dental implant center in Cairo. Replace missing teeth with world-class implants for a confident, natural smile. Book your appointment today.",
+  metadataBase: new URL(site.url),
+  title: {
+    default: "BDIC — Badawi Dental Implant Center | Maadi, Cairo",
+    template: "%s | BDIC — Badawi Dental Implant Center",
+  },
+  description: site.description,
+  keywords: [...site.keywords],
+  applicationName: site.name,
+  authors: [{ name: site.name }],
+  creator: site.name,
+  publisher: site.name,
+  alternates: {
+    canonical: "/",
+    languages: {
+      "en-US": "/",
+      "ar-EG": "/",
+    },
+  },
+  openGraph: {
+    type: "website",
+    siteName: site.name,
+    title: "BDIC — Badawi Dental Implant Center | Maadi, Cairo",
+    description: site.description,
+    url: site.url,
+    locale: site.locale,
+    alternateLocale: site.localeAlt,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BDIC — Badawi Dental Implant Center",
+    description: site.description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  category: "Dentist",
 };
 
 export default function RootLayout({
@@ -34,9 +76,14 @@ export default function RootLayout({
       className={`${latin.variable} ${arabic.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(clinicJsonLd()) }}
+        />
         <LanguageProvider>
           <SiteProvider>{children}</SiteProvider>
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   );

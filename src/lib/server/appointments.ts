@@ -1,6 +1,7 @@
 import type { Appointment } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { dispatchMessage } from "./notify";
+import { generateCode } from "./code";
 
 export type Stage =
   | "pending"
@@ -152,3 +153,49 @@ export async function processTick(now = new Date()): Promise<{ scanned: number; 
 
   return { scanned: appts.length, sent };
 }
+
+export type NewBooking = {
+  name: string;
+  phone: string;
+  serviceId: string;
+  serviceLabelEn: string;
+  serviceLabelAr: string;
+  scheduledAt: Date;
+  durationMin?: number;
+  complaint?: string | null;
+  offerTitle?: string | null;
+  lang?: "en" | "ar";
+  source?: string;
+};
+
+/**
+ * Create a pending booking with a unique tracking code.
+ * Shared by the website form (/api/bookings) and the WhatsApp agent so both
+ * paths behave identically (status "pending" → doctor confirms → WhatsApp flow).
+ */
+export async function createBooking(input: NewBooking): Promise<Appointment> {
+  let code = generateCode();
+  for (let i = 0; i < 6; i++) {
+    const clash = await prisma.appointment.findUnique({ where: { code } });
+    if (!clash) break;
+    code = generateCode();
+  }
+
+  return prisma.appointment.create({
+    data: {
+      code,
+      patientName: input.name,
+      phone: input.phone,
+      serviceId: input.serviceId,
+      serviceLabelEn: input.serviceLabelEn,
+      serviceLabelAr: input.serviceLabelAr,
+      scheduledAt: input.scheduledAt,
+      durationMin: input.durationMin ?? 30,
+      complaint: input.complaint ?? null,
+      offerTitle: input.offerTitle ?? null,
+      lang: input.lang === "ar" ? "ar" : "en",
+      status: "pending",
+    },
+  });
+}
+

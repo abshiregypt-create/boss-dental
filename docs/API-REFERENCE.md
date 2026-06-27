@@ -121,6 +121,31 @@ Delete the file (disk + DB row). `200` → `{ ok:true }` · `404` not found.
 
 ---
 
+## WhatsApp booking agent
+
+### GET `/api/whatsapp/webhook`
+Meta verification handshake. Echoes `hub.challenge` when `hub.verify_token` matches
+`WHATSAPP_VERIFY_TOKEN`. `200` (challenge) · `403` on mismatch.
+
+### POST `/api/whatsapp/webhook`
+Inbound WhatsApp messages from Meta. Verifies `X-Hub-Signature-256` (when
+`WHATSAPP_APP_SECRET` is set), extracts text messages, drives the booking agent, and replies.
+`200` → `{ received:true }` · `401` bad signature. Full flow: `docs/WHATSAPP-AGENT.md`.
+
+### POST `/api/whatsapp/simulate`
+Local testing of the agent without Meta. **Only enabled when `WHATSAPP_PROVIDER=mock`** (else `404`).
+- Body: `{ "phone": string, "text": string }`
+- `200` → `{ replies: string[], bookingCode?: string }`
+
+---
+
+## Health
+
+### GET `/api/health`
+Liveness/readiness probe (DB connectivity + uptime). `200` → `{ status:"ok", db:"up", uptimeSec, latencyMs }` · `503` when the DB is unreachable.
+
+---
+
 ## Status code conventions
 
 | Code | Meaning |

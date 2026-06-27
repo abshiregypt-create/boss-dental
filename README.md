@@ -12,6 +12,7 @@ Full technical docs live in [`docs/`](./docs):
 - [REQUIREMENTS-TRACEABILITY.md](./docs/REQUIREMENTS-TRACEABILITY.md) — feature → status map
 - [RUNBOOK.md](./docs/RUNBOOK.md) — deploy, env, backup/restore, rollback, troubleshooting
 - [HANDOVER.md](./docs/HANDOVER.md) — accounts, known issues, security, checklist
+- [WHATSAPP-AGENT.md](./docs/WHATSAPP-AGENT.md) — WhatsApp booking agent: flow, architecture, go-live
 - [CHANGELOG.md](./CHANGELOG.md) — release history
 
 ## Features

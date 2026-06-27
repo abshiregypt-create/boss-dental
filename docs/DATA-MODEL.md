@@ -96,6 +96,20 @@ Setting (key/value config)
 > patients (e.g. `pt-ahmed`) and real `Patient` rows can both own files. A future cleanup
 > could promote this to a proper FK once all patients are persisted.
 
+### WaConversation — in-progress WhatsApp booking chat
+| Field | Type | Notes |
+|---|---|---|
+| id | String PK | |
+| phone | String **unique** | one row per chat |
+| state | String | `idle`\|`service`\|`date`\|`time`\|`name`\|`confirm` |
+| draft | String? | JSON of the booking being collected (service, date/time, name) |
+| lang | String | `ar` \| `en` (default `ar`) |
+| createdAt, updatedAt | DateTime | |
+| **index** | `@@index([updatedAt])` | for pruning stale chats |
+
+> Drives the WhatsApp booking agent (see `docs/WHATSAPP-AGENT.md`). On confirm, the draft is
+> turned into a normal `Appointment` (status `pending`) via the shared `createBooking()`.
+
 ---
 
 ## Lifecycle stage logic (computed, not stored)
@@ -121,6 +135,7 @@ that's the "N patients ahead of you" number.
 |---|---|
 | `20260620215010_init` | User, Patient, Appointment, Message, Setting |
 | `20260621052309_patient_files` | PatientFile |
+| `20260627112143_wa_conversation` | WaConversation |
 
 **Rules**
 - Schema changes go through `npm run db:migrate` (dev) → commit the generated migration.

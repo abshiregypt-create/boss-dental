@@ -45,6 +45,7 @@ This directly answers the reviewer's "is it complete / does it match the require
 | # | Requirement | Where | Status |
 |---|---|---|---|
 | 3.1 | Patient books from website | `POST /api/bookings` | ✅ |
+| 3.1b | **Patient books from WhatsApp** (conversational agent) | `wa-agent.ts` + `/api/whatsapp/webhook` | ✅ logic; 🟡 live needs Meta creds + public URL |
 | 3.2 | Doctor clicks confirm | `PATCH …/appointments/[code] {confirm}` | ✅ |
 | 3.3 | Auto WhatsApp confirmation | `lib/server/appointments.ts` → `notify.ts`/`whatsapp.ts` | 🧪 mock by default; 🟡 live needs Meta Cloud creds |
 | 3.4 | Auto reminder 2h before | scheduler `processTick()` (`REMINDER_LEAD_MIN=120`) | 🧪 / 🟡 |

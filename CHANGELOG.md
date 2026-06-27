@@ -4,6 +4,22 @@ All notable changes to the BDIC site. Format loosely follows [Keep a Changelog](
 
 ## [Unreleased]
 
+### Added — WhatsApp booking agent (inbound)
+- **Conversational booking via WhatsApp**: a bilingual (AR-first) agent that greets, shows the
+  service menu, parses the day/time (e.g. "بكرة", "30/6", "5 مساءً"), takes the name, confirms,
+  and creates a **pending** booking that feeds the existing confirm→reminder→queue automation.
+- `src/lib/server/wa-agent.ts` — pure, testable state machine + date/time parsers (clinic-hours
+  and Friday validation).
+- `src/lib/server/wa-runtime.ts` — conversation persistence + booking creation + reply sending.
+- `src/app/api/whatsapp/webhook` — Meta Cloud API webhook (GET verify + POST receive) with
+  `X-Hub-Signature-256` verification.
+- `src/app/api/whatsapp/simulate` — local simulator to test the whole flow without Meta
+  (auto-disabled unless `WHATSAPP_PROVIDER=mock`).
+- `WaConversation` Prisma model (+ migration) for per-chat state.
+- Extracted shared `createBooking()` so the web form and the agent create bookings identically.
+- e2e coverage `tests/e2e/whatsapp-agent.spec.ts` (full conversation + validation + cancel).
+- Env: `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`. Docs: `docs/WHATSAPP-AGENT.md`.
+
 ### Added — Phase 3: safety net (backups, staging, tests, CI)
 - **Backup/restore** (`scripts/backup.mjs`, `scripts/restore.mjs`): timestamped snapshots of
   the SQLite DB + patient uploads, prune-by-count, and a **reversible** restore (auto-saves the

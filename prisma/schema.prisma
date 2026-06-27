@@ -93,6 +93,20 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+/// In-progress WhatsApp booking conversation, one row per chat (phone number).
+/// `state` is the step in the flow; `draft` is the JSON being collected.
+model WaConversation {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  state     String   @default("idle") // idle|service|date|time|name|confirm
+  draft     String? // JSON: { serviceId, serviceLabelEn, serviceLabelAr, scheduledAt, name }
+  lang      String   @default("ar") // ar | en
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([updatedAt])
+}
+
 /// A file attached to a patient (x-ray, intra-oral photo, scanned document).
 /// The binary lives on disk under the uploads dir; only metadata is in the DB.
 model PatientFile {

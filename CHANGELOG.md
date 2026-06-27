@@ -4,6 +4,15 @@ All notable changes to the BDIC site. Format loosely follows [Keep a Changelog](
 
 ## [Unreleased]
 
+### Added — WhatsApp "Confirm on WhatsApp" free-trick flow
+- Website booking success now shows a **"Confirm on WhatsApp"** button that opens a chat with a
+  prefilled message **from the customer to the clinic** (`confirmOnWhatsAppLink()` in `site.ts`).
+  Because the customer messages first, WhatsApp's free 24-hour window opens and the clinic's
+  confirmation reply is **free** on the official Meta Cloud API.
+- The agent recognises an inbound "confirm my booking (code …)" message and acknowledges it
+  instead of restarting the booking menu (`detectConfirm()` in `wa-agent.ts`).
+- Added `site.whatsapp` (clinic WhatsApp number) and an e2e test for the confirm acknowledgement.
+
 ### Added — WhatsApp booking agent (inbound)
 - **Conversational booking via WhatsApp**: a bilingual (AR-first) agent that greets, shows the
   service menu, parses the day/time (e.g. "بكرة", "30/6", "5 مساءً"), takes the name, confirms,

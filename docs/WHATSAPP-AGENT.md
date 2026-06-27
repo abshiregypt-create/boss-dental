@@ -68,6 +68,13 @@ the validation/cancel paths against the real agent. Run `npm test`.
 
 ## Going live (Meta WhatsApp Cloud API)
 
+> **Cost note (the "free trick"):** Replies you send **within 24h of the patient messaging you**
+> are free on Meta. So the website shows a **"Confirm on WhatsApp"** button that makes the
+> *customer* message the clinic first (`confirmOnWhatsAppLink()` in `src/lib/site.ts`), opening
+> that free window — the clinic's confirmation reply then costs **$0**. Only messages you send
+> *first*, or more than 24h later, need a paid utility template. Set the clinic's number in
+> `site.whatsapp`.
+
 Requirements: a Meta WhatsApp Cloud API app, a verified sending number, and this route
 reachable at a **public HTTPS URL** (i.e. deploy to the VPS — localhost won't work).
 

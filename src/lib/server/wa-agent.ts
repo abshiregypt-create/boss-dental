@@ -117,6 +117,10 @@ const T = {
     ar: "اكتب «حجز» لبدء حجز موعد 🦷",
     en: "Type \"book\" to start booking an appointment 🦷",
   },
+  confirmAck: {
+    ar: "شكرًا لك! ✅ وصلنا طلب تأكيد حجزك، وسيؤكده الطبيب قريبًا وتصلك رسالة بالتفاصيل.\n\nلو حابب تحجز موعدًا جديدًا، اكتب «حجز».",
+    en: "Thank you! ✅ We've received your confirmation request. The doctor will confirm shortly and you'll get the details here.\n\nTo book a new appointment, type \"book\".",
+  },
 };
 
 function serviceMenu(lang: "ar" | "en"): string {
@@ -138,9 +142,16 @@ function fmtWhen(dt: Date, lang: "ar" | "en"): string {
 }
 
 const isCancel = (t: string) => /^(إلغاء|الغاء|cancel|stop|الغ)/i.test(t.trim());
-const isStart = (t: string) =>
-  /^(حجز|احجز|ابدأ|ابدا|start|book|hi|hello|مرحبا|اهلا|أهلا|السلام)/i.test(t.trim());
 const isConfirm = (t: string) => /^(تأكيد|تاكيد|اكد|نعم|تمام|confirm|yes|ok)/i.test(t.trim());
+
+/** Detects a "confirm my booking" message (from the website's WhatsApp button),
+ *  and extracts the booking code if present (e.g. "كود الحجز: ABC123"). */
+export function detectConfirm(text: string): { isConfirm: boolean; code?: string } {
+  const t = text || "";
+  const mentions = /(تأكيد|أكّد|اكد|confirm).*(حجز|موعد|booking|appointment)|(حجز|موعد|booking|appointment).*(تأكيد|أكّد|اكد|confirm)/i.test(t);
+  const m = t.match(/\b([A-Z2-9]{6})\b/); // tracking codes: 6 chars, no 0/O/1/I/L
+  return { isConfirm: mentions || /كود الحجز|booking code/i.test(t), code: m ? m[1] : undefined };
+}
 
 /* ---------------- date & time parsers ---------------- */
 
@@ -240,13 +251,16 @@ export function handleMessage(
     case "idle": {
       // greet + show the service menu (detect language from the first message)
       const l = detectLang(text);
-      if (isStart(text) || true) {
-        return {
-          reply: `${T.greet[l]}\n\n${serviceMenu(l)}`,
-          next: { state: "service", draft: {}, lang: l },
-        };
+      // Free-trick: a "confirm my booking" message from the website button —
+      // acknowledge it (this also opens WhatsApp's free 24h reply window).
+      const conf = detectConfirm(text);
+      if (conf.isConfirm) {
+        return { reply: T.confirmAck[l], next: { state: "idle", draft: {}, lang: l } };
       }
-      return { reply: T.helpReset[l], next: { state: "idle", draft: {}, lang: l } };
+      return {
+        reply: `${T.greet[l]}\n\n${serviceMenu(l)}`,
+        next: { state: "service", draft: {}, lang: l },
+      };
     }
 
     case "service": {

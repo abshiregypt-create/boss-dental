@@ -34,13 +34,17 @@ async function saveConv(phone: string, conv: WaConv): Promise<void> {
 
 /**
  * Process one inbound message end-to-end. Returns the reply texts (so the
- * simulator/tests can assert on them). Sending happens via `sendWhatsApp`,
- * which is a no-op in `mock` mode.
+ * simulator/tests can assert on them).
+ *
+ * `send` is the delivery function. By default it uses `sendWhatsApp` (Meta/mock).
+ * The whatsapp-web.js worker passes its own sender so the SAME agent drives an
+ * unofficial WhatsApp-Web session with zero changes to the conversation logic.
  */
 export async function processInbound(
   phone: string,
   text: string,
-  now = new Date()
+  now = new Date(),
+  send: (to: string, body: string) => Promise<unknown> = (to, body) => sendWhatsApp({ to, body })
 ): Promise<{ replies: string[]; bookingCode?: string }> {
   const conv = await loadConv(phone);
   const result = handleMessage(conv, text, phone, now);
@@ -57,7 +61,7 @@ export async function processInbound(
   }
 
   for (const body of replies) {
-    await sendWhatsApp({ to: phone, body });
+    await send(phone, body);
   }
 
   return { replies, bookingCode };

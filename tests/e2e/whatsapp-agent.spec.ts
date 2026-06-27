@@ -66,3 +66,14 @@ test("agent rejects Fridays and out-of-hours, and cancels on request", async ({ 
   r = await say2("إلغاء");
   expect(r.replies.join("\n")).toMatch(/إلغاء|cancel/i);
 });
+
+test("website 'confirm on WhatsApp' message is acknowledged (free-trick)", async ({ request }) => {
+  const p3 = "+201000000999";
+  const res = await request.post("/api/whatsapp/simulate", {
+    data: { phone: p3, text: "مرحبًا، أريد تأكيد حجزي في مركز بدوي لزراعة الأسنان\nكود الحجز: ABC234" },
+  });
+  const r = await res.json();
+  // should acknowledge the confirmation, NOT start the booking menu
+  expect(r.replies.join("\n")).toMatch(/وصلنا|الطبيب|تأكيد/);
+  expect(r.replies.join("\n")).not.toMatch(/اختر الخدمة/);
+});

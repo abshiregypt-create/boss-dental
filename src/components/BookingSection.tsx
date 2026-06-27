@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
 import { useSite } from "@/lib/siteStore";
+import { confirmOnWhatsAppLink } from "@/lib/site";
 import { Reveal } from "./Reveal";
 import {
   sessionTypes,
@@ -429,6 +430,27 @@ function SuccessView({ base, snap, onAgain }: { base: Date; snap: Snapshot; onAg
           {fmtDateLong(base, snap.dayOffset, lang)} · {fmtTime(base, snap.dayOffset, hhmmToMin(snap.slot), lang)}
         </div>
       </div>
+
+      <a
+        href={confirmOnWhatsAppLink({
+          code: snap.trackCode,
+          lang,
+          service: tr(snap.serviceLabel),
+          when: `${fmtDateLong(base, snap.dayOffset, lang)} · ${fmtTime(base, snap.dayOffset, hhmmToMin(snap.slot), lang)}`,
+        })}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#25D366]/25 transition hover:-translate-y-0.5"
+      >
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.4.5-.3.3c-.2.2-.3.4-.1.7.2.3.9 1.4 1.9 2.3 1.3 1.1 2.3 1.5 2.6 1.6.3.1.5.1.7-.1l.9-1c.2-.3.4-.2.7-.1l2 .9c.3.2.5.2.6.4.1.1.1.7-.1 1.2Z" /></svg>
+        {tr({ en: "Confirm on WhatsApp", ar: "أكّد عبر واتساب" })}
+      </a>
+      <p className="mt-2 max-w-xs text-xs text-muted">
+        {tr({
+          en: "Tap to message us — we'll confirm your appointment right away.",
+          ar: "اضغط لمراسلتنا — وسنؤكد موعدك فورًا.",
+        })}
+      </p>
 
       {snap.trackCode && (
         <>

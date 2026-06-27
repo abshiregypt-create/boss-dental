@@ -30,6 +30,8 @@ export const site = {
   ],
   phone: "+201222156274",
   phoneDisplay: "+20 122 215 6274",
+  /** WhatsApp number patients message to confirm/book (digits only, no +). */
+  whatsapp: "201222156274",
   email: "info@bdic.clinic",
   address: {
     street: "3/3 El Laselky St.",
@@ -67,6 +69,27 @@ export const site = {
     "Full-Mouth Rehabilitation",
   ],
 } as const;
+
+/**
+ * Build a wa.me link that opens WhatsApp with a prefilled message FROM the
+ * customer TO the clinic. This is the "free trick": because the customer sends
+ * the first message, it opens WhatsApp's free 24-hour service window, so the
+ * clinic's confirmation reply costs nothing on the official Meta Cloud API.
+ */
+export function confirmOnWhatsAppLink(opts: { code?: string | null; lang: "ar" | "en"; service?: string; when?: string }): string {
+  const { code, lang, service, when } = opts;
+  const text =
+    lang === "ar"
+      ? `مرحبًا، أريد تأكيد حجزي في ${site.nameAr}` +
+        (service ? `\nالخدمة: ${service}` : "") +
+        (when ? `\nالموعد: ${when}` : "") +
+        (code ? `\nكود الحجز: ${code}` : "")
+      : `Hi, I'd like to confirm my booking at ${site.name}` +
+        (service ? `\nService: ${service}` : "") +
+        (when ? `\nWhen: ${when}` : "") +
+        (code ? `\nBooking code: ${code}` : "");
+  return `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(text)}`;
+}
 
 /** Build the schema.org JSON-LD for the clinic (Dentist + LocalBusiness). */
 export function clinicJsonLd() {

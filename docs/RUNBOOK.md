@@ -150,3 +150,20 @@ Because releases are **git-tagged**, rolling back to a known-good build is one c
 curl -s -o NUL -w "%{http_code}" http://localhost:3000          # expect 200
 curl -s -o NUL -w "%{http_code}" http://localhost:3000/login    # expect 200
 ```
+
+---
+
+## 11. Testing & CI (Phase 3)
+
+```bash
+npm run test:unit     # unit tests for the lifecycle stage logic (node --test)
+npm test              # Playwright e2e (landing, SEO, health, booking->confirm->tracker)
+npm run health        # ping /api/health on the running server
+npm run db:backup     # timestamped snapshot of DB + uploads -> backups/
+npm run db:restore    # restore newest backup (auto-saves current state first)
+npm run staging:sync  # clone live DB -> prisma/staging.db for safe migration tests
+```
+
+**CI:** `.github/workflows/ci.yml` runs install -> lint -> migrate+seed -> unit -> build -> e2e on every push/PR to `main`.
+
+**Recommended cadence:** schedule `npm run db:backup -- --keep 30` daily (Task Scheduler/cron); run `npm run health` from your monitor every few minutes.

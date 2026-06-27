@@ -4,7 +4,24 @@ All notable changes to the BDIC site. Format loosely follows [Keep a Changelog](
 
 ## [Unreleased]
 
-### Added — Phase 2: SEO & marketing layer
+### Added — Phase 3: safety net (backups, staging, tests, CI)
+- **Backup/restore** (`scripts/backup.mjs`, `scripts/restore.mjs`): timestamped snapshots of
+  the SQLite DB + patient uploads, prune-by-count, and a **reversible** restore (auto-saves the
+  current state to `_pre-restore-*` first). npm: `db:backup`, `db:restore`.
+- **Staging workflow** (`scripts/staging-sync.mjs`): clone live data into `prisma/staging.db`
+  so edits/migrations are tested on real-shaped data without touching production. npm: `staging:sync`.
+- **Health check**: `GET /api/health` (DB connectivity + uptime + latency) and
+  `scripts/healthcheck.mjs` (exit-coded for monitoring). npm: `health`.
+- **Automated tests**: Playwright e2e (`tests/e2e`) covering landing+SEO, robots/sitemap,
+  health, the full **booking→confirm→tracker** lifecycle, and admin auth-block; plus unit
+  tests (`tests/unit`) for the `stageOf` lifecycle logic. npm: `test`, `test:unit`.
+- **CI** (`.github/workflows/ci.yml`): install → lint → migrate+seed → unit → build →
+  e2e on every push/PR to `main`.
+- New `.gitignore` entries for `/backups` and `prisma/staging.db*`.
+
+### SEO/Analytics, prior phase — see below.
+
+## [Unreleased — Phase 2]
 - **Rich metadata**: `metadataBase`, Open Graph, Twitter card, keywords, canonical, AR/EN
   `hreflang` alternates, robots directives (`src/app/layout.tsx`).
 - **JSON-LD structured data**: schema.org `Dentist`/`LocalBusiness` with real name, address,

@@ -58,3 +58,12 @@ next-env.d.ts
 
 # patient file uploads (private)
 /private-uploads
+
+# backups (local DB + uploads snapshots)
+/backups
+# staging working copy
+/prisma/staging.db*
+
+# playwright test artefacts
+/test-results
+/playwright-report

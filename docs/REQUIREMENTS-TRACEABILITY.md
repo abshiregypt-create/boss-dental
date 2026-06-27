@@ -62,10 +62,10 @@ This directly answers the reviewer's "is it complete / does it match the require
 | 4.4 | Technical documentation | ✅ this bundle | **1** |
 | 4.5 | SEO (sitemap/robots/OG/JSON-LD) | ✅ done | **2** |
 | 4.6 | Analytics (GA4 / Meta Pixel) | ✅ done (env-gated, off until IDs set) | **2** |
-| 4.7 | Automated tests (e2e/unit) | ⛔ none yet (Playwright available) | **3** |
-| 4.8 | Backups + restore procedure | ⛔ → RUNBOOK procedure being added | **3** |
-| 4.9 | Staging environment | ⛔ single env today | **3** |
-| 4.10 | Monitoring / health checks | ⛔ | **3** |
+| 4.7 | Automated tests (e2e/unit) | ✅ done (5 e2e + 6 unit, all green) | **3** |
+| 4.8 | Backups + restore procedure | ✅ done (`db:backup`/`db:restore`, reversible) | **3** |
+| 4.9 | Staging environment | ✅ done (`staging:sync` → real-shaped data) | **3** |
+| 4.10 | Monitoring / health checks | ✅ done (`/api/health` + `health` script) | **3** |
 
 ---
 

@@ -13,6 +13,7 @@ Full technical docs live in [`docs/`](./docs):
 - [RUNBOOK.md](./docs/RUNBOOK.md) — deploy, env, backup/restore, rollback, troubleshooting
 - [HANDOVER.md](./docs/HANDOVER.md) — accounts, known issues, security, checklist
 - [WHATSAPP-AGENT.md](./docs/WHATSAPP-AGENT.md) — WhatsApp booking agent: flow, architecture, go-live
+- [WHATSAPP-META-SETUP.md](./docs/WHATSAPP-META-SETUP.md) — step-by-step Meta Cloud API credential setup
 - [CHANGELOG.md](./CHANGELOG.md) — release history
 
 ## Features

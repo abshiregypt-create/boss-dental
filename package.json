@@ -15,6 +15,7 @@
     "db:restore": "node scripts/restore.mjs",
     "staging:sync": "node scripts/staging-sync.mjs",
     "health": "node scripts/healthcheck.mjs",
+    "whatsapp:check": "node scripts/whatsapp-check.mjs",
     "test": "playwright test",
     "test:unit": "node --test tests/unit/*.test.mjs",
     "postinstall": "prisma generate"

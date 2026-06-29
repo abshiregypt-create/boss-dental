@@ -2,8 +2,8 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Exercises the REAL WhatsApp booking agent through the local simulator
- * (no Meta credentials needed). A full conversation drives the date/time
- * parsers, the state machine, conversation persistence, and booking creation.
+ * (no Meta credentials needed). New flow: greet → pick day → pick slot →
+ * reason → pending booking + "waiting for confirmation".
  */
 const phone = "+201000000777";
 
@@ -13,58 +13,45 @@ async function say(request, text) {
   return res.json();
 }
 
-test("full WhatsApp booking conversation creates a pending appointment", async ({ request }) => {
-  // greet -> service menu
-  let r = await say(request, "حجز");
-  expect(r.replies.join("\n")).toContain("اختر الخدمة");
+test("full WhatsApp booking conversation (day → slot → reason)", async ({ request }) => {
+  // any greeting → day menu
+  let r = await say(request, "مرحبا");
+  expect(r.replies.join("\n")).toMatch(/اختر اليوم|أهلاً/);
 
-  // choose service #1 (Check-up) -> asks for date
+  // pick the 2nd open day (tomorrow-ish: reliably has free slots)
+  r = await say(request, "2");
+  const afterDay = r.replies.join("\n");
+  expect(afterDay).toMatch(/المواعيد المتاحة|مفيش مواعيد/);
+
+  if (/مفيش مواعيد/.test(afterDay)) {
+    r = await say(request, "3"); // try another day
+  }
+  expect(r.replies.join("\n")).toMatch(/المواعيد المتاحة/);
+
+  // pick the 1st available time → asks reason
   r = await say(request, "1");
-  expect(r.replies.join("\n")).toMatch(/التاريخ|يوم/);
+  expect(r.replies.join("\n")).toMatch(/سبب الزيارة/);
 
-  // date "tomorrow" -> asks for time
-  r = await say(request, "بكرة");
-  expect(r.replies.join("\n")).toMatch(/وقت|١٢|12/);
-
-  // time "5 مساءً" -> asks for name
-  r = await say(request, "5 مساءً");
-  expect(r.replies.join("\n")).toContain("اسمك");
-
-  // name -> confirmation summary
-  r = await say(request, "أحمد كمال");
-  expect(r.replies.join("\n")).toMatch(/تأكيد|أحمد كمال/);
-
-  // confirm -> booking created with a tracking code
-  r = await say(request, "تأكيد");
+  // give a reason → pending booking + waiting for confirmation
+  r = await say(request, "ألم في الضرس");
+  expect(r.replies.join("\n")).toMatch(/في انتظار تأكيد الطبيب/);
   expect(r.bookingCode).toBeTruthy();
-  expect(r.replies.join("\n")).toContain(r.bookingCode);
 
   // the booking is real and visible on the public tracker as pending
   const track = await request.get(`/api/track/${r.bookingCode}`);
   expect(track.ok()).toBeTruthy();
-  const data = await track.json();
-  expect(data.stage).toBe("pending");
+  expect((await track.json()).stage).toBe("pending");
 });
 
-test("agent rejects Fridays and out-of-hours, and cancels on request", async ({ request }) => {
+test("cancel resets the flow", async ({ request }) => {
   const p2 = "+201000000888";
   const say2 = async (text) =>
     (await request.post("/api/whatsapp/simulate", { data: { phone: p2, text } })).json();
 
-  await say2("حجز");
-  await say2("2"); // a service
-  // Friday 2026-07-03 is a Friday -> should be rejected
-  let r = await say2("3/7/2026");
-  expect(r.replies.join("\n")).toMatch(/الجمعة|Friday/);
-
-  // a valid upcoming day, then an out-of-hours time
-  await say2("بعد بكرة");
-  r = await say2("8 صباحًا"); // 08:00, before noon opening
-  expect(r.replies.join("\n")).toMatch(/مواعيد العمل|hours/);
-
-  // cancel resets the flow
-  r = await say2("إلغاء");
-  expect(r.replies.join("\n")).toMatch(/إلغاء|cancel/i);
+  await say2("حجز"); // → day menu
+  await say2("2"); // → slots
+  const r = await say2("إلغاء");
+  expect(r.replies.join("\n")).toMatch(/تم الإلغاء|cancel/i);
 });
 
 test("website 'confirm on WhatsApp' message is acknowledged (free-trick)", async ({ request }) => {
@@ -73,7 +60,6 @@ test("website 'confirm on WhatsApp' message is acknowledged (free-trick)", async
     data: { phone: p3, text: "مرحبًا، أريد تأكيد حجزي في مركز بدوي لزراعة الأسنان\nكود الحجز: ABC234" },
   });
   const r = await res.json();
-  // should acknowledge the confirmation, NOT start the booking menu
   expect(r.replies.join("\n")).toMatch(/وصلنا|الطبيب|تأكيد/);
-  expect(r.replies.join("\n")).not.toMatch(/اختر الخدمة/);
+  expect(r.replies.join("\n")).not.toMatch(/اختر اليوم/);
 });

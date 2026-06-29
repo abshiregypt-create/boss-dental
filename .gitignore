@@ -71,3 +71,4 @@ next-env.d.ts
 # whatsapp-web.js session (contains your WhatsApp login — NEVER commit)
 /.wwebjs_auth
 /.wwebjs_cache
+wa-worker.log

@@ -1,15 +1,105 @@
 /**
  * WhatsApp agent runtime: the side-effecting layer around the pure `wa-agent`.
- * Loads/saves conversation state, creates the booking, and sends replies.
- * Shared by the Meta webhook and the local simulator so both behave identically.
+ * Loads/saves conversation state, computes availability from the DB, creates the
+ * booking, and returns replies. Shared by the worker endpoint and the simulator.
  */
 import { prisma } from "@/lib/db";
-import { handleMessage, bookingConfirmedReply, type WaConv, type WaState } from "./wa-agent";
+import {
+  handleMessage,
+  type WaConv,
+  type WaState,
+  type DayOption,
+  type SlotOption,
+} from "./wa-agent";
 import { createBooking } from "./appointments";
-import { sendWhatsApp } from "./whatsapp";
-import { trackUrl } from "./messages";
 
-const VALID_STATES: WaState[] = ["idle", "service", "date", "time", "name", "confirm"];
+const VALID_STATES: WaState[] = ["idle", "day", "slot", "why"];
+
+/* ---------------- clinic hours ---------------- */
+const OPEN_MIN = 12 * 60; // 12:00
+const CLOSE_MIN = 22 * 60; // 22:00
+const SLOT_MIN = 30;
+const VISIT_MIN = 30; // default consultation length
+const CLOSED_WEEKDAY = 5; // Friday
+const TZ = "Africa/Cairo";
+const OPEN_DAYS_COUNT = 6; // how many upcoming open days to offer
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function minToHHMM(m: number): string {
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+function dayLabel(d: Date, lang: "ar" | "en"): string {
+  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: TZ,
+  }).format(d);
+}
+function timeLabel(d: Date, lang: "ar" | "en"): string {
+  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: TZ,
+  }).format(d);
+}
+
+/** The next N open (non-Friday) days, starting today. */
+function nextOpenDays(now: Date, lang: "ar" | "en", count = OPEN_DAYS_COUNT): DayOption[] {
+  const days: DayOption[] = [];
+  const cursor = startOfDay(now);
+  let guard = 0;
+  while (days.length < count && guard < 21) {
+    guard++;
+    if (cursor.getDay() !== CLOSED_WEEKDAY) {
+      days.push({ dateISO: cursor.toISOString(), label: dayLabel(cursor, lang) });
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+/** Free 30-min slots for a given day, excluding already-booked times. */
+async function computeDaySlots(dateISO: string, now: Date, lang: "ar" | "en"): Promise<SlotOption[]> {
+  const day = new Date(dateISO);
+  if (day.getDay() === CLOSED_WEEKDAY) return [];
+  const dayStart = startOfDay(day);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+
+  const appts = await prisma.appointment.findMany({
+    where: {
+      status: { in: ["pending", "confirmed"] },
+      scheduledAt: { gte: dayStart, lt: dayEnd },
+    },
+    select: { scheduledAt: true, durationMin: true },
+  });
+
+  const busy = appts.map((a) => {
+    const s = a.scheduledAt.getHours() * 60 + a.scheduledAt.getMinutes();
+    return [s, s + (a.durationMin || VISIT_MIN)] as const;
+  });
+
+  const isToday = startOfDay(now).getTime() === dayStart.getTime();
+  const nowMin = isToday ? now.getHours() * 60 + now.getMinutes() + 30 : -1;
+
+  const slots: SlotOption[] = [];
+  for (let start = OPEN_MIN; start + VISIT_MIN <= CLOSE_MIN; start += SLOT_MIN) {
+    if (start < nowMin) continue;
+    const end = start + VISIT_MIN;
+    const clash = busy.some(([bs, be]) => start < be && end > bs);
+    if (clash) continue;
+    const slotDate = new Date(dayStart);
+    slotDate.setHours(Math.floor(start / 60), start % 60, 0, 0);
+    slots.push({ value: minToHHMM(start), label: timeLabel(slotDate, lang) });
+  }
+  return slots.slice(0, 12); // keep the menu readable
+}
 
 export async function loadConv(phone: string): Promise<WaConv> {
   const row = await prisma.waConversation.findUnique({ where: { phone } });
@@ -33,21 +123,32 @@ async function saveConv(phone: string, conv: WaConv): Promise<void> {
 }
 
 /**
- * Process one inbound message end-to-end. Returns the reply texts (so the
- * simulator/tests can assert on them).
- *
- * `send` is the delivery function. By default it uses `sendWhatsApp` (Meta/mock).
- * The whatsapp-web.js worker passes its own sender so the SAME agent drives an
- * unofficial WhatsApp-Web session with zero changes to the conversation logic.
+ * Process one inbound message end-to-end. Computes availability, runs the agent,
+ * persists state, creates the booking on completion, and returns the reply texts.
+ * The caller (worker / simulator) delivers the replies.
  */
 export async function processInbound(
   phone: string,
   text: string,
   now = new Date(),
-  send: (to: string, body: string) => Promise<unknown> = (to, body) => sendWhatsApp({ to, body })
+  name?: string
 ): Promise<{ replies: string[]; bookingCode?: string }> {
   const conv = await loadConv(phone);
-  const result = handleMessage(conv, text, phone, now);
+  const lang = conv.lang;
+
+  // Build availability context the agent needs.
+  const openDays = nextOpenDays(now, lang);
+  const slotsByDate: Record<string, SlotOption[]> = {};
+  // Only compute slots we might show: all open days when about to list, or the
+  // chosen day when in "slot". Computing all is cheap (<=6 small queries).
+  for (const d of openDays) {
+    slotsByDate[d.dateISO] = await computeDaySlots(d.dateISO, now, lang);
+  }
+  if (conv.draft.dateISO && !slotsByDate[conv.draft.dateISO]) {
+    slotsByDate[conv.draft.dateISO] = await computeDaySlots(conv.draft.dateISO, now, lang);
+  }
+
+  const result = handleMessage(conv, text, phone, { now, name, openDays, slotsByDate });
   await saveConv(phone, result.next);
 
   const replies: string[] = [];
@@ -55,13 +156,18 @@ export async function processInbound(
 
   let bookingCode: string | undefined;
   if (result.booking) {
-    const appt = await createBooking(result.booking);
+    const b = result.booking;
+    const appt = await createBooking({
+      name: b.name,
+      phone: b.phone,
+      serviceId: b.serviceId,
+      serviceLabelEn: b.serviceLabelEn,
+      serviceLabelAr: b.serviceLabelAr,
+      scheduledAt: b.scheduledAt,
+      complaint: b.reason ?? null,
+      lang: b.lang,
+    });
     bookingCode = appt.code;
-    replies.push(bookingConfirmedReply(result.booking.lang, appt.code, trackUrl(appt.code)));
-  }
-
-  for (const body of replies) {
-    await send(phone, body);
   }
 
   return { replies, bookingCode };

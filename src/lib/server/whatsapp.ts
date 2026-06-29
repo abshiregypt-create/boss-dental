@@ -107,6 +107,18 @@ export async function sendWhatsApp({
     return { ok: true, provider: "wa", status: "queued", waLink: link };
   }
 
+  if (provider === "waweb") {
+    // Unofficial WhatsApp-Web worker: queue the message; the worker polls the
+    // outbox, sends it over the linked number, and marks it sent.
+    try {
+      const { prisma } = await import("@/lib/db");
+      await prisma.waOutbox.create({ data: { phone: to, body, status: "queued" } });
+      return { ok: true, provider: "waweb", status: "queued", waLink: link };
+    } catch (e) {
+      return { ok: false, provider: "waweb", status: "failed", error: String((e as Error)?.message ?? e), waLink: link };
+    }
+  }
+
   // mock
   return { ok: true, provider: "mock", status: "sent", waLink: link };
 }

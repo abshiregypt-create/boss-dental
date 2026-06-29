@@ -98,13 +98,27 @@ model Setting {
 model WaConversation {
   id        String   @id @default(cuid())
   phone     String   @unique
-  state     String   @default("idle") // idle|service|date|time|name|confirm
-  draft     String? // JSON: { serviceId, serviceLabelEn, serviceLabelAr, scheduledAt, name }
+  state     String   @default("idle") // idle|day|slot|why
+  draft     String? // JSON: { dateISO, dateLabel, slot, timeLabel, reason }
   lang      String   @default("ar") // ar | en
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
   @@index([updatedAt])
+}
+
+/// Outgoing WhatsApp messages the SERVER initiates (e.g. the doctor-confirm
+/// notification). The whatsapp-web.js worker polls this, sends them, and marks
+/// them sent — so server-side events reach the patient over the linked number.
+model WaOutbox {
+  id        String   @id @default(cuid())
+  phone     String
+  body      String
+  status    String   @default("queued") // queued | sent | failed
+  createdAt DateTime @default(now())
+  sentAt    DateTime?
+
+  @@index([status, createdAt])
 }
 
 /// A file attached to a patient (x-ray, intra-oral photo, scanned document).

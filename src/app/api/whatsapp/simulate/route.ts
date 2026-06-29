@@ -13,8 +13,10 @@ import { processInbound } from "@/lib/server/wa-runtime";
  * returns 404 so it can never be hit in production.
  */
 export async function POST(req: Request) {
+  // Disabled only for the official Meta provider (production). Allowed for the
+  // local/unofficial providers (mock, waweb, wa) so the flow stays testable.
   const provider = process.env.WHATSAPP_PROVIDER || "mock";
-  if (provider !== "mock") {
+  if (provider === "metaCloud") {
     return new NextResponse("not found", { status: 404 });
   }
 

@@ -80,16 +80,39 @@ const client = new Client({
   },
 });
 
+/** Push the worker's status (and QR) to the site so the dashboard can show it. */
+async function reportStatus(state, qr) {
+  try {
+    await fetch(`${BASE}/api/whatsapp/worker-status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-agent-secret": SECRET },
+      body: JSON.stringify({ state, qr }),
+    });
+  } catch {
+    /* dashboard reporting is best-effort */
+  }
+}
+
 client.on("qr", (qr) => {
   console.log("\n=== Scan this QR with WhatsApp (Settings → Linked Devices → Link a Device) ===\n");
   qrcode.generate(qr, { small: true });
-  console.log("\nWaiting for scan…");
+  console.log("\nOr open the dashboard → WhatsApp tab to scan it there.\nWaiting for scan…");
+  reportStatus("qr", qr);
 });
 
-client.on("authenticated", () => console.log("[wa] authenticated — session saved."));
+client.on("authenticated", () => {
+  console.log("[wa] authenticated — session saved.");
+  reportStatus("authenticated");
+});
 client.on("auth_failure", (m) => console.error("[wa] auth failure:", m));
-client.on("ready", () => console.log("[wa] READY ✅  The booking bot is now live on your number."));
-client.on("disconnected", (r) => console.error("[wa] disconnected:", r, "— PM2 will restart."));
+client.on("ready", () => {
+  console.log("[wa] READY ✅  The booking bot is now live on your number.");
+  reportStatus("ready");
+});
+client.on("disconnected", (r) => {
+  console.error("[wa] disconnected:", r, "— PM2 will restart.");
+  reportStatus("disconnected");
+});
 
 /** Forward an inbound message to the booking agent and return its replies. */
 async function askAgent(phone, text) {

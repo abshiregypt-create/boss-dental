@@ -11,6 +11,7 @@ import { PatientsSection } from "./PatientsSection";
 import { OffersManager } from "./OffersManager";
 import { SiteEditor } from "./SiteEditor";
 import { OnlineBookings } from "./OnlineBookings";
+import { WhatsAppLink } from "./WhatsAppLink";
 import {
   type BookingRequest,
   seedRequests,
@@ -82,6 +83,7 @@ function ComingSoon({ label }: { label: string }) {
 const navItems = [
   { id: "overview", label: { en: "Overview", ar: "الرئيسية" }, icon: "M3 12 12 4l9 8M5 10v9h5v-6h4v6h5v-9" },
   { id: "bookings", label: { en: "Bookings", ar: "الحجوزات" }, icon: "M4 5h16v10H7l-3 3V5Z" },
+  { id: "whatsapp", label: { en: "WhatsApp", ar: "واتساب" }, icon: "M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Z" },
   { id: "calendar", label: { en: "Calendar", ar: "التقويم" }, icon: "M3 9h18M7 3v4m10-4v4M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" },
   { id: "patients", label: { en: "Clients", ar: "العملاء" }, icon: "M16 19a4 4 0 0 0-8 0M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" },
   { id: "offers", label: { en: "Offers", ar: "العروض" }, icon: "M20 12v8H4v-8M2 7h20v5H2zM12 7v13M12 7S10.5 3 8 3a2 2 0 0 0 0 4M12 7s1.5-4 4-4a2 2 0 0 1 0 4" },
@@ -508,6 +510,8 @@ export function DoctorDashboard() {
           )}
 
           {activeNav === "bookings" && <OnlineBookings />}
+
+          {activeNav === "whatsapp" && <WhatsAppLink />}
 
           {activeNav === "offers" && <OffersManager />}
 

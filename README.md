@@ -15,6 +15,7 @@ Full technical docs live in [`docs/`](./docs):
 - [WHATSAPP-AGENT.md](./docs/WHATSAPP-AGENT.md) — WhatsApp booking agent: flow, architecture, go-live
 - [WHATSAPP-META-SETUP.md](./docs/WHATSAPP-META-SETUP.md) — step-by-step Meta Cloud API credential setup
 - [DEPLOY-CLOUD.md](./docs/DEPLOY-CLOUD.md) — free cloud deploy (Render/Railway) to make WhatsApp booking live, no VPS
+- [WHATSAPP-FREE-WORKER.md](./docs/WHATSAPP-FREE-WORKER.md) — free WhatsApp bot on your own number (whatsapp-web.js, no Meta/card)
 - [CHANGELOG.md](./CHANGELOG.md) — release history
 
 ## Features

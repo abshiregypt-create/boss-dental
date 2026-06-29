@@ -23,6 +23,7 @@
 import pkg from "whatsapp-web.js";
 const { Client, LocalAuth } = pkg;
 import qrcode from "qrcode-terminal";
+import fs from "node:fs";
 
 const BASE = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 const SECRET = process.env.WA_AGENT_SECRET;
@@ -33,10 +34,42 @@ if (!SECRET) {
   process.exit(1);
 }
 
+/**
+ * Find a Chrome/Chromium to drive. Order:
+ *   1. CHROME_PATH env (set this on the VPS, e.g. /usr/bin/chromium-browser)
+ *   2. puppeteer's own bundled Chromium (if it downloaded)
+ *   3. a system Google Chrome / Edge install (Windows/macOS/Linux common paths)
+ */
+function findChrome() {
+  if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
+  const candidates = [
+    "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+    `${process.env.LOCALAPPDATA || ""}/Google/Chrome/Application/chrome.exe`,
+    "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  ];
+  for (const p of candidates) {
+    try {
+      if (p && fs.existsSync(p)) return p;
+    } catch {
+      /* ignore */
+    }
+  }
+  return undefined; // let whatsapp-web.js fall back to its bundled Chromium
+}
+
+const executablePath = findChrome();
+console.log(`[wa] using Chrome: ${executablePath || "(puppeteer bundled Chromium)"}`);
+
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: SESSION_DIR }),
   puppeteer: {
     headless: true,
+    executablePath,
     // Flags required to run Chromium on a headless VPS.
     args: [
       "--no-sandbox",

@@ -67,3 +67,7 @@ next-env.d.ts
 # playwright test artefacts
 /test-results
 /playwright-report
+
+# whatsapp-web.js session (contains your WhatsApp login — NEVER commit)
+/.wwebjs_auth
+/.wwebjs_cache

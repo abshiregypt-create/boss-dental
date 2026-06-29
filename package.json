@@ -23,6 +23,9 @@
   "prisma": {
     "seed": "node prisma/seed.mjs"
   },
+  "engines": {
+    "node": ">=20 <=22"
+  },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",

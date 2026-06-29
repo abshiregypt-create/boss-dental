@@ -30,8 +30,12 @@ export const site = {
   ],
   phone: "+201222156274",
   phoneDisplay: "+20 122 215 6274",
-  /** WhatsApp number patients message to confirm/book (digits only, no +). */
-  whatsapp: "201222156274",
+  /**
+   * WhatsApp number patients message to confirm/book (digits only, no +).
+   * Set NEXT_PUBLIC_CLINIC_WHATSAPP to the dedicated bot number once you have it;
+   * falls back to the main line until then.
+   */
+  whatsapp: process.env.NEXT_PUBLIC_CLINIC_WHATSAPP || "201222156274",
   email: "info@bdic.clinic",
   address: {
     street: "3/3 El Laselky St.",

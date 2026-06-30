@@ -47,6 +47,9 @@ const BASE = (process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/
 const SECRET = process.env.WA_AGENT_SECRET;
 const SESSION_DIR = process.env.WA_SESSION_DIR || "./.wwebjs_auth";
 
+// Outbox poll timer (declared early; it's referenced by disconnect/fatal handlers).
+let outboxTimer = null;
+
 if (!SECRET) {
   console.error("FATAL: set WA_AGENT_SECRET (must match the site's WA_AGENT_SECRET).");
   process.exit(1);
@@ -136,9 +139,28 @@ client.on("ready", () => {
   reportStatus("ready");
 });
 client.on("disconnected", (r) => {
-  console.error("[wa] disconnected:", r, "— PM2 will restart.");
+  console.error("[wa] disconnected:", r, "— exiting so the launcher restarts a fresh session.");
   reportStatus("disconnected");
+  if (outboxTimer) clearInterval(outboxTimer);
+  // Exit; start-worker.cmd (or PM2) relaunches with the saved session.
+  setTimeout(() => process.exit(1), 1000);
 });
+
+// If Chrome's page detaches (the "detached Frame" crash), the session is dead —
+// exit so the launcher restarts cleanly instead of looping on a broken client.
+let fatalCount = 0;
+function maybeFatal(err) {
+  const msg = String(err?.message || err || "");
+  if (/detached Frame|Session closed|Target closed|Protocol error|Execution context/i.test(msg)) {
+    fatalCount++;
+    if (fatalCount >= 3) {
+      console.error("[wa] session looks dead — exiting for a clean restart.");
+      if (outboxTimer) clearInterval(outboxTimer);
+      setTimeout(() => process.exit(1), 500);
+    }
+  }
+}
+process.on("unhandledRejection", maybeFatal);
 
 /** Forward an inbound message to the booking agent and return its replies. */
 async function askAgent(phone, text, name) {
@@ -171,6 +193,7 @@ async function drainOutbox() {
         sent.push(m.id);
       } catch (e) {
         console.error("[outbox] send failed:", e?.message || e);
+        maybeFatal(e);
       }
     }
     if (sent.length) {
@@ -191,22 +214,32 @@ client.on("message", async (msg) => {
     if (msg.from.endsWith("@g.us") || msg.from === "status@broadcast") return;
     if (msg.type !== "chat" || !msg.body) return;
 
-    const phone = msg.from.split("@")[0]; // e.g. "201234567890"
-    const name = msg._data?.notifyName || undefined; // WhatsApp contact name
+    // Resolve the real phone number + contact name from the contact object
+    // (msg.from can be a @lid alias; the contact has the actual number).
+    let phone = msg.from.split("@")[0];
+    let name;
+    try {
+      const contact = await msg.getContact();
+      if (contact?.number) phone = String(contact.number).replace(/\D/g, "");
+      name = contact?.pushname || contact?.name || msg._data?.notifyName || undefined;
+    } catch {
+      name = msg._data?.notifyName || undefined;
+    }
+
     const { replies } = await askAgent(phone, msg.body, name);
     for (const body of replies) {
       if (body && body.trim()) await client.sendMessage(msg.from, body);
     }
   } catch (e) {
     console.error("[wa] message handler error:", e?.message || e);
+    maybeFatal(e);
   }
 });
 
 // Poll the outbox once the client is ready (doctor-confirm messages, etc.).
-let outboxTimer = null;
 client.on("ready", () => {
   if (outboxTimer) clearInterval(outboxTimer);
-  outboxTimer = setInterval(drainOutbox, 5000);
+  outboxTimer = setInterval(drainOutbox, 8000);
 });
 
 process.on("SIGINT", async () => {

@@ -123,6 +123,53 @@ async function saveConv(phone: string, conv: WaConv): Promise<void> {
 }
 
 /**
+ * Decide the patient's display name for a WhatsApp booking:
+ *   1. an existing Patient/Appointment with this phone (returning patient), else
+ *   2. the WhatsApp contact name if it's a real name (not junk like "." or digits), else
+ *   3. a readable label built from the phone number.
+ */
+async function resolvePatientName(
+  phone: string,
+  contactName: string | undefined,
+  lang: "ar" | "en"
+): Promise<string> {
+  const digits = phone.replace(/\D/g, "");
+
+  // 1) returning patient by phone (match on the trailing digits to dodge +/0/cc variants)
+  const tail = digits.slice(-9);
+  if (tail.length >= 8) {
+    const prior = await prisma.appointment.findFirst({
+      where: { phone: { contains: tail }, patientName: { not: "" } },
+      orderBy: { createdAt: "desc" },
+      select: { patientName: true },
+    });
+    if (prior?.patientName && isRealName(prior.patientName)) return prior.patientName;
+
+    const patient = await prisma.patient.findFirst({
+      where: { phone: { contains: tail } },
+      orderBy: { createdAt: "desc" },
+      select: { name: true },
+    });
+    if (patient?.name && isRealName(patient.name)) return patient.name;
+  }
+
+  // 2) a usable WhatsApp contact name
+  if (contactName && isRealName(contactName)) return contactName.trim();
+
+  // 3) fall back to a phone-based label
+  const pretty = digits ? `+${digits}` : phone;
+  return lang === "ar" ? `عميل ${pretty}` : `Client ${pretty}`;
+}
+
+/** A name is "real" if it has at least 2 letters and isn't just punctuation/digits. */
+function isRealName(s: string): boolean {
+  const t = (s || "").trim();
+  if (t.length < 2) return false;
+  const letters = (t.match(/[\p{L}]/gu) || []).length;
+  return letters >= 2;
+}
+
+/**
  * Process one inbound message end-to-end. Computes availability, runs the agent,
  * persists state, creates the booking on completion, and returns the reply texts.
  * The caller (worker / simulator) delivers the replies.
@@ -136,6 +183,9 @@ export async function processInbound(
   const conv = await loadConv(phone);
   const lang = conv.lang;
 
+  // Resolve a good patient name (returning patient → contact name → phone label).
+  const resolvedName = await resolvePatientName(phone, name, lang);
+
   // Build availability context the agent needs.
   const openDays = nextOpenDays(now, lang);
   const slotsByDate: Record<string, SlotOption[]> = {};
@@ -148,7 +198,7 @@ export async function processInbound(
     slotsByDate[conv.draft.dateISO] = await computeDaySlots(conv.draft.dateISO, now, lang);
   }
 
-  const result = handleMessage(conv, text, phone, { now, name, openDays, slotsByDate });
+  const result = handleMessage(conv, text, phone, { now, name: resolvedName, openDays, slotsByDate });
   await saveConv(phone, result.next);
 
   const replies: string[] = [];

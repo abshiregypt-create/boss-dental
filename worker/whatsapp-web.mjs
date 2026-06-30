@@ -190,6 +190,15 @@ async function drainOutbox() {
     for (const m of messages) {
       const digits = String(m.phone).replace(/\D/g, "");
       try {
+        // Never deliver a message whose text was mangled into "?" placeholders by
+        // a broken (non-UTF-8) sender — drop it instead of spamming the patient.
+        const qCount = (String(m.body).match(/\?/g) || []).length;
+        const nonSpace = String(m.body).replace(/\s/g, "").length;
+        if (qCount >= 5 && nonSpace > 0 && qCount / nonSpace > 0.5) {
+          console.error(`[outbox] skipping corrupted (mostly "?") message to ${digits}.`);
+          failed.push(m.id);
+          continue;
+        }
         // The stored chat id is the EXACT chat the patient messaged us from
         // (their real msg.from), so replying there always reaches the right
         // person — even for "@lid" contacts whose real number isn't directly

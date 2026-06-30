@@ -10,6 +10,17 @@ const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 /** Pause the booking bot for this long after the doctor sends a manual reply. */
 const PAUSE_MINUTES = 12 * 60;
 
+/**
+ * Detect a message whose text was mangled by a broken (non-UTF-8) encoder — it
+ * shows up as mostly "?" placeholders (e.g. Arabic turned into "?????? ?????").
+ * We refuse to send these so a garbled message never reaches a patient.
+ */
+function looksCorrupted(text: string): boolean {
+  const q = (text.match(/\?/g) || []).length;
+  const nonSpace = text.replace(/\s/g, "").length;
+  return q >= 5 && nonSpace > 0 && q / nonSpace > 0.5;
+}
+
 /** Build a phone→display-name map from appointments + patients (best name wins). */
 async function nameByPhone(): Promise<Map<string, string>> {
   const [appts, patients] = await Promise.all([
@@ -111,6 +122,9 @@ export async function POST(req: Request) {
   const text = String(body.text ?? "").trim();
   const phoneRaw = String(body.phone ?? "").trim();
   if (!phoneRaw || !text) return NextResponse.json({ error: "missing phone or text" }, { status: 400 });
+  if (looksCorrupted(text)) {
+    return NextResponse.json({ error: "text_encoding_corrupted" }, { status: 400 });
+  }
 
   const to = normalizePhone(phoneRaw).digits || phoneRaw.replace(/\D/g, "");
   const t = tail(to);

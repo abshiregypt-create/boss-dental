@@ -223,32 +223,85 @@ async function drainOutbox() {
   }
 }
 
+/**
+ * One-time repair: resolve any bookings saved under a "@lid" alias to the real
+ * phone number (older messages stored the alias). Runs on ready, and retries a
+ * few times if the site isn't reachable yet so a transient outage doesn't skip it.
+ */
+async function repairLids(attempt = 0) {
+  try {
+    const res = await fetch(`${BASE}/api/whatsapp/lid-fix`, {
+      headers: { "x-agent-secret": SECRET },
+    });
+    if (!res.ok) return;
+    const { pending } = await res.json();
+    if (!pending?.length) return;
+    console.log(`[lid-fix] resolving ${pending.length} aliased booking(s)…`);
+
+    const fixes = [];
+    for (const row of pending) {
+      try {
+        const [map] = await client.getContactLidAndPhone([row.chatId]);
+        const real = map?.pn ? map.pn.split("@")[0].replace(/\D/g, "") : "";
+        if (real && real.length >= 8 && real !== String(row.phone).replace(/\D/g, "")) {
+          fixes.push({ chatId: row.chatId, phone: real });
+          console.log(`[lid-fix] ${row.chatId} -> +${real}`);
+        }
+      } catch (e) {
+        console.error("[lid-fix] resolve failed:", e?.message || e);
+      }
+    }
+
+    if (fixes.length) {
+      const r = await fetch(`${BASE}/api/whatsapp/lid-fix`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-agent-secret": SECRET },
+        body: JSON.stringify({ fixes }),
+      });
+      const j = await r.json().catch(() => ({}));
+      console.log(`[lid-fix] updated ${j.appts ?? 0} booking(s), ${j.patients ?? 0} client(s).`);
+    }
+  } catch (e) {
+    // Site not up yet? Retry a handful of times with backoff.
+    if (attempt < 6) {
+      const wait = 10_000 * (attempt + 1);
+      console.error(`[lid-fix] site unreachable (${e?.message || e}); retrying in ${wait / 1000}s`);
+      setTimeout(() => repairLids(attempt + 1), wait);
+    } else {
+      console.error("[lid-fix] giving up after retries:", e?.message || e);
+    }
+  }
+}
+
 client.on("message", async (msg) => {
   try {
     // ignore group chats, status broadcasts, and non-text messages
     if (msg.from.endsWith("@g.us") || msg.from === "status@broadcast") return;
     if (msg.type !== "chat" || !msg.body) return;
 
-    // Resolve the real phone number + contact name. msg.from can be a @lid alias,
-    // so we dig for the actual phone via several whatsapp-web.js fields.
+    // Resolve the real phone number + contact name. msg.from can be a @lid alias
+    // (WhatsApp privacy id); for those we ask WhatsApp to map the LID -> real
+    // phone number so the dashboard shows a usable number, not the alias.
     let phone = msg.from.split("@")[0];
     let name;
     try {
       const contact = await msg.getContact();
-      // Prefer an explicit phone field; fall back through known shapes.
-      const cand =
-        contact?.number ||
-        contact?.id?.user ||
-        (typeof contact?.getFormattedNumber === "function"
-          ? (await contact.getFormattedNumber().catch(() => null))
-          : null) ||
-        msg.from.split("@")[0];
-      phone = String(cand).replace(/\D/g, "");
       name = contact?.pushname || contact?.name || contact?.verifiedName || msg._data?.notifyName || undefined;
-      // Diagnostic: log what we actually got so we can pin the right field.
-      console.log(
-        `[wa] inbound from=${msg.from} | number=${contact?.number} | id.user=${contact?.id?._serialized} | resolved=${phone} | name=${name}`
-      );
+
+      if (msg.from.endsWith("@lid")) {
+        let resolved;
+        try {
+          const [map] = await client.getContactLidAndPhone([msg.from]);
+          if (map?.pn) resolved = map.pn.split("@")[0];
+        } catch (e) {
+          console.error("[wa] LID->phone lookup failed:", e?.message || e);
+        }
+        phone = String(resolved || contact?.number || msg.from.split("@")[0]).replace(/\D/g, "");
+      } else {
+        const cand = contact?.number || contact?.id?.user || msg.from.split("@")[0];
+        phone = String(cand).replace(/\D/g, "");
+      }
+      console.log(`[wa] inbound from=${msg.from} | resolved=${phone} | name=${name}`);
     } catch (e) {
       name = msg._data?.notifyName || undefined;
       console.log(`[wa] inbound from=${msg.from} (getContact failed: ${e?.message || e})`);
@@ -268,6 +321,8 @@ client.on("message", async (msg) => {
 client.on("ready", () => {
   if (outboxTimer) clearInterval(outboxTimer);
   outboxTimer = setInterval(drainOutbox, 8000);
+  // Repair any older bookings still saved under a @lid alias.
+  repairLids();
 });
 
 process.on("SIGINT", async () => {

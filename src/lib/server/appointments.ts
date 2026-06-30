@@ -169,6 +169,46 @@ export type NewBooking = {
   waChatId?: string | null;
 };
 
+/** A name is "real" if it has at least 2 letters (not just punctuation/digits). */
+function isRealName(s: string): boolean {
+  const t = (s || "").trim();
+  if (t.length < 2) return false;
+  return (t.match(/[\p{L}]/gu) || []).length >= 2;
+}
+
+/**
+ * Find or create the Patient record for a booking's phone, returning its id.
+ * Keeps one account per phone number (matched on the trailing digits so +/0/
+ * country-code variants collapse) and upgrades a placeholder name once we learn
+ * a real one. Every website/WhatsApp booking therefore creates a client account.
+ */
+export async function ensurePatient(name: string, phone: string): Promise<string | null> {
+  const digits = (phone || "").replace(/\D/g, "");
+  const tail = digits.slice(-9);
+
+  if (tail.length >= 8) {
+    const existing = await prisma.patient.findFirst({
+      where: { phone: { contains: tail } },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) {
+      if (isRealName(name) && !isRealName(existing.name)) {
+        await prisma.patient.update({ where: { id: existing.id }, data: { name } });
+      }
+      return existing.id;
+    }
+  }
+
+  const created = await prisma.patient.create({
+    data: {
+      name: isRealName(name) ? name.trim() : digits ? `+${digits}` : "WhatsApp client",
+      phone,
+      source: "booking",
+    },
+  });
+  return created.id;
+}
+
 /**
  * Create a pending booking with a unique tracking code.
  * Shared by the website form (/api/bookings) and the WhatsApp agent so both
@@ -181,6 +221,8 @@ export async function createBooking(input: NewBooking): Promise<Appointment> {
     if (!clash) break;
     code = generateCode();
   }
+
+  const patientId = await ensurePatient(input.name, input.phone);
 
   return prisma.appointment.create({
     data: {
@@ -197,6 +239,7 @@ export async function createBooking(input: NewBooking): Promise<Appointment> {
       lang: input.lang === "ar" ? "ar" : "en",
       waChatId: input.waChatId ?? null,
       status: "pending",
+      patientId,
     },
   });
 }

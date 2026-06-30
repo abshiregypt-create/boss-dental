@@ -192,6 +192,42 @@ export function DoctorDashboard() {
     return [...appointments, ...onlineAppts.filter((a) => !seen.has(a.id))];
   }, [appointments, onlineAppts]);
 
+  // Client accounts auto-created from bookings (website + WhatsApp) live in the
+  // database. Pull them so each WhatsApp booker shows up in the Clients tab with
+  // their real number, merged with the locally-managed clients.
+  const [onlinePatients, setOnlinePatients] = useState<Patient[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/admin/patients", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (alive) setOnlinePatients((j.patients ?? []) as Patient[]);
+      } catch {
+        /* ignore */
+      }
+    };
+    load();
+    const id = setInterval(load, 20000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+
+  // Show DB-created clients that aren't already in the local list (dedupe by the
+  // trailing phone digits). New WhatsApp clients surface at the top.
+  const mergedPatients = useMemo(() => {
+    const tail = (p: string) => p.replace(/\D/g, "").slice(-9);
+    const localTails = new Set(patients.map((p) => tail(p.phone)).filter((d) => d.length >= 8));
+    const extra = onlinePatients.filter((p) => {
+      const d = tail(p.phone);
+      return d.length >= 8 ? !localTails.has(d) : true;
+    });
+    return [...extra, ...patients];
+  }, [patients, onlinePatients]);
+
   // Confirm an online booking lead: lock its slot, create the client + session.
   const confirmLead = (lead: Lead) => {
     if (lead.appointmentId) updateAppointment(lead.appointmentId, { status: "confirmed" });
@@ -558,7 +594,7 @@ export function DoctorDashboard() {
 
           {activeNav === "patients" && (
             <PatientsSection
-              patients={patients}
+              patients={mergedPatients}
               base={base}
               onSavePatient={savePatient}
               onDeletePatient={deletePatient}

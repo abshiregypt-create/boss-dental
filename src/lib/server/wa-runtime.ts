@@ -13,7 +13,7 @@ import {
 } from "./wa-agent";
 import { createBooking } from "./appointments";
 
-const VALID_STATES: WaState[] = ["idle", "day", "slot", "why"];
+const VALID_STATES: WaState[] = ["idle", "day", "slot", "why", "name"];
 
 /* ---------------- clinic hours ---------------- */
 const OPEN_MIN = 12 * 60; // 12:00

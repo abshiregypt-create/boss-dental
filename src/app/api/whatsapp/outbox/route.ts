@@ -27,17 +27,29 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   if (!authed(req)) return new NextResponse("unauthorized", { status: 401 });
-  let body: { ids?: string[] };
+  let body: { ids?: string[]; failedIds?: string[] };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "bad_json" }, { status: 400 });
   }
   const ids = Array.isArray(body.ids) ? body.ids.filter((x) => typeof x === "string") : [];
-  if (ids.length === 0) return NextResponse.json({ ok: true, updated: 0 });
-  const r = await prisma.waOutbox.updateMany({
-    where: { id: { in: ids } },
-    data: { status: "sent", sentAt: new Date() },
-  });
-  return NextResponse.json({ ok: true, updated: r.count });
+  const failedIds = Array.isArray(body.failedIds) ? body.failedIds.filter((x) => typeof x === "string") : [];
+
+  let updated = 0;
+  if (ids.length) {
+    const r = await prisma.waOutbox.updateMany({
+      where: { id: { in: ids } },
+      data: { status: "sent", sentAt: new Date() },
+    });
+    updated += r.count;
+  }
+  if (failedIds.length) {
+    const r = await prisma.waOutbox.updateMany({
+      where: { id: { in: failedIds } },
+      data: { status: "failed" },
+    });
+    updated += r.count;
+  }
+  return NextResponse.json({ ok: true, updated });
 }

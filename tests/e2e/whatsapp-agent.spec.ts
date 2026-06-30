@@ -32,9 +32,14 @@ test("full WhatsApp booking conversation (day → slot → reason)", async ({ re
   r = await say(request, "1");
   expect(r.replies.join("\n")).toMatch(/سبب الزيارة/);
 
-  // give a reason → pending booking + waiting for confirmation
+  // give a reason → asks who the appointment is for
   r = await say(request, "ألم في الضرس");
+  expect(r.replies.join("\n")).toMatch(/باسم مين|اسم المريض/);
+
+  // give the patient name → pending booking + waiting for confirmation
+  r = await say(request, "أحمد علي");
   expect(r.replies.join("\n")).toMatch(/في انتظار تأكيد الطبيب/);
+  expect(r.replies.join("\n")).toContain("أحمد علي");
   expect(r.bookingCode).toBeTruthy();
 
   // the booking is real and visible on the public tracker as pending

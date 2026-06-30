@@ -13,7 +13,7 @@
  * the database and passes it in via `ctx`, so this stays fully unit-testable.
  */
 
-export type WaState = "idle" | "day" | "slot" | "why";
+export type WaState = "idle" | "day" | "slot" | "why" | "name";
 
 export type WaDraft = {
   dateISO?: string; // chosen day (local midnight ISO)
@@ -21,6 +21,7 @@ export type WaDraft = {
   slot?: string; // "HH:MM"
   timeLabel?: string; // human label for the chosen time
   reason?: string;
+  patientName?: string; // who the appointment is for
 };
 
 export type WaConv = { state: WaState; draft: WaDraft; lang: "ar" | "en" };
@@ -111,6 +112,10 @@ const T = {
   askwhy: {
     ar: "تمام ✅\nاكتب سبب الزيارة باختصار (مثلاً: ألم، كشف، تنظيف، استشارة) 🦷",
     en: "Great ✅\nBriefly, what's the reason for your visit? (e.g. pain, check-up, cleaning, consultation) 🦷",
+  },
+  askName: {
+    ar: "والموعد باسم مين؟ اكتب اسم المريض من فضلك ✍️",
+    en: "And whose appointment is this? Please type the patient's name ✍️",
   },
   waiting: {
     ar: "تم استلام طلب حجزك ✅\n\n👤 {name}\n📅 {day}\n🕐 {time}\n📝 {reason}\n\n⏳ في انتظار تأكيد الطبيب — هنبعتلك رسالة فور التأكيد.",
@@ -204,30 +209,38 @@ export function handleMessage(
     case "why": {
       const reason = text.replace(/\s+/g, " ").trim();
       if (reason.length < 2) return { reply: tr("askwhy"), next: conv };
+      // Move on to ask who the appointment is for.
+      return {
+        reply: tr("askName"),
+        next: { state: "name", lang, draft: { ...conv.draft, reason } },
+      };
+    }
+
+    case "name": {
+      const patientName = text.replace(/\s+/g, " ").trim();
+      if (patientName.length < 2) return { reply: tr("askName"), next: conv };
 
       const d = conv.draft;
       const [hh, mm] = (d.slot ?? "12:00").split(":").map((x) => parseInt(x, 10));
       const when = d.dateISO ? new Date(d.dateISO) : new Date(now);
       when.setHours(hh, mm, 0, 0);
 
-      const name =
-        (ctx.name && ctx.name.trim()) || (lang === "ar" ? "مريض واتساب" : "WhatsApp patient");
       const booking: BookingIntent = {
-        name,
+        name: patientName,
         phone,
         serviceId: "checkup",
         serviceLabelEn: "Consultation",
         serviceLabelAr: "كشف",
         scheduledAt: when,
-        reason,
+        reason: d.reason,
         lang,
       };
 
       const reply = tr("waiting")
-        .replace("{name}", name)
+        .replace("{name}", patientName)
         .replace("{day}", d.dateLabel ?? "")
         .replace("{time}", d.timeLabel ?? d.slot ?? "")
-        .replace("{reason}", reason);
+        .replace("{reason}", d.reason ?? "");
 
       return { reply, next: { state: "idle", draft: {}, lang }, booking };
     }

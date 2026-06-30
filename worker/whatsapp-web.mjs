@@ -186,21 +186,33 @@ async function drainOutbox() {
     const { messages } = await res.json();
     if (!messages?.length) return;
     const sent = [];
+    const failed = [];
     for (const m of messages) {
+      const digits = String(m.phone).replace(/\D/g, "");
       try {
-        const chatId = `${String(m.phone).replace(/\D/g, "")}@c.us`;
-        await client.sendMessage(chatId, m.body);
+        // Resolve the proper WhatsApp chat id (handles number→id, invalid numbers).
+        const numId = await client.getNumberId(digits);
+        if (!numId) {
+          // Not a WhatsApp user / unreachable → mark failed so it won't retry forever.
+          console.error(`[outbox] ${digits} is not on WhatsApp — marking failed.`);
+          failed.push(m.id);
+          continue;
+        }
+        await client.sendMessage(numId._serialized, m.body);
         sent.push(m.id);
       } catch (e) {
-        console.error("[outbox] send failed:", e?.message || e);
-        maybeFatal(e);
+        const msg = String(e?.message || e);
+        console.error("[outbox] send failed:", msg);
+        // Permanent addressing errors → drop; transient → leave queued for retry.
+        if (/No LID|not.*registered|invalid|wid/i.test(msg)) failed.push(m.id);
+        else maybeFatal(e);
       }
     }
-    if (sent.length) {
+    if (sent.length || failed.length) {
       await fetch(`${BASE}/api/whatsapp/outbox`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-agent-secret": SECRET },
-        body: JSON.stringify({ ids: sent }),
+        body: JSON.stringify({ ids: sent, failedIds: failed }),
       });
     }
   } catch {

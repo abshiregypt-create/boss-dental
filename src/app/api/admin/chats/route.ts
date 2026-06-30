@@ -115,28 +115,33 @@ export async function POST(req: Request) {
   const to = normalizePhone(phoneRaw).digits || phoneRaw.replace(/\D/g, "");
   const t = tail(to);
 
-  // Find the best chat id to reply to (handles @lid): latest inbound chatId, then
-  // any stored conversation/appointment chat id for this phone.
-  const lastWithChat = await prisma.chatMessage.findFirst({
+  // Find the best chat id to reply to. Match the EXACT normalized phone (loose
+  // substring matching could grab a different patient's chat id and misroute the
+  // message). Candidates are fetched by tail, then filtered to an exact match.
+  const sameNumber = (raw: string) => normalizePhone(raw).digits === to || tail(raw) === t;
+
+  let chatId: string | null = null;
+  const cmCandidates = await prisma.chatMessage.findMany({
     where: { phone: { contains: t }, chatId: { not: null } },
     orderBy: { createdAt: "desc" },
-    select: { chatId: true },
+    select: { phone: true, chatId: true },
   });
-  let chatId = lastWithChat?.chatId ?? null;
+  chatId = cmCandidates.find((c) => sameNumber(c.phone))?.chatId ?? null;
+
   if (!chatId) {
-    const conv = await prisma.waConversation.findFirst({
+    const convs = await prisma.waConversation.findMany({
       where: { phone: { contains: t }, chatId: { not: null } },
-      select: { chatId: true },
+      select: { phone: true, chatId: true },
     });
-    chatId = conv?.chatId ?? null;
+    chatId = convs.find((c) => sameNumber(c.phone))?.chatId ?? null;
   }
   if (!chatId) {
-    const appt = await prisma.appointment.findFirst({
+    const appts = await prisma.appointment.findMany({
       where: { phone: { contains: t }, waChatId: { not: null } },
       orderBy: { createdAt: "desc" },
-      select: { waChatId: true },
+      select: { phone: true, waChatId: true },
     });
-    chatId = appt?.waChatId ?? null;
+    chatId = appts.find((a) => sameNumber(a.phone))?.waChatId ?? null;
   }
 
   const res = await sendWhatsApp({ to, body: text, chatId });

@@ -190,18 +190,23 @@ async function drainOutbox() {
     for (const m of messages) {
       const digits = String(m.phone).replace(/\D/g, "");
       try {
-        // Prefer the exact chat id captured when the patient messaged us
-        // (works even when the number is a @lid alias). Fall back to number lookup.
-        let target = m.chatId;
+        // The stored chat id is the EXACT chat the patient messaged us from
+        // (their real msg.from), so replying there always reaches the right
+        // person — even for "@lid" contacts whose real number isn't directly
+        // addressable. Only when we have no chat id do we look the number up.
+        let target = m.chatId || null;
         if (!target) {
-          const numId = await client.getNumberId(digits);
-          if (!numId) {
-            console.error(`[outbox] ${digits} is not on WhatsApp — marking failed.`);
-            failed.push(m.id);
-            continue;
+          if (digits.length >= 10 && digits.length <= 15) {
+            const numId = await client.getNumberId(digits);
+            if (numId) target = numId._serialized;
           }
-          target = numId._serialized;
         }
+        if (!target) {
+          console.error(`[outbox] could not resolve a target for ${digits} — marking failed.`);
+          failed.push(m.id);
+          continue;
+        }
+        console.log(`[outbox] -> phone=${digits} target=${target}`);
         await client.sendMessage(target, m.body);
         sent.push(m.id);
       } catch (e) {

@@ -104,9 +104,18 @@ export async function confirmAppointment(idOrCode: { id?: string; code?: string 
   if (!appt) return null;
   if (appt.status === "confirmed") return appt;
 
+  // Create (or reuse) the patient account now that the doctor has confirmed, and
+  // link the booking to it — so confirmed clients appear in the dashboard.
+  let patientId = appt.patientId;
+  try {
+    patientId = await ensurePatient(appt.patientName, appt.phone);
+  } catch (e) {
+    console.error("[appointments] ensurePatient on confirm failed:", e instanceof Error ? e.message : e);
+  }
+
   const updated = await prisma.appointment.update({
     where: { id: appt.id },
-    data: { status: "confirmed", confirmedAt: new Date() },
+    data: { status: "confirmed", confirmedAt: new Date(), patientId: patientId ?? appt.patientId },
   });
   await dispatchMessage(updated, "reserved");
 
@@ -213,6 +222,9 @@ export async function ensurePatient(name: string, phone: string): Promise<string
  * Create a pending booking with a unique tracking code.
  * Shared by the website form (/api/bookings) and the WhatsApp agent so both
  * paths behave identically (status "pending" → doctor confirms → WhatsApp flow).
+ *
+ * No client account is created here — that happens when the doctor confirms
+ * (see confirmAppointment), so the Clients list only holds confirmed patients.
  */
 export async function createBooking(input: NewBooking): Promise<Appointment> {
   let code = generateCode();
@@ -221,8 +233,6 @@ export async function createBooking(input: NewBooking): Promise<Appointment> {
     if (!clash) break;
     code = generateCode();
   }
-
-  const patientId = await ensurePatient(input.name, input.phone);
 
   return prisma.appointment.create({
     data: {
@@ -239,7 +249,6 @@ export async function createBooking(input: NewBooking): Promise<Appointment> {
       lang: input.lang === "ar" ? "ar" : "en",
       waChatId: input.waChatId ?? null,
       status: "pending",
-      patientId,
     },
   });
 }

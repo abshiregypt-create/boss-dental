@@ -24,9 +24,13 @@ async function main() {
 
   const existingTails = new Set(patients.map((p) => tail(p.phone)).filter((d) => d.length >= 8));
 
+  // Only confirmed/completed bookings create a client account (matches the app:
+  // accounts are created when the doctor confirms).
+  const confirmed = appts.filter((a) => a.status === "confirmed" || a.status === "completed");
+
   // Group appointments by phone tail.
   const groups = new Map();
-  for (const a of appts) {
+  for (const a of confirmed) {
     const t = tail(a.phone);
     if (t.length < 8) continue;
     if (!groups.has(t)) groups.set(t, []);

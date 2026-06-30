@@ -22,7 +22,19 @@ export async function GET() {
   const sessionStatus = (s: string): "completed" | "scheduled" | "cancelled" =>
     s === "completed" ? "completed" : s === "cancelled" || s === "declined" ? "cancelled" : "scheduled";
 
-  const mapped = patients.map((p) => {
+  // A patient becomes a "client account" once the doctor confirms a booking for
+  // them. Show only patients with at least one confirmed/completed appointment,
+  // matched by the trailing phone digits.
+  const confirmedTails = new Set(
+    appts
+      .filter((a) => a.status === "confirmed" || a.status === "completed")
+      .map((a) => tail(a.phone))
+      .filter((d) => d.length >= 8)
+  );
+
+  const mapped = patients
+    .filter((p) => confirmedTails.has(tail(p.phone)))
+    .map((p) => {
     const pt = tail(p.phone);
     const sessions =
       pt.length >= 8

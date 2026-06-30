@@ -12,6 +12,8 @@ import { OffersManager } from "./OffersManager";
 import { SiteEditor } from "./SiteEditor";
 import { OnlineBookings } from "./OnlineBookings";
 import { WhatsAppLink } from "./WhatsAppLink";
+import { ClientMessages } from "./ClientMessages";
+import { SettingsSection } from "./SettingsSection";
 import {
   type BookingRequest,
   type Appointment,
@@ -86,6 +88,7 @@ const navItems = [
   { id: "overview", label: { en: "Overview", ar: "الرئيسية" }, icon: "M3 12 12 4l9 8M5 10v9h5v-6h4v6h5v-9" },
   { id: "bookings", label: { en: "Bookings", ar: "الحجوزات" }, icon: "M4 5h16v10H7l-3 3V5Z" },
   { id: "whatsapp", label: { en: "WhatsApp", ar: "واتساب" }, icon: "M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Z" },
+  { id: "messages", label: { en: "Client Messages", ar: "رسائل العملاء" }, icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" },
   { id: "calendar", label: { en: "Calendar", ar: "التقويم" }, icon: "M3 9h18M7 3v4m10-4v4M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" },
   { id: "patients", label: { en: "Clients", ar: "العملاء" }, icon: "M16 19a4 4 0 0 0-8 0M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" },
   { id: "offers", label: { en: "Offers", ar: "العروض" }, icon: "M20 12v8H4v-8M2 7h20v5H2zM12 7v13M12 7S10.5 3 8 3a2 2 0 0 0 0 4M12 7s1.5-4 4-4a2 2 0 0 1 0 4" },
@@ -284,6 +287,28 @@ export function DoctorDashboard() {
     return [...extra, ...patients];
   }, [patients, onlinePatients]);
 
+  // Unread WhatsApp client-message count (drives the "Client Messages" nav badge).
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/admin/chats", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (alive) setUnreadMessages(j.totalUnread ?? 0);
+      } catch {
+        /* ignore */
+      }
+    };
+    load();
+    const id = setInterval(load, 12000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [activeNav]);
+
   // Confirm an online booking lead: lock its slot, create the client + session.
   const confirmLead = (lead: Lead) => {
     if (lead.appointmentId) updateAppointment(lead.appointmentId, { status: "confirmed" });
@@ -461,6 +486,11 @@ export function DoctorDashboard() {
                 <path d={item.icon} />
               </svg>
               {tr(item.label)}
+              {item.id === "messages" && unreadMessages > 0 && (
+                <span className="ms-auto grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-[#0a0e12]">
+                  {unreadMessages}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -541,6 +571,11 @@ export function DoctorDashboard() {
                   <path d={item.icon} />
                 </svg>
                 {tr(item.label)}
+                {item.id === "messages" && unreadMessages > 0 && (
+                  <span className="grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-bold text-[#0a0e12]">
+                    {unreadMessages}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -674,11 +709,15 @@ export function DoctorDashboard() {
 
           {activeNav === "whatsapp" && <WhatsAppLink />}
 
+          {activeNav === "messages" && <ClientMessages />}
+
           {activeNav === "offers" && <OffersManager />}
 
           {activeNav === "editor" && <SiteEditor />}
 
-          {(activeNav === "calendar" || activeNav === "settings") && (
+          {activeNav === "settings" && <SettingsSection />}
+
+          {activeNav === "calendar" && (
             <ComingSoon label={tr(navItems.find((n) => n.id === activeNav)!.label)} />
           )}
         </main>

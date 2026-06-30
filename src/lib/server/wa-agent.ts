@@ -13,7 +13,7 @@
  * the database and passes it in via `ctx`, so this stays fully unit-testable.
  */
 
-export type WaState = "idle" | "day" | "slot" | "why" | "name";
+export type WaState = "idle" | "day" | "slot" | "why" | "name" | "followup";
 
 export type WaDraft = {
   dateISO?: string; // chosen day (local midnight ISO)
@@ -68,6 +68,11 @@ function detectLang(text: string): "ar" | "en" {
 }
 
 const isCancel = (t: string) => /^(إلغاء|الغاء|cancel|stop|الغ)/i.test((t || "").trim());
+
+/** Does the message express intent to (re)start a booking? */
+export function wantsBooking(text: string): boolean {
+  return /(حجز|احجز|أحجز|موعد|book|appointment|reserve|عايز.*ميعاد|عايز.*موعد)/i.test((text || "").trim());
+}
 
 /** Detects a "confirm my booking" message (from the website's WhatsApp button). */
 export function detectConfirm(text: string): { isConfirm: boolean; code?: string } {
@@ -129,6 +134,10 @@ const T = {
     ar: "شكرًا لك! ✅ وصلنا طلب تأكيد حجزك، وسيؤكده الطبيب قريبًا وتصلك رسالة بالتفاصيل.",
     en: "Thank you! ✅ We've received your confirmation request. The doctor will confirm shortly and you'll get the details here.",
   },
+  followupAck: {
+    ar: "شكرًا لردّك واهتمامك 🌟\nوصلت رسالتك للدكتور وهيتابع معاك. لو محتاج أي حاجة تانية احنا موجودين 💙\nولو حابب تحجز موعد جديد اكتب «حجز».",
+    en: "Thank you for your reply 🌟\nThe doctor has received your message and will follow up. We're here if you need anything 💙\nTo book a new appointment, type \"book\".",
+  },
 };
 
 function dayMenu(days: DayOption[]): string {
@@ -156,6 +165,22 @@ export function handleMessage(
   // cancel from anywhere
   if (isCancel(text) && conv.state !== "idle") {
     return { reply: tr("cancelled"), next: { state: "idle", draft: {}, lang } };
+  }
+
+  // While waiting on a follow-up reply, treat the patient's message as a reply to
+  // the doctor (friendly ack) — unless they explicitly want to book again.
+  if (conv.state === "followup") {
+    const l = detectLang(text);
+    if (wantsBooking(text)) {
+      if (openDays.length === 0) {
+        return { reply: T.noDays[l], next: { state: "idle", draft: {}, lang: l } };
+      }
+      return {
+        reply: `${T.greet[l]}\n\n${dayMenu(openDays)}`,
+        next: { state: "day", draft: {}, lang: l },
+      };
+    }
+    return { reply: T.followupAck[l], next: { state: "idle", draft: {}, lang: l } };
   }
 
   switch (conv.state) {

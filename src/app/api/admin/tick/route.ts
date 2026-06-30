@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/server/auth";
 import { processTick } from "@/lib/server/appointments";
+import { processFollowups } from "@/lib/server/followups";
 
 /**
  * Run one scheduler tick. Callable by:
@@ -16,5 +17,6 @@ export async function POST(req: Request) {
   }
 
   const result = await processTick();
-  return NextResponse.json({ ok: true, ...result });
+  const followups = await processFollowups();
+  return NextResponse.json({ ok: true, ...result, followups });
 }

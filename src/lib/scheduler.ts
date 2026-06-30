@@ -16,6 +16,13 @@ export function startScheduler() {
     } catch (e) {
       console.error("[scheduler] tick failed:", e);
     }
+    try {
+      const { processFollowups } = await import("./server/followups");
+      const f = await processFollowups();
+      if (f.sent > 0) console.log(`[scheduler] sent ${f.sent} post-session follow-up(s)`);
+    } catch (e) {
+      console.error("[scheduler] follow-up tick failed:", e);
+    }
   });
 
   console.log("[scheduler] started — ticking every minute");

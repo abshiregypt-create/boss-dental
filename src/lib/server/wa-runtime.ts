@@ -6,14 +6,16 @@
 import { prisma } from "@/lib/db";
 import {
   handleMessage,
+  wantsBooking,
   type WaConv,
   type WaState,
   type DayOption,
   type SlotOption,
 } from "./wa-agent";
 import { createBooking } from "./appointments";
+import { logChat } from "./followups";
 
-const VALID_STATES: WaState[] = ["idle", "day", "slot", "why", "name"];
+const VALID_STATES: WaState[] = ["idle", "day", "slot", "why", "name", "followup"];
 
 /* ---------------- clinic hours ---------------- */
 const OPEN_MIN = 12 * 60; // 12:00
@@ -184,6 +186,27 @@ export async function processInbound(
   const conv = await loadConv(phone);
   const lang = conv.lang;
 
+  // Log every inbound message into the doctor's chat inbox. If we were awaiting a
+  // post-session follow-up reply, tag it as such so it stands out.
+  const inboundKind = conv.state === "followup" ? "reply" : "chat";
+  try {
+    await logChat({ phone, chatId: chatId ?? null, direction: "in", body: text, kind: inboundKind });
+  } catch (e) {
+    console.error("[wa] logChat inbound failed:", e instanceof Error ? e.message : e);
+  }
+
+  // If the booking bot is paused (the doctor is chatting manually), stay silent —
+  // unless the patient is mid-booking or explicitly wants to book.
+  const meta = await prisma.waConversation.findUnique({
+    where: { phone },
+    select: { agentPausedUntil: true },
+  });
+  const paused = meta?.agentPausedUntil ? meta.agentPausedUntil.getTime() > now.getTime() : false;
+  const inBookingFlow = ["day", "slot", "why", "name"].includes(conv.state);
+  if (paused && !inBookingFlow && !wantsBooking(text)) {
+    return { replies: [] };
+  }
+
   // Resolve a good patient name (returning patient → contact name → phone label).
   const resolvedName = await resolvePatientName(phone, name, lang);
 
@@ -204,6 +227,15 @@ export async function processInbound(
 
   const replies: string[] = [];
   if (result.reply) replies.push(result.reply);
+
+  // Log the bot's replies as outbound so the chat thread reads naturally.
+  for (const body of replies) {
+    try {
+      await logChat({ phone, chatId: chatId ?? null, direction: "out", body, kind: "bot" });
+    } catch (e) {
+      console.error("[wa] logChat outbound failed:", e instanceof Error ? e.message : e);
+    }
+  }
 
   let bookingCode: string | undefined;
   if (result.booking) {

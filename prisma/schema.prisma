@@ -57,6 +57,7 @@ model Appointment {
   queueOpenedAt  DateTime?
   turnSentAt     DateTime?
   completedAt    DateTime?
+  followupSentAt DateTime? // post-session follow-up ("how are you feeling?") sent once
 
   patientId String?
   patient   Patient?  @relation(fields: [patientId], references: [id])
@@ -100,9 +101,10 @@ model WaConversation {
   id        String   @id @default(cuid())
   phone     String   @unique
   chatId    String? // the whatsapp-web.js chat id (msg.from) used to reply reliably
-  state     String   @default("idle") // idle|day|slot|why|name
+  state     String   @default("idle") // idle|day|slot|why|name|followup
   draft     String? // JSON: { dateISO, dateLabel, slot, timeLabel, reason, patientName }
   lang      String   @default("ar") // ar | en
+  agentPausedUntil DateTime? // while in the future, the booking bot stays silent (manual chat)
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
@@ -139,4 +141,22 @@ model PatientFile {
   createdAt   DateTime @default(now())
 
   @@index([patientKey, createdAt])
+}
+
+/// A WhatsApp chat message to/from a patient — the doctor's "Client Messages"
+/// inbox. Logs every inbound patient message and every outbound message the
+/// clinic sends (post-session follow-ups + the doctor's manual replies), keyed
+/// by phone so they group into one conversation thread.
+model ChatMessage {
+  id        String    @id @default(cuid())
+  phone     String // normalized digits (the conversation key)
+  chatId    String? // exact whatsapp-web.js chat id used to reply (handles @lid)
+  direction String // "in" (from patient) | "out" (from clinic)
+  body      String
+  kind      String    @default("chat") // chat | followup | reply | manual
+  readAt    DateTime? // when the doctor read an inbound message (null = unread)
+  createdAt DateTime  @default(now())
+
+  @@index([phone, createdAt])
+  @@index([direction, readAt])
 }

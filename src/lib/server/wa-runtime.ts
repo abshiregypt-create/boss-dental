@@ -178,7 +178,8 @@ export async function processInbound(
   phone: string,
   text: string,
   now = new Date(),
-  name?: string
+  name?: string,
+  chatId?: string
 ): Promise<{ replies: string[]; bookingCode?: string }> {
   const conv = await loadConv(phone);
   const lang = conv.lang;
@@ -216,6 +217,7 @@ export async function processInbound(
       scheduledAt: b.scheduledAt,
       complaint: b.reason ?? null,
       lang: b.lang,
+      waChatId: chatId ?? null,
     });
     bookingCode = appt.code;
   }

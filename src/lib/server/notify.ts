@@ -9,7 +9,7 @@ export async function dispatchMessage(appt: Appointment, kind: MsgKind, ctx: Msg
   const body = buildMessage(kind, appt, ctx);
   const template = buildTemplate(kind, appt, ctx);
   const to = normalizePhone(appt.phone).digits;
-  const res = await sendWhatsApp({ to, body, template });
+  const res = await sendWhatsApp({ to, body, template, chatId: appt.waChatId ?? null });
 
   return prisma.message.create({
     data: {

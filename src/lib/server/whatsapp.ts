@@ -71,10 +71,12 @@ export async function sendWhatsApp({
   to,
   body,
   template,
+  chatId,
 }: {
   to: string;
   body: string;
   template?: TemplateSpec | null;
+  chatId?: string | null;
 }): Promise<WaResult> {
   const provider = process.env.WHATSAPP_PROVIDER || "mock";
   const link = waMeLink(to, body);
@@ -112,7 +114,7 @@ export async function sendWhatsApp({
     // outbox, sends it over the linked number, and marks it sent.
     try {
       const { prisma } = await import("@/lib/db");
-      await prisma.waOutbox.create({ data: { phone: to, body, status: "queued" } });
+      await prisma.waOutbox.create({ data: { phone: to, chatId: chatId ?? null, body, status: "queued" } });
       return { ok: true, provider: "waweb", status: "queued", waLink: link };
     } catch (e) {
       return { ok: false, provider: "waweb", status: "failed", error: String((e as Error)?.message ?? e), waLink: link };

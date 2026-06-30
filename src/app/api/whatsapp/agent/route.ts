@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     return new NextResponse("unauthorized", { status: 401 });
   }
 
-  let body: { phone?: string; text?: string; name?: string };
+  let body: { phone?: string; text?: string; name?: string; chatId?: string };
   try {
     body = await req.json();
   } catch {
@@ -31,11 +31,12 @@ export async function POST(req: Request) {
   const phone = String(body.phone ?? "").trim();
   const text = String(body.text ?? "");
   const name = body.name ? String(body.name).trim() : undefined;
+  const chatId = body.chatId ? String(body.chatId).trim() : undefined;
   if (!phone || !text) {
     return NextResponse.json({ error: "missing phone or text" }, { status: 400 });
   }
 
   // The worker delivers conversation replies itself; we just compute them.
-  const result = await processInbound(phone, text, new Date(), name);
+  const result = await processInbound(phone, text, new Date(), name, chatId);
   return NextResponse.json(result);
 }

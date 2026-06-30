@@ -163,11 +163,11 @@ function maybeFatal(err) {
 process.on("unhandledRejection", maybeFatal);
 
 /** Forward an inbound message to the booking agent and return its replies. */
-async function askAgent(phone, text, name) {
+async function askAgent(phone, text, name, chatId) {
   const res = await fetch(`${BASE}/api/whatsapp/agent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-agent-secret": SECRET },
-    body: JSON.stringify({ phone, text, name }),
+    body: JSON.stringify({ phone, text, name, chatId }),
   });
   if (!res.ok) {
     console.error("[agent] HTTP", res.status, await res.text().catch(() => ""));
@@ -190,20 +190,23 @@ async function drainOutbox() {
     for (const m of messages) {
       const digits = String(m.phone).replace(/\D/g, "");
       try {
-        // Resolve the proper WhatsApp chat id (handles number→id, invalid numbers).
-        const numId = await client.getNumberId(digits);
-        if (!numId) {
-          // Not a WhatsApp user / unreachable → mark failed so it won't retry forever.
-          console.error(`[outbox] ${digits} is not on WhatsApp — marking failed.`);
-          failed.push(m.id);
-          continue;
+        // Prefer the exact chat id captured when the patient messaged us
+        // (works even when the number is a @lid alias). Fall back to number lookup.
+        let target = m.chatId;
+        if (!target) {
+          const numId = await client.getNumberId(digits);
+          if (!numId) {
+            console.error(`[outbox] ${digits} is not on WhatsApp — marking failed.`);
+            failed.push(m.id);
+            continue;
+          }
+          target = numId._serialized;
         }
-        await client.sendMessage(numId._serialized, m.body);
+        await client.sendMessage(target, m.body);
         sent.push(m.id);
       } catch (e) {
         const msg = String(e?.message || e);
         console.error("[outbox] send failed:", msg);
-        // Permanent addressing errors → drop; transient → leave queued for retry.
         if (/No LID|not.*registered|invalid|wid/i.test(msg)) failed.push(m.id);
         else maybeFatal(e);
       }
@@ -226,19 +229,32 @@ client.on("message", async (msg) => {
     if (msg.from.endsWith("@g.us") || msg.from === "status@broadcast") return;
     if (msg.type !== "chat" || !msg.body) return;
 
-    // Resolve the real phone number + contact name from the contact object
-    // (msg.from can be a @lid alias; the contact has the actual number).
+    // Resolve the real phone number + contact name. msg.from can be a @lid alias,
+    // so we dig for the actual phone via several whatsapp-web.js fields.
     let phone = msg.from.split("@")[0];
     let name;
     try {
       const contact = await msg.getContact();
-      if (contact?.number) phone = String(contact.number).replace(/\D/g, "");
-      name = contact?.pushname || contact?.name || msg._data?.notifyName || undefined;
-    } catch {
+      // Prefer an explicit phone field; fall back through known shapes.
+      const cand =
+        contact?.number ||
+        contact?.id?.user ||
+        (typeof contact?.getFormattedNumber === "function"
+          ? (await contact.getFormattedNumber().catch(() => null))
+          : null) ||
+        msg.from.split("@")[0];
+      phone = String(cand).replace(/\D/g, "");
+      name = contact?.pushname || contact?.name || contact?.verifiedName || msg._data?.notifyName || undefined;
+      // Diagnostic: log what we actually got so we can pin the right field.
+      console.log(
+        `[wa] inbound from=${msg.from} | number=${contact?.number} | id.user=${contact?.id?._serialized} | resolved=${phone} | name=${name}`
+      );
+    } catch (e) {
       name = msg._data?.notifyName || undefined;
+      console.log(`[wa] inbound from=${msg.from} (getContact failed: ${e?.message || e})`);
     }
 
-    const { replies } = await askAgent(phone, msg.body, name);
+    const { replies } = await askAgent(phone, msg.body, name, msg.from);
     for (const body of replies) {
       if (body && body.trim()) await client.sendMessage(msg.from, body);
     }

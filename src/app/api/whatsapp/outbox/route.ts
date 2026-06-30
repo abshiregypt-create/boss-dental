@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     where: { status: "queued" },
     orderBy: { createdAt: "asc" },
     take: 20,
-    select: { id: true, phone: true, body: true },
+    select: { id: true, phone: true, chatId: true, body: true },
   });
   return NextResponse.json({ messages });
 }

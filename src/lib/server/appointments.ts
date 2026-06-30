@@ -166,6 +166,7 @@ export type NewBooking = {
   offerTitle?: string | null;
   lang?: "en" | "ar";
   source?: string;
+  waChatId?: string | null;
 };
 
 /**
@@ -194,6 +195,7 @@ export async function createBooking(input: NewBooking): Promise<Appointment> {
       complaint: input.complaint ?? null,
       offerTitle: input.offerTitle ?? null,
       lang: input.lang === "ar" ? "ar" : "en",
+      waChatId: input.waChatId ?? null,
       status: "pending",
     },
   });

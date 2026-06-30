@@ -50,6 +50,7 @@ model Appointment {
   offerTitle     String?
   notes          String?
   lang           String    @default("en") // patient's preferred language for messages
+  waChatId       String? // whatsapp-web.js chat id (msg.from) for reliable replies
 
   confirmedAt    DateTime?
   reminderSentAt DateTime?
@@ -98,8 +99,9 @@ model Setting {
 model WaConversation {
   id        String   @id @default(cuid())
   phone     String   @unique
-  state     String   @default("idle") // idle|day|slot|why
-  draft     String? // JSON: { dateISO, dateLabel, slot, timeLabel, reason }
+  chatId    String? // the whatsapp-web.js chat id (msg.from) used to reply reliably
+  state     String   @default("idle") // idle|day|slot|why|name
+  draft     String? // JSON: { dateISO, dateLabel, slot, timeLabel, reason, patientName }
   lang      String   @default("ar") // ar | en
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
@@ -113,6 +115,7 @@ model WaConversation {
 model WaOutbox {
   id        String   @id @default(cuid())
   phone     String
+  chatId    String? // exact whatsapp-web.js chat id to reply to (preferred over phone)
   body      String
   status    String   @default("queued") // queued | sent | failed
   createdAt DateTime @default(now())

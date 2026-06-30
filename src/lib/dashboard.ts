@@ -47,6 +47,9 @@ export type Appointment = {
   start: string; // "HH:MM" 24h
   status: Status;
   phone: string;
+  code?: string; // booking code (DB-backed online/WhatsApp bookings)
+  online?: boolean; // true if it comes from the DB (website/WhatsApp), not local seed
+  done?: boolean; // true once the doctor marks the session finished (completed)
 };
 
 export const seedAppointments: Appointment[] = [

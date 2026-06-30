@@ -15,12 +15,12 @@ const SETTING_KEY = "followup";
 
 export type FollowupConfig = {
   enabled: boolean;
-  delayMinutes: number;
+  delaySeconds: number;
 };
 
 const DEFAULT_CONFIG: FollowupConfig = {
   enabled: true,
-  delayMinutes: 2 * 24 * 60, // 2 days
+  delaySeconds: 2 * 24 * 60 * 60, // 2 days
 };
 
 /** Only scan sessions that ended within this window, so enabling the feature
@@ -31,11 +31,16 @@ export async function getFollowupConfig(): Promise<FollowupConfig> {
   const row = await prisma.setting.findUnique({ where: { key: SETTING_KEY } });
   if (!row) return { ...DEFAULT_CONFIG };
   try {
-    const parsed = JSON.parse(row.value) as Partial<FollowupConfig>;
-    const delay = Number(parsed.delayMinutes);
+    const parsed = JSON.parse(row.value) as { enabled?: boolean; delaySeconds?: number; delayMinutes?: number };
+    // Prefer delaySeconds; fall back to the legacy delayMinutes for older configs.
+    let delay = Number(parsed.delaySeconds);
+    if (!Number.isFinite(delay) || delay <= 0) {
+      const mins = Number(parsed.delayMinutes);
+      delay = Number.isFinite(mins) && mins > 0 ? mins * 60 : DEFAULT_CONFIG.delaySeconds;
+    }
     return {
       enabled: parsed.enabled !== false,
-      delayMinutes: Number.isFinite(delay) && delay > 0 ? Math.round(delay) : DEFAULT_CONFIG.delayMinutes,
+      delaySeconds: Math.max(1, Math.round(delay)),
     };
   } catch {
     return { ...DEFAULT_CONFIG };
@@ -46,10 +51,10 @@ export async function setFollowupConfig(input: Partial<FollowupConfig>): Promise
   const current = await getFollowupConfig();
   const next: FollowupConfig = {
     enabled: input.enabled ?? current.enabled,
-    delayMinutes:
-      input.delayMinutes != null && Number.isFinite(input.delayMinutes) && input.delayMinutes > 0
-        ? Math.round(input.delayMinutes)
-        : current.delayMinutes,
+    delaySeconds:
+      input.delaySeconds != null && Number.isFinite(input.delaySeconds) && input.delaySeconds > 0
+        ? Math.round(input.delaySeconds)
+        : current.delaySeconds,
   };
   await prisma.setting.upsert({
     where: { key: SETTING_KEY },
@@ -120,7 +125,7 @@ export async function processFollowups(now = new Date()): Promise<{ scanned: num
   let sent = 0;
   for (const appt of appts) {
     const end = sessionEnd(appt);
-    const dueAt = end.getTime() + cfg.delayMinutes * 60000;
+    const dueAt = end.getTime() + cfg.delaySeconds * 1000;
     if (dueAt > now.getTime()) continue; // not time yet
     if (end.getTime() < earliest.getTime()) continue; // ended too long ago
 

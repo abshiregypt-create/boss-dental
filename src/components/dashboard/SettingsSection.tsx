@@ -3,27 +3,39 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLang } from "@/lib/language";
 
-type Config = { enabled: boolean; delayMinutes: number };
+type Config = { enabled: boolean; delaySeconds: number };
+type Unit = "seconds" | "minutes" | "hours" | "days";
 
-const PRESETS: { label: { en: string; ar: string }; minutes: number }[] = [
-  { label: { en: "6 hours", ar: "٦ ساعات" }, minutes: 6 * 60 },
-  { label: { en: "12 hours", ar: "١٢ ساعة" }, minutes: 12 * 60 },
-  { label: { en: "1 day", ar: "يوم" }, minutes: 24 * 60 },
-  { label: { en: "2 days", ar: "يومين" }, minutes: 2 * 24 * 60 },
-  { label: { en: "3 days", ar: "٣ أيام" }, minutes: 3 * 24 * 60 },
-  { label: { en: "1 week", ar: "أسبوع" }, minutes: 7 * 24 * 60 },
+const UNIT_SECONDS: Record<Unit, number> = {
+  seconds: 1,
+  minutes: 60,
+  hours: 3600,
+  days: 86400,
+};
+
+const PRESETS: { label: { en: string; ar: string }; seconds: number }[] = [
+  { label: { en: "30 sec (test)", ar: "٣٠ ثانية (تجربة)" }, seconds: 30 },
+  { label: { en: "6 hours", ar: "٦ ساعات" }, seconds: 6 * 3600 },
+  { label: { en: "12 hours", ar: "١٢ ساعة" }, seconds: 12 * 3600 },
+  { label: { en: "1 day", ar: "يوم" }, seconds: 24 * 3600 },
+  { label: { en: "2 days", ar: "يومين" }, seconds: 2 * 24 * 3600 },
+  { label: { en: "3 days", ar: "٣ أيام" }, seconds: 3 * 24 * 3600 },
+  { label: { en: "1 week", ar: "أسبوع" }, seconds: 7 * 24 * 3600 },
 ];
 
-function splitDelay(minutes: number): { value: number; unit: "hours" | "days" } {
-  if (minutes % (24 * 60) === 0) return { value: minutes / (24 * 60), unit: "days" };
-  return { value: Math.max(1, Math.round(minutes / 60)), unit: "hours" };
+/** Pick the largest clean unit to display a delay in seconds. */
+function splitDelay(seconds: number): { value: number; unit: Unit } {
+  if (seconds % 86400 === 0 && seconds >= 86400) return { value: seconds / 86400, unit: "days" };
+  if (seconds % 3600 === 0 && seconds >= 3600) return { value: seconds / 3600, unit: "hours" };
+  if (seconds % 60 === 0 && seconds >= 60) return { value: seconds / 60, unit: "minutes" };
+  return { value: Math.max(1, seconds), unit: "seconds" };
 }
 
 export function SettingsSection() {
   const { tr } = useLang();
   const [enabled, setEnabled] = useState(true);
   const [value, setValue] = useState(2);
-  const [unit, setUnit] = useState<"hours" | "days">("days");
+  const [unit, setUnit] = useState<Unit>("days");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -34,7 +46,7 @@ export function SettingsSection() {
       if (res.ok) {
         const { config } = (await res.json()) as { config: Config };
         setEnabled(config.enabled);
-        const s = splitDelay(config.delayMinutes);
+        const s = splitDelay(config.delaySeconds);
         setValue(s.value);
         setUnit(s.unit);
       }
@@ -47,14 +59,14 @@ export function SettingsSection() {
     load();
   }, [load]);
 
-  const currentMinutes = unit === "days" ? value * 24 * 60 : value * 60;
+  const currentSeconds = value * UNIT_SECONDS[unit];
 
   const save = async (override?: Partial<Config>) => {
     setSaving(true);
     try {
       const payload: Config = {
         enabled: override?.enabled ?? enabled,
-        delayMinutes: override?.delayMinutes ?? currentMinutes,
+        delaySeconds: override?.delaySeconds ?? currentSeconds,
       };
       const res = await fetch("/api/admin/settings/followup", {
         method: "PUT",
@@ -64,7 +76,7 @@ export function SettingsSection() {
       if (res.ok) {
         const { config } = (await res.json()) as { config: Config };
         setEnabled(config.enabled);
-        const s = splitDelay(config.delayMinutes);
+        const s = splitDelay(config.delaySeconds);
         setValue(s.value);
         setUnit(s.unit);
         setSavedAt(Date.now());
@@ -74,11 +86,11 @@ export function SettingsSection() {
     }
   };
 
-  const applyPreset = (minutes: number) => {
-    const s = splitDelay(minutes);
+  const applyPreset = (seconds: number) => {
+    const s = splitDelay(seconds);
     setValue(s.value);
     setUnit(s.unit);
-    save({ delayMinutes: minutes });
+    save({ delaySeconds: seconds });
   };
 
   if (loading) {
@@ -156,9 +168,11 @@ export function SettingsSection() {
               />
               <select
                 value={unit}
-                onChange={(e) => setUnit(e.target.value as "hours" | "days")}
+                onChange={(e) => setUnit(e.target.value as Unit)}
                 className="rounded-lg border border-primary/15 bg-background px-3 py-2 text-ink outline-none focus:border-primary"
               >
+                <option value="seconds">{tr({ en: "seconds", ar: "ثانية" })}</option>
+                <option value="minutes">{tr({ en: "minutes", ar: "دقيقة" })}</option>
                 <option value="hours">{tr({ en: "hours", ar: "ساعة" })}</option>
                 <option value="days">{tr({ en: "days", ar: "يوم" })}</option>
               </select>
@@ -172,11 +186,11 @@ export function SettingsSection() {
             </p>
             <div className="flex flex-wrap gap-2">
               {PRESETS.map((p) => {
-                const active = currentMinutes === p.minutes;
+                const active = currentSeconds === p.seconds;
                 return (
                   <button
-                    key={p.minutes}
-                    onClick={() => applyPreset(p.minutes)}
+                    key={p.seconds}
+                    onClick={() => applyPreset(p.seconds)}
                     disabled={saving}
                     className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
                       active

@@ -8,7 +8,9 @@ export function startScheduler() {
   if (process.env.SCHEDULER_ENABLED === "0") return;
   started = true;
 
-  cron.schedule("* * * * *", async () => {
+  // Every 20 seconds (6-field cron). Minute precision is enough for reminders,
+  // but the shorter interval lets seconds-level follow-ups fire promptly.
+  cron.schedule("*/20 * * * * *", async () => {
     try {
       const { processTick } = await import("./server/appointments");
       const r = await processTick();
@@ -25,5 +27,5 @@ export function startScheduler() {
     }
   });
 
-  console.log("[scheduler] started — ticking every minute");
+  console.log("[scheduler] started — ticking every 20s");
 }

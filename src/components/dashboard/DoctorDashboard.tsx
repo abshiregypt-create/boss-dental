@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
@@ -159,25 +159,24 @@ export function DoctorDashboard() {
   // Bookings the doctor just confirmed/declined here — hidden from the request
   // list instantly (the next poll then reflects the persisted DB status).
   const [handledCodes, setHandledCodes] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      try {
-        const res = await fetch("/api/admin/appointments", { cache: "no-store" });
-        if (!res.ok) return;
-        const j = await res.json();
-        if (alive) setDbAppts((j.appointments ?? []) as DbAppt[]);
-      } catch {
-        /* ignore */
-      }
-    };
-    load();
-    const id = setInterval(load, 15000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
+  const loadDbAppts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/appointments", { cache: "no-store" });
+      if (!res.ok) return;
+      const j = await res.json();
+      setDbAppts((j.appointments ?? []) as DbAppt[]);
+    } catch {
+      /* ignore */
+    }
   }, []);
+  useEffect(() => {
+    const run = async () => {
+      await loadDbAppts();
+    };
+    run();
+    const id = setInterval(run, 15000);
+    return () => clearInterval(id);
+  }, [loadDbAppts]);
 
   const todayMid = useMemo(() => {
     const x = new Date(base);
@@ -194,11 +193,13 @@ export function DoctorDashboard() {
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   };
 
-  // DB bookings (confirmed + pending) mapped into the schedule Appointment shape,
-  // limited to the visible week so they show in the day grid + week strip.
+  // DB bookings (confirmed + pending + just-completed) mapped into the schedule
+  // Appointment shape, limited to the visible week so they show in the day grid +
+  // week strip. Completed ones render with a "done" flag so the doctor can see
+  // what's finished (and they no longer offer a Finish button).
   const onlineAppts = useMemo<Appointment[]>(() => {
     return dbAppts
-      .filter((a) => a.status === "confirmed" || a.status === "pending")
+      .filter((a) => a.status === "confirmed" || a.status === "pending" || a.status === "completed")
       .map((a) => {
         const typeId = sessionTypes.some((s) => s.id === a.serviceId) ? a.serviceId : "checkup";
         return {
@@ -207,8 +208,11 @@ export function DoctorDashboard() {
           typeId,
           dayOffset: dayOffsetOf(a.scheduledAt),
           start: hhmmOf(a.scheduledAt),
-          status: a.status === "confirmed" ? "confirmed" : "pending",
+          status: a.status === "pending" ? "pending" : "confirmed",
           phone: a.phone,
+          code: a.code,
+          online: true,
+          done: a.status === "completed",
         } as Appointment;
       })
       .filter((a) => a.dayOffset >= 0 && a.dayOffset < WEEK_DAYS);
@@ -379,6 +383,20 @@ export function DoctorDashboard() {
     }
     if (lead.appointmentId) removeAppointment(lead.appointmentId);
     removeLead(lead.id);
+  };
+
+  // Mark a session finished from the schedule. Sets completedAt server-side,
+  // which starts the post-session follow-up timer. Optimistically flips the card
+  // to "done", then refreshes from the DB.
+  const finishSession = (code: string) => {
+    setDbAppts((prev) => prev.map((a) => (a.code === code ? { ...a, status: "completed" } : a)));
+    fetch(`/api/admin/appointments/${code}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "complete" }),
+    })
+      .then(() => loadDbAppts())
+      .catch(() => {});
   };
 
   // When a booking is confirmed, create or update the client's profile.
@@ -679,7 +697,7 @@ export function DoctorDashboard() {
           {/* panels */}
           <div className="grid gap-5 lg:grid-cols-3">
             <div className="h-[38rem] lg:col-span-2">
-              <DaySchedule base={base} dayOffset={selectedOffset} appointments={scheduleAppts} />
+              <DaySchedule base={base} dayOffset={selectedOffset} appointments={scheduleAppts} onFinish={finishSession} />
             </div>
             <div className="h-[38rem]">
               <BookingRequests

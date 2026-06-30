@@ -36,10 +36,12 @@ export function DaySchedule({
   base,
   dayOffset,
   appointments,
+  onFinish,
 }: {
   base: Date;
   dayOffset: number;
   appointments: Appointment[];
+  onFinish?: (code: string) => void;
 }) {
   const { tr, lang } = useLang();
   const dayAppts = appointments.filter((a) => a.dayOffset === dayOffset);
@@ -101,10 +103,12 @@ export function DaySchedule({
               );
             }
             const type = sessionTypeById(e.appt.typeId);
+            const done = !!e.appt.done;
+            const canFinish = !!onFinish && !!e.appt.code && !!e.appt.online && !done && e.appt.status === "confirmed";
             return (
               <div
                 key={e.appt.id}
-                className="flex items-stretch gap-3 rounded-xl border p-3 transition hover:shadow-sm"
+                className={`flex items-stretch gap-3 rounded-xl border p-3 transition hover:shadow-sm ${done ? "opacity-60" : ""}`}
                 style={{
                   borderColor: tint(type.color, 0.35),
                   background: tint(type.color, 0.07),
@@ -143,7 +147,14 @@ export function DaySchedule({
                     >
                       {tr(type.label)}
                     </span>
-                    <StatusBadge status={e.appt.status} />
+                    {done ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                        {tr({ en: "Done", ar: "تمت" })}
+                      </span>
+                    ) : (
+                      <StatusBadge status={e.appt.status} />
+                    )}
                   </div>
                   <div className="mt-1.5 flex items-center justify-between gap-2">
                     <p className="truncate font-bold text-ink">{tr(e.appt.patient)}</p>
@@ -157,6 +168,15 @@ export function DaySchedule({
                     </svg>
                     {e.appt.phone}
                   </span>
+                  {canFinish && (
+                    <button
+                      onClick={() => onFinish!(e.appt.code!)}
+                      className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                      {tr({ en: "Finish session", ar: "إنهاء الجلسة" })}
+                    </button>
+                  )}
                 </div>
               </div>
             );

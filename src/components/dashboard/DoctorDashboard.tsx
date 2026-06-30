@@ -14,6 +14,8 @@ import { OnlineBookings } from "./OnlineBookings";
 import { WhatsAppLink } from "./WhatsAppLink";
 import {
   type BookingRequest,
+  type Appointment,
+  sessionTypes,
   seedRequests,
   fmtWeekday,
   fmtDayNum,
@@ -135,6 +137,60 @@ export function DoctorDashboard() {
   const deletePatient = (id: string) => {
     setPatients((prev) => prev.filter((x) => x.id !== id));
   };
+
+  // Online bookings (website + WhatsApp) live in the database. Pull confirmed +
+  // pending ones and surface them in the daily schedule so they don't only show
+  // in the "Online Bookings" tab.
+  const [onlineAppts, setOnlineAppts] = useState<Appointment[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const startOfDay = (d: Date) => {
+      const x = new Date(d);
+      x.setHours(0, 0, 0, 0);
+      return x;
+    };
+    const todayMid = startOfDay(base).getTime();
+    const load = async () => {
+      try {
+        const res = await fetch("/api/admin/appointments", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json();
+        const mapped: Appointment[] = (j.appointments ?? [])
+          .filter((a: { status: string }) => a.status === "confirmed" || a.status === "pending")
+          .map((a: { id: string; code: string; patientName: string; phone: string; serviceId: string; scheduledAt: string; status: string }) => {
+            const when = new Date(a.scheduledAt);
+            const dayOffset = Math.round((startOfDay(when).getTime() - todayMid) / 86400000);
+            const start = `${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
+            const typeId = sessionTypes.some((s) => s.id === a.serviceId) ? a.serviceId : "checkup";
+            return {
+              id: `online-${a.code}`,
+              patient: { en: a.patientName, ar: a.patientName },
+              typeId,
+              dayOffset,
+              start,
+              status: a.status === "confirmed" ? "confirmed" : "pending",
+              phone: a.phone,
+            } as Appointment;
+          })
+          .filter((a: Appointment) => a.dayOffset >= 0 && a.dayOffset < WEEK_DAYS);
+        if (alive) setOnlineAppts(mapped);
+      } catch {
+        /* ignore */
+      }
+    };
+    load();
+    const id = setInterval(load, 15000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [base]);
+
+  // Merge the local schedule with online (DB) bookings for all schedule views.
+  const scheduleAppts = useMemo(() => {
+    const seen = new Set(appointments.map((a) => a.id));
+    return [...appointments, ...onlineAppts.filter((a) => !seen.has(a.id))];
+  }, [appointments, onlineAppts]);
 
   // Confirm an online booking lead: lock its slot, create the client + session.
   const confirmLead = (lead: Lead) => {
@@ -258,7 +314,7 @@ export function DoctorDashboard() {
     );
   };
 
-  const todayAppts = appointments.filter((a) => a.dayOffset === 0);
+  const todayAppts = scheduleAppts.filter((a) => a.dayOffset === 0);
   const newLeadCount = leads.filter((l) => l.status === "new").length;
   const newCount =
     requests.filter((r) => r.status === "new").length + newLeadCount;
@@ -454,7 +510,7 @@ export function DoctorDashboard() {
           {/* week strip */}
           <div className="custom-scroll flex gap-2 overflow-x-auto pb-1">
             {Array.from({ length: WEEK_DAYS }, (_, offset) => {
-              const count = appointments.filter((a) => a.dayOffset === offset).length;
+              const count = scheduleAppts.filter((a) => a.dayOffset === offset).length;
               const active = selectedOffset === offset;
               const closed = isClosed(base, offset);
               return (
@@ -484,7 +540,7 @@ export function DoctorDashboard() {
           {/* panels */}
           <div className="grid gap-5 lg:grid-cols-3">
             <div className="h-[38rem] lg:col-span-2">
-              <DaySchedule base={base} dayOffset={selectedOffset} appointments={appointments} />
+              <DaySchedule base={base} dayOffset={selectedOffset} appointments={scheduleAppts} />
             </div>
             <div className="h-[38rem]">
               <BookingRequests

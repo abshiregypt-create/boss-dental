@@ -271,6 +271,7 @@ function RequestCard({
 export function BookingRequests({
   base,
   requests,
+  extraLeads = [],
   onConfirm,
   onDecline,
   onLeadConfirm,
@@ -278,6 +279,7 @@ export function BookingRequests({
 }: {
   base: Date;
   requests: BookingRequest[];
+  extraLeads?: Lead[];
   onConfirm: (id: string) => void;
   onDecline: (id: string) => void;
   onLeadConfirm: (lead: Lead) => void;
@@ -285,11 +287,13 @@ export function BookingRequests({
 }) {
   const { tr } = useLang();
   const { leads } = useSite();
-  const sortedLeads = [...leads].sort((a, b) => b.createdAt - a.createdAt);
+  // Website leads (in-memory) + DB-backed WhatsApp/website bookings, newest first.
+  const sortedLeads = [...leads, ...extraLeads].sort((a, b) => b.createdAt - a.createdAt);
   const sorted = [...requests].sort((a, b) => a.createdAgoMin - b.createdAgoMin);
   const newCount =
     requests.filter((r) => r.status === "new").length +
-    leads.filter((l) => l.status === "new").length;
+    leads.filter((l) => l.status === "new").length +
+    extraLeads.length;
 
   const empty = sorted.length === 0 && sortedLeads.length === 0;
 

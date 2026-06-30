@@ -138,42 +138,32 @@ export function DoctorDashboard() {
     setPatients((prev) => prev.filter((x) => x.id !== id));
   };
 
-  // Online bookings (website + WhatsApp) live in the database. Pull confirmed +
-  // pending ones and surface them in the daily schedule so they don't only show
-  // in the "Online Bookings" tab.
-  const [onlineAppts, setOnlineAppts] = useState<Appointment[]>([]);
+  // Online bookings (website + WhatsApp) live in the database. Pull them once
+  // (polling) and derive both the schedule blocks and the review requests below.
+  type DbAppt = {
+    code: string;
+    patientName: string;
+    phone: string;
+    serviceId: string;
+    serviceLabelEn: string;
+    serviceLabelAr: string;
+    scheduledAt: string;
+    status: string;
+    complaint?: string | null;
+    createdAt: string;
+  };
+  const [dbAppts, setDbAppts] = useState<DbAppt[]>([]);
+  // Bookings the doctor just confirmed/declined here — hidden from the request
+  // list instantly (the next poll then reflects the persisted DB status).
+  const [handledCodes, setHandledCodes] = useState<Set<string>>(new Set());
   useEffect(() => {
     let alive = true;
-    const startOfDay = (d: Date) => {
-      const x = new Date(d);
-      x.setHours(0, 0, 0, 0);
-      return x;
-    };
-    const todayMid = startOfDay(base).getTime();
     const load = async () => {
       try {
         const res = await fetch("/api/admin/appointments", { cache: "no-store" });
         if (!res.ok) return;
         const j = await res.json();
-        const mapped: Appointment[] = (j.appointments ?? [])
-          .filter((a: { status: string }) => a.status === "confirmed" || a.status === "pending")
-          .map((a: { id: string; code: string; patientName: string; phone: string; serviceId: string; scheduledAt: string; status: string }) => {
-            const when = new Date(a.scheduledAt);
-            const dayOffset = Math.round((startOfDay(when).getTime() - todayMid) / 86400000);
-            const start = `${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
-            const typeId = sessionTypes.some((s) => s.id === a.serviceId) ? a.serviceId : "checkup";
-            return {
-              id: `online-${a.code}`,
-              patient: { en: a.patientName, ar: a.patientName },
-              typeId,
-              dayOffset,
-              start,
-              status: a.status === "confirmed" ? "confirmed" : "pending",
-              phone: a.phone,
-            } as Appointment;
-          })
-          .filter((a: Appointment) => a.dayOffset >= 0 && a.dayOffset < WEEK_DAYS);
-        if (alive) setOnlineAppts(mapped);
+        if (alive) setDbAppts((j.appointments ?? []) as DbAppt[]);
       } catch {
         /* ignore */
       }
@@ -184,13 +174,79 @@ export function DoctorDashboard() {
       alive = false;
       clearInterval(id);
     };
+  }, []);
+
+  const todayMid = useMemo(() => {
+    const x = new Date(base);
+    x.setHours(0, 0, 0, 0);
+    return x.getTime();
   }, [base]);
+  const dayOffsetOf = (iso: string) => {
+    const x = new Date(iso);
+    x.setHours(0, 0, 0, 0);
+    return Math.round((x.getTime() - todayMid) / 86400000);
+  };
+  const hhmmOf = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  // DB bookings (confirmed + pending) mapped into the schedule Appointment shape,
+  // limited to the visible week so they show in the day grid + week strip.
+  const onlineAppts = useMemo<Appointment[]>(() => {
+    return dbAppts
+      .filter((a) => a.status === "confirmed" || a.status === "pending")
+      .map((a) => {
+        const typeId = sessionTypes.some((s) => s.id === a.serviceId) ? a.serviceId : "checkup";
+        return {
+          id: `online-${a.code}`,
+          patient: { en: a.patientName, ar: a.patientName },
+          typeId,
+          dayOffset: dayOffsetOf(a.scheduledAt),
+          start: hhmmOf(a.scheduledAt),
+          status: a.status === "confirmed" ? "confirmed" : "pending",
+          phone: a.phone,
+        } as Appointment;
+      })
+      .filter((a) => a.dayOffset >= 0 && a.dayOffset < WEEK_DAYS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbAppts, todayMid]);
+
+  // Pending DB bookings mapped into the Lead shape so WhatsApp/website requests
+  // show in the "Recent Bookings — requests to review" panel for the doctor to
+  // confirm or decline (newest request first).
+  const dbLeads = useMemo<Lead[]>(() => {
+    return dbAppts
+      .filter((a) => a.status === "pending" && !handledCodes.has(a.code))
+      .map((a) => {
+        const serviceId = sessionTypes.some((s) => s.id === a.serviceId) ? a.serviceId : "checkup";
+        return {
+          id: `wa-${a.code}`,
+          name: a.patientName,
+          phone: a.phone,
+          message: a.complaint ?? "",
+          offerId: null,
+          offerTitle: null,
+          serviceId,
+          serviceLabel: { en: a.serviceLabelEn, ar: a.serviceLabelAr },
+          dayOffset: dayOffsetOf(a.scheduledAt),
+          start: hhmmOf(a.scheduledAt),
+          appointmentId: null,
+          trackCode: a.code,
+          createdAt: new Date(a.createdAt).getTime(),
+          status: "new",
+        } as Lead;
+      })
+      .sort((x, y) => y.createdAt - x.createdAt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbAppts, handledCodes, todayMid]);
 
   // Merge the local schedule with online (DB) bookings for all schedule views.
   const scheduleAppts = useMemo(() => {
     const seen = new Set(appointments.map((a) => a.id));
     return [...appointments, ...onlineAppts.filter((a) => !seen.has(a.id))];
   }, [appointments, onlineAppts]);
+
 
   // Client accounts auto-created from bookings (website + WhatsApp) live in the
   // database. Pull them so each WhatsApp booker shows up in the Clients tab with
@@ -239,6 +295,7 @@ export function DoctorDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "confirm" }),
       }).catch(() => {});
+      setHandledCodes((prev) => new Set(prev).add(lead.trackCode!));
     }
 
     const digits = lead.phone.replace(/\D/g, "");
@@ -279,11 +336,22 @@ export function DoctorDashboard() {
       return [created, ...prev];
     });
     markLeadSeen(lead.id);
-    if (lead.dayOffset != null) setSelectedOffset(lead.dayOffset);
+    if (lead.dayOffset != null && lead.dayOffset >= 0 && lead.dayOffset < WEEK_DAYS) {
+      setSelectedOffset(lead.dayOffset);
+    }
   };
 
   // Decline an online booking: free its slot and drop the lead.
   const declineLead = (lead: Lead) => {
+    // DB-backed (WhatsApp/website) booking: mark it declined server-side.
+    if (lead.trackCode) {
+      fetch(`/api/admin/appointments/${lead.trackCode}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "decline" }),
+      }).catch(() => {});
+      setHandledCodes((prev) => new Set(prev).add(lead.trackCode!));
+    }
     if (lead.appointmentId) removeAppointment(lead.appointmentId);
     removeLead(lead.id);
   };
@@ -353,7 +421,7 @@ export function DoctorDashboard() {
   const todayAppts = scheduleAppts.filter((a) => a.dayOffset === 0);
   const newLeadCount = leads.filter((l) => l.status === "new").length;
   const newCount =
-    requests.filter((r) => r.status === "new").length + newLeadCount;
+    requests.filter((r) => r.status === "new").length + newLeadCount + dbLeads.length;
   const freeToday = freeSlotCount(todayAppts);
   const nextAppt = [...todayAppts].sort(
     (a, b) => hhmmToMin(a.start) - hhmmToMin(b.start)
@@ -582,6 +650,7 @@ export function DoctorDashboard() {
               <BookingRequests
                 base={base}
                 requests={requests}
+                extraLeads={dbLeads}
                 onConfirm={confirmRequest}
                 onDecline={declineRequest}
                 onLeadConfirm={confirmLead}

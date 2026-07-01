@@ -450,6 +450,48 @@ html[dir="rtl"] body {
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ===== Implant animation: a white-background clip composited so it reads as a
+   seamless part of the page (a 3D animation), not a boxed video. The source has
+   a WHITE background with thin black side-bars, so we sit it on the page colour
+   and use `multiply` (white -> page colour = invisible), scale slightly to crop
+   the side-bars, and feather the edges so no rectangle/frame shows. ===== */
+.implant-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1280 / 720;
+  /* Same colour as the page so the clip's white background disappears into it. */
+  background: var(--background);
+  overflow: hidden;
+}
+.implant-anim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* White background multiplies to the page colour (vanishes); the lit model
+     stays. Reads as an inline animation, not a video. */
+  mix-blend-mode: multiply;
+  /* Feather every edge so the page shows through — this removes the clip's black
+     letterbox bars and baked caption, leaving only the model. Two gradients
+     intersected = a soft-edged window. */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, #000 7%, #000 93%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 5%, #000 78%, transparent 94%);
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 7%, #000 93%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 5%, #000 78%, transparent 94%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  animation: implant-float 9s ease-in-out infinite;
+}
+/* Baseline scale > 1 pushes the black side-bars outside the stage (cropped);
+   nudge the framing up so the baked caption sits in the faded zone. */
+@keyframes implant-float {
+  0%, 100% { transform: translateY(0) scale(1.07); }
+  50% { transform: translateY(-8px) scale(1.09); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

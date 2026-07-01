@@ -61,6 +61,8 @@ next-env.d.ts
 
 # backups (local DB + uploads snapshots)
 /backups
+# exported spreadsheets (contain patient data)
+/exports
 # staging working copy
 /prisma/staging.db*
 
@@ -68,7 +70,7 @@ next-env.d.ts
 /test-results
 /playwright-report
 
-# whatsapp-web.js session (contains your WhatsApp login — NEVER commit)
+# whatsapp-web.js session (contains your WhatsApp login ï¿½ NEVER commit)
 /.wwebjs_auth
 /.wwebjs_cache
 wa-worker.log

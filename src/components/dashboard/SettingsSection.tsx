@@ -222,6 +222,47 @@ export function SettingsSection() {
           </div>
         </div>
       </div>
+
+      {/* Export data card */}
+      <div className="rounded-2xl border border-primary/12 bg-surface p-5">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/12 text-primary">
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="M7 10l5 5 5-5" />
+              <path d="M12 15V3" />
+            </svg>
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-base font-extrabold tracking-tight text-ink">
+              {tr({ en: "Export data (Excel)", ar: "تصدير البيانات (إكسل)" })}
+            </h3>
+            <p className="mt-0.5 text-sm text-muted">
+              {tr({
+                en: "Download classified spreadsheets — profiles & interactions in one file, the schedule in another.",
+                ar: "نزّل ملفات إكسل مصنّفة — ملفات المرضى وتفاعلاتهم في ملف، وجدول المواعيد في ملف آخر.",
+              })}
+            </p>
+
+            <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+              <a
+                href="/api/admin/export?type=profiles"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-4 py-2.5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/50"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
+                {tr({ en: "Profiles & Interactions", ar: "الملفات والتفاعلات" })}
+              </a>
+              <a
+                href="/api/admin/export?type=schedule"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/8 px-4 py-2.5 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:border-primary/50"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                {tr({ en: "Schedule", ar: "جدول المواعيد" })}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

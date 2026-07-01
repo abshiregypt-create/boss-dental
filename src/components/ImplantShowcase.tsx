@@ -7,10 +7,12 @@ import { Reveal } from "./Reveal";
 /**
  * Implant animation showcase.
  *
- * The source clip has a pure-black background, so it's composited with
- * `mix-blend-mode: screen` over a black stage: the black disappears and only the
- * lit 3D implant model shows — it reads as a seamless animation that's part of
- * the page, not an embedded video (no controls, autoplay, muted, loops).
+ * The source clip has a WHITE background, so it's composited with
+ * `mix-blend-mode: multiply` over the page-coloured stage: the white turns into
+ * the page colour (vanishes) and only the lit 3D implant model shows — it reads
+ * as a seamless animation that's part of the page, not an embedded video (no
+ * controls, autoplay, muted, loops). The section keeps a flat background (no
+ * ambient tint) so the stage matches its surroundings and no frame/box shows.
  */
 export function ImplantShowcase() {
   const { tr } = useLang();
@@ -33,13 +35,6 @@ export function ImplantShowcase() {
 
   return (
     <section id="implant" className="relative overflow-hidden bg-background py-20 lg:py-28">
-      {/* soft warm ambience — subtle, keeps it feeling part of the page */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute start-1/2 top-1/2 h-[40rem] w-[40rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.06] blur-[120px]" />
-        <div className="absolute start-[-8rem] top-10 h-72 w-72 rounded-full bg-accent/[0.07] blur-3xl" />
-        <div className="absolute end-[-8rem] bottom-6 h-72 w-72 rounded-full bg-primary/[0.05] blur-3xl" />
-      </div>
-
       <div className="relative mx-auto max-w-6xl px-5 lg:px-8">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="text-sm font-bold uppercase tracking-wider text-primary">

@@ -5,29 +5,15 @@ import { useLang } from "@/lib/language";
 import { Modal, Field, inputCls } from "./Modal";
 import {
   type Patient,
-  type PatientSession,
-  type Payment,
-  type SessionStatus,
-  type PaymentMethod,
   type MedicalHistory,
-  sessionStatusLabel,
-  sessionStatusStyle,
-  paymentMethodLabel,
   balance,
   lastVisit,
   searchPatients,
   formatMoney,
   formatDateStr,
   newPatient,
-  uid,
 } from "@/lib/patients";
-import {
-  sessionTypes,
-  sessionTypeById,
-  initials,
-  tint,
-  isoDate,
-} from "@/lib/dashboard";
+import { initials, isoDate } from "@/lib/dashboard";
 import { PatientFiles } from "./PatientFiles";
 import { PatientOperations } from "./PatientOperations";
 
@@ -145,136 +131,6 @@ function PatientForm({
   );
 }
 
-function SessionForm({
-  initial,
-  base,
-  onSubmit,
-  onCancel,
-}: {
-  initial: PatientSession | null;
-  base: Date;
-  onSubmit: (s: PatientSession) => void;
-  onCancel: () => void;
-}) {
-  const { tr } = useLang();
-  const [typeId, setTypeId] = useState(initial?.typeId ?? "checkup");
-  const [date, setDate] = useState(initial?.date ?? isoDate(base));
-  const [cost, setCost] = useState(String(initial?.cost ?? sessionTypeById("checkup").price));
-  const [status, setStatus] = useState<SessionStatus>(initial?.status ?? "completed");
-  const [notes, setNotes] = useState(initial?.notes ?? "");
-
-  const changeType = (id: string) => {
-    setTypeId(id);
-    if (!initial) setCost(String(sessionTypeById(id).price));
-  };
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit({
-          id: initial?.id ?? uid("s"),
-          typeId,
-          date,
-          cost: Number(cost) || 0,
-          status,
-          notes: notes.trim() || undefined,
-        });
-      }}
-      className="space-y-4"
-    >
-      <Field label={tr({ en: "Session type", ar: "نوع الجلسة" })}>
-        <select className={inputCls} value={typeId} onChange={(e) => changeType(e.target.value)}>
-          {sessionTypes.map((s) => (
-            <option key={s.id} value={s.id}>
-              {tr(s.label)}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={tr({ en: "Date", ar: "التاريخ" })}>
-          <input className={inputCls} type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-        </Field>
-        <Field label={tr({ en: "Cost (EGP)", ar: "التكلفة (ج.م)" })}>
-          <input className={inputCls} type="number" min="0" value={cost} onChange={(e) => setCost(e.target.value)} dir="ltr" />
-        </Field>
-      </div>
-      <Field label={tr({ en: "Status", ar: "الحالة" })}>
-        <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value as SessionStatus)}>
-          {(["completed", "scheduled", "cancelled"] as SessionStatus[]).map((s) => (
-            <option key={s} value={s}>
-              {tr(sessionStatusLabel[s])}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label={tr({ en: "Notes (optional)", ar: "ملاحظات (اختياري)" })}>
-        <textarea className={`${inputCls} resize-none`} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </Field>
-      <FormActions onCancel={onCancel} disabled={false} />
-    </form>
-  );
-}
-
-function PaymentForm({
-  initial,
-  base,
-  onSubmit,
-  onCancel,
-}: {
-  initial: Payment | null;
-  base: Date;
-  onSubmit: (p: Payment) => void;
-  onCancel: () => void;
-}) {
-  const { tr } = useLang();
-  const [amount, setAmount] = useState(String(initial?.amount ?? ""));
-  const [date, setDate] = useState(initial?.date ?? isoDate(base));
-  const [method, setMethod] = useState<PaymentMethod>(initial?.method ?? "cash");
-  const [note, setNote] = useState(initial?.note ?? "");
-  const valid = Number(amount) > 0;
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!valid) return;
-        onSubmit({
-          id: initial?.id ?? uid("pay"),
-          amount: Number(amount),
-          date,
-          method,
-          note: note.trim() || undefined,
-        });
-      }}
-      className="space-y-4"
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={tr({ en: "Amount (EGP)", ar: "المبلغ (ج.م)" })}>
-          <input className={inputCls} type="number" min="1" value={amount} onChange={(e) => setAmount(e.target.value)} dir="ltr" required />
-        </Field>
-        <Field label={tr({ en: "Date", ar: "التاريخ" })}>
-          <input className={inputCls} type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-        </Field>
-      </div>
-      <Field label={tr({ en: "Payment method", ar: "طريقة الدفع" })}>
-        <select className={inputCls} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
-          {(["cash", "card", "insurance", "transfer"] as PaymentMethod[]).map((m) => (
-            <option key={m} value={m}>
-              {tr(paymentMethodLabel[m])}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label={tr({ en: "Note (optional)", ar: "ملاحظة (اختياري)" })}>
-        <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} />
-      </Field>
-      <FormActions onCancel={onCancel} disabled={!valid} />
-    </form>
-  );
-}
-
 function FormActions({ onCancel, disabled }: { onCancel: () => void; disabled: boolean }) {
   const { tr } = useLang();
   return (
@@ -324,9 +180,7 @@ function IconBtn({ kind, onClick, title }: { kind: "edit" | "delete"; onClick: (
 
 type ModalState =
   | { type: "none" }
-  | { type: "patient"; editing: Patient | null }
-  | { type: "session"; editing: PatientSession | null }
-  | { type: "payment"; editing: Payment | null };
+  | { type: "patient"; editing: Patient | null };
 
 export function PatientsSection({
   patients,
@@ -393,36 +247,6 @@ export function PatientsSection({
     if (!window.confirm(tr({ en: `Delete client "${p.name}"? This cannot be undone.`, ar: `حذف العميل "${p.name}"؟ لا يمكن التراجع.` }))) return;
     onDeletePatient(p.id);
     setSelectedId(null);
-  };
-
-  /* ---- sessions ---- */
-  const saveSession = (s: PatientSession) => {
-    if (!selected) return;
-    const exists = selected.sessions.some((x) => x.id === s.id);
-    const sessions = exists
-      ? selected.sessions.map((x) => (x.id === s.id ? s : x))
-      : [...selected.sessions, s];
-    onSavePatient({ ...selected, sessions });
-    close();
-  };
-  const deleteSession = (id: string) => {
-    if (!selected) return;
-    onSavePatient({ ...selected, sessions: selected.sessions.filter((x) => x.id !== id) });
-  };
-
-  /* ---- payments ---- */
-  const savePayment = (p: Payment) => {
-    if (!selected) return;
-    const exists = selected.payments.some((x) => x.id === p.id);
-    const payments = exists
-      ? selected.payments.map((x) => (x.id === p.id ? p : x))
-      : [...selected.payments, p];
-    onSavePatient({ ...selected, payments });
-    close();
-  };
-  const deletePayment = (id: string) => {
-    if (!selected) return;
-    onSavePatient({ ...selected, payments: selected.payments.filter((x) => x.id !== id) });
   };
 
   return (
@@ -520,15 +344,8 @@ export function PatientsSection({
             <ProfileDetail
               key={selected.id}
               patient={selected}
-              base={base}
               onEditPatient={() => setModal({ type: "patient", editing: selected })}
               onDeletePatient={() => removePatient(selected)}
-              onAddSession={() => setModal({ type: "session", editing: null })}
-              onEditSession={(s) => setModal({ type: "session", editing: s })}
-              onDeleteSession={deleteSession}
-              onAddPayment={() => setModal({ type: "payment", editing: null })}
-              onEditPayment={(p) => setModal({ type: "payment", editing: p })}
-              onDeletePayment={deletePayment}
             />
           ) : (
             <div className="grid h-[46rem] place-items-center rounded-2xl border border-dashed border-primary/15 bg-surface text-center">
@@ -558,34 +375,6 @@ export function PatientsSection({
           <PatientForm initial={modal.editing} onSubmit={submitPatient} onCancel={close} />
         )}
       </Modal>
-
-      <Modal
-        open={modal.type === "session"}
-        onClose={close}
-        title={
-          modal.type === "session" && modal.editing
-            ? tr({ en: "Edit Session", ar: "تعديل الجلسة" })
-            : tr({ en: "Add Session", ar: "إضافة جلسة" })
-        }
-      >
-        {modal.type === "session" && (
-          <SessionForm initial={modal.editing} base={base} onSubmit={saveSession} onCancel={close} />
-        )}
-      </Modal>
-
-      <Modal
-        open={modal.type === "payment"}
-        onClose={close}
-        title={
-          modal.type === "payment" && modal.editing
-            ? tr({ en: "Edit Payment", ar: "تعديل الدفعة" })
-            : tr({ en: "Add Payment", ar: "إضافة دفعة" })
-        }
-      >
-        {modal.type === "payment" && (
-          <PaymentForm initial={modal.editing} base={base} onSubmit={savePayment} onCancel={close} />
-        )}
-      </Modal>
     </div>
   );
 }
@@ -608,58 +397,17 @@ function MedRow({ label, value, alert }: { label: string; value: string; alert?:
   );
 }
 
-function MoneyStat({ label, value, tone }: { label: string; value: string; tone: "gold" | "green" | "red" | "neutral" }) {
-  const tones = {
-    gold: "border-primary/20 bg-primary/8 text-primary",
-    green: "border-emerald-500/20 bg-emerald-500/8 text-emerald-700",
-    red: "border-rose-500/20 bg-rose-500/8 text-rose-600",
-    neutral: "border-primary/12 bg-surface-2 text-ink",
-  } as const;
-  return (
-    <div className={`rounded-xl border p-3.5 ${tones[tone]}`}>
-      <p className="text-xs font-medium opacity-80">{label}</p>
-      <p className="mt-1 text-lg font-extrabold" dir="ltr">{value}</p>
-    </div>
-  );
-}
-
 function ProfileDetail({
   patient,
-  base,
   onEditPatient,
   onDeletePatient,
-  onAddSession,
-  onEditSession,
-  onDeleteSession,
-  onAddPayment,
-  onEditPayment,
-  onDeletePayment,
 }: {
   patient: Patient;
-  base: Date;
   onEditPatient: () => void;
   onDeletePatient: () => void;
-  onAddSession: () => void;
-  onEditSession: (s: PatientSession) => void;
-  onDeleteSession: (id: string) => void;
-  onAddPayment: () => void;
-  onEditPayment: (p: Payment) => void;
-  onDeletePayment: (id: string) => void;
 }) {
   const { tr, lang } = useLang();
-  // Money summary reflects the DB-backed operations & payments (the same source
-  // as the Operations panel below), so the top figures always match it.
-  const [opTotals, setOpTotals] = useState<{ billed: number; paid: number; balance: number }>({
-    billed: 0,
-    paid: 0,
-    balance: 0,
-  });
-  const billed = opTotals.billed;
-  const paid = opTotals.paid;
-  const bal = opTotals.balance;
   const last = lastVisit(patient);
-  const sessions = [...patient.sessions].sort((a, b) => b.date.localeCompare(a.date));
-  const payments = [...patient.payments].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <div className="custom-scroll h-auto space-y-5 overflow-y-auto rounded-2xl border border-primary/12 bg-surface p-5 lg:h-[46rem]">
@@ -700,6 +448,15 @@ function ProfileDetail({
               </svg>
               {tr({ en: "Since", ar: "عميل منذ" })} {formatDateStr(patient.createdAt, lang)}
             </span>
+            {last && (
+              <span className="inline-flex items-center gap-1.5">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7.5V12l3 2" />
+                </svg>
+                {tr({ en: "Last visit", ar: "آخر زيارة" })} {formatDateStr(last, lang)}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -716,28 +473,15 @@ function ProfileDetail({
         </div>
       </div>
 
-      {/* financial summary */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MoneyStat label={tr({ en: "Total Billed", ar: "إجمالي الفواتير" })} value={formatMoney(billed, lang)} tone="gold" />
-        <MoneyStat label={tr({ en: "Total Paid", ar: "إجمالي المدفوع" })} value={formatMoney(paid, lang)} tone="green" />
-        <MoneyStat
-          label={tr({ en: "Balance Due", ar: "المتبقي" })}
-          value={formatMoney(bal, lang)}
-          tone={bal > 0 ? "red" : "green"}
-        />
-        <MoneyStat
-          label={tr({ en: "Last Visit", ar: "آخر زيارة" })}
-          value={last ? formatDateStr(last, lang) : tr({ en: "—", ar: "—" })}
-          tone="neutral"
-        />
-      </div>
-
       {patient.notes && (
         <div className="rounded-xl border border-primary/10 bg-surface-2 p-3 text-sm text-ink/90">
           <span className="font-semibold text-primary">{tr({ en: "Notes: ", ar: "ملاحظات: " })}</span>
           {patient.notes}
         </div>
       )}
+
+      {/* Operations & payments — the single money + treatment view */}
+      <PatientOperations phone={patient.phone} name={patient.name} />
 
       {/* medical history */}
       {patient.medical && Object.values(patient.medical).some(Boolean) && (
@@ -767,106 +511,6 @@ function ProfileDetail({
           )}
         </div>
       )}
-
-      {/* DB-backed operations & payments (real money tracking) */}
-      <PatientOperations phone={patient.phone} name={patient.name} onTotals={setOpTotals} />
-
-      {/* sessions */}
-      <section>
-        <div className="mb-2.5 flex items-center justify-between">
-          <h4 className="text-sm font-bold uppercase tracking-wide text-ink">
-            {tr({ en: "Session History", ar: "سجل الجلسات" })} ({patient.sessions.length})
-          </h4>
-          <button
-            onClick={onAddSession}
-            className="inline-flex items-center gap-1 rounded-lg border border-primary/20 px-2.5 py-1 text-xs font-semibold text-primary transition hover:bg-primary/10"
-          >
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            {tr({ en: "Add Session", ar: "إضافة جلسة" })}
-          </button>
-        </div>
-        {sessions.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-primary/15 py-6 text-center text-sm text-muted">
-            {tr({ en: "No sessions yet.", ar: "لا توجد جلسات بعد." })}
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {sessions.map((s) => {
-              const type = sessionTypeById(s.typeId);
-              return (
-                <li key={s.id} className="flex items-center gap-3 rounded-xl border border-primary/10 bg-surface-2 p-3">
-                  <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: type.color }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-ink">{tr(type.label)}</span>
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${sessionStatusStyle[s.status]}`}>
-                        {tr(sessionStatusLabel[s.status])}
-                      </span>
-                    </div>
-                    <div className="mt-0.5 text-xs text-muted">
-                      {formatDateStr(s.date, lang)}
-                      {s.notes ? ` · ${s.notes}` : ""}
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-sm font-bold text-ink" dir="ltr">{formatMoney(s.cost, lang)}</span>
-                  <span className="flex shrink-0 gap-1">
-                    <IconBtn kind="edit" onClick={() => onEditSession(s)} title={tr({ en: "Edit", ar: "تعديل" })} />
-                    <IconBtn kind="delete" onClick={() => onDeleteSession(s.id)} title={tr({ en: "Delete", ar: "حذف" })} />
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      {/* payments */}
-      <section>
-        <div className="mb-2.5 flex items-center justify-between">
-          <h4 className="text-sm font-bold uppercase tracking-wide text-ink">
-            {tr({ en: "Payments", ar: "المدفوعات" })} ({patient.payments.length})
-          </h4>
-          <button
-            onClick={onAddPayment}
-            className="inline-flex items-center gap-1 rounded-lg border border-primary/20 px-2.5 py-1 text-xs font-semibold text-primary transition hover:bg-primary/10"
-          >
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            {tr({ en: "Add Payment", ar: "إضافة دفعة" })}
-          </button>
-        </div>
-        {payments.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-primary/15 py-6 text-center text-sm text-muted">
-            {tr({ en: "No payments recorded.", ar: "لا توجد مدفوعات." })}
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {payments.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 rounded-xl border border-primary/10 bg-surface-2 p-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-emerald-700">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-bold text-ink" dir="ltr">{formatMoney(p.amount, lang)}</div>
-                  <div className="mt-0.5 text-xs text-muted">
-                    {formatDateStr(p.date, lang)} · {tr(paymentMethodLabel[p.method])}
-                    {p.note ? ` · ${p.note}` : ""}
-                  </div>
-                </div>
-                <span className="flex shrink-0 gap-1">
-                  <IconBtn kind="edit" onClick={() => onEditPayment(p)} title={tr({ en: "Edit", ar: "تعديل" })} />
-                  <IconBtn kind="delete" onClick={() => onDeletePayment(p.id)} title={tr({ en: "Delete", ar: "حذف" })} />
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       {/* patient files (x-rays, photos, documents) */}
       <PatientFiles patientKey={patient.id} patientName={patient.name} />

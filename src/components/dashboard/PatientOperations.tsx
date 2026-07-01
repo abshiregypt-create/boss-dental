@@ -35,15 +35,7 @@ const METHOD_LABEL: Record<string, { en: string; ar: string }> = {
   transfer: { en: "Transfer", ar: "تحويل" },
 };
 
-export function PatientOperations({
-  phone,
-  name,
-  onTotals,
-}: {
-  phone: string;
-  name: string;
-  onTotals?: (t: Totals) => void;
-}) {
+export function PatientOperations({ phone, name }: { phone: string; name: string }) {
   const { tr, lang } = useLang();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -66,9 +58,7 @@ export function PatientOperations({
           const j = await res.json();
           setTreatments(j.treatments ?? []);
           setPayments(j.payments ?? []);
-          const tot = j.totals ?? { billed: 0, paid: 0, balance: 0 };
-          setTotals(tot);
-          onTotals?.(tot);
+          setTotals(j.totals ?? { billed: 0, paid: 0, balance: 0 });
         }
       } finally {
         if (alive) setLoading(false);
@@ -78,7 +68,6 @@ export function PatientOperations({
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone, reloadKey]);
 
   useEffect(() => {

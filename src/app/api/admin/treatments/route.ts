@@ -56,6 +56,8 @@ export async function GET(req: Request) {
       procedureId: t.procedureId,
       nameEn: t.nameEn,
       nameAr: t.nameAr,
+      basePrice: t.basePrice,
+      discountPct: t.discountPct,
       price: t.price,
       paid: paidByTreatment.get(t.id) ?? 0,
       notes: t.notes,
@@ -76,8 +78,9 @@ export async function GET(req: Request) {
 /**
  * POST /api/admin/treatments
  * Records an operation for a patient (creating the patient by phone if needed),
- * with an optional initial payment (full or partial).
- * Body: { phone, name?, procedureId?, nameEn, nameAr, price, notes?, paidNow?, method?, performedAt? }
+ * with an optional percentage discount and an optional initial payment.
+ * Body: { phone, name?, procedureId?, nameEn, nameAr, price(=list price),
+ *         discountPct?, notes?, paidNow?, method?, performedAt? }
  */
 export async function POST(req: Request) {
   const { error } = await requireSession();
@@ -90,6 +93,7 @@ export async function POST(req: Request) {
     nameEn?: string;
     nameAr?: string;
     price?: number;
+    discountPct?: number;
     notes?: string;
     paidNow?: number;
     method?: string;
@@ -103,8 +107,14 @@ export async function POST(req: Request) {
 
   const phoneRaw = String(body.phone ?? "").trim();
   if (!phoneRaw) return NextResponse.json({ error: "phone_required" }, { status: 400 });
-  const price = Number(body.price);
-  if (!Number.isFinite(price) || price < 0) return NextResponse.json({ error: "bad_price" }, { status: 400 });
+  const basePrice = Number(body.price);
+  if (!Number.isFinite(basePrice) || basePrice < 0) return NextResponse.json({ error: "bad_price" }, { status: 400 });
+
+  // Discount is a percentage (0–100); the net charged price = base − discount.
+  let discountPct = Number(body.discountPct);
+  if (!Number.isFinite(discountPct) || discountPct < 0) discountPct = 0;
+  if (discountPct > 100) discountPct = 100;
+  const netPrice = Math.round(basePrice * (1 - discountPct / 100) * 100) / 100;
 
   // Resolve the name/price from the catalog if a procedureId is given.
   let nameEn = String(body.nameEn ?? "").trim();
@@ -133,20 +143,22 @@ export async function POST(req: Request) {
       procedureId,
       nameEn: nameEn || nameAr,
       nameAr: nameAr || nameEn,
-      price,
+      basePrice,
+      discountPct,
+      price: netPrice,
       notes: body.notes ? String(body.notes).trim() : null,
       performedAt: isNaN(performedAt.getTime()) ? new Date() : performedAt,
     },
   });
 
-  // Optional initial payment (full or partial), capped at the treatment price.
+  // Optional initial payment (full or partial), capped at the net price.
   const paidNow = Number(body.paidNow);
   if (Number.isFinite(paidNow) && paidNow > 0) {
     await prisma.payment.create({
       data: {
         patientId,
         treatmentRecordId: treatment.id,
-        amount: Math.min(paidNow, price),
+        amount: Math.min(paidNow, netPrice),
         method: normalizeMethod(body.method),
         paidAt: new Date(),
       },

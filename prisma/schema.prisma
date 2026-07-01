@@ -64,7 +64,9 @@ model TreatmentRecord {
   appointmentId String? // optional link to the visit it happened in
   nameEn        String
   nameAr        String
-  price         Float     @default(0) // amount charged (EGP)
+  basePrice     Float?    // list/catalog price before any discount (for display)
+  discountPct   Float     @default(0) // percentage discount applied (0–100)
+  price         Float     @default(0) // net amount charged after discount (EGP)
   notes         String?
   performedAt   DateTime  @default(now())
   createdAt     DateTime  @default(now())

@@ -13,8 +13,6 @@ import {
   sessionStatusLabel,
   sessionStatusStyle,
   paymentMethodLabel,
-  totalBilled,
-  totalPaid,
   balance,
   lastVisit,
   searchPatients,
@@ -649,9 +647,16 @@ function ProfileDetail({
   onDeletePayment: (id: string) => void;
 }) {
   const { tr, lang } = useLang();
-  const billed = totalBilled(patient);
-  const paid = totalPaid(patient);
-  const bal = balance(patient);
+  // Money summary reflects the DB-backed operations & payments (the same source
+  // as the Operations panel below), so the top figures always match it.
+  const [opTotals, setOpTotals] = useState<{ billed: number; paid: number; balance: number }>({
+    billed: 0,
+    paid: 0,
+    balance: 0,
+  });
+  const billed = opTotals.billed;
+  const paid = opTotals.paid;
+  const bal = opTotals.balance;
   const last = lastVisit(patient);
   const sessions = [...patient.sessions].sort((a, b) => b.date.localeCompare(a.date));
   const payments = [...patient.payments].sort((a, b) => b.date.localeCompare(a.date));
@@ -764,7 +769,7 @@ function ProfileDetail({
       )}
 
       {/* DB-backed operations & payments (real money tracking) */}
-      <PatientOperations phone={patient.phone} name={patient.name} />
+      <PatientOperations phone={patient.phone} name={patient.name} onTotals={setOpTotals} />
 
       {/* sessions */}
       <section>

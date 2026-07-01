@@ -10,6 +10,8 @@ type Treatment = {
   procedureId: string | null;
   nameEn: string;
   nameAr: string;
+  basePrice: number | null;
+  discountPct: number;
   price: number;
   paid: number;
   notes: string | null;
@@ -33,7 +35,15 @@ const METHOD_LABEL: Record<string, { en: string; ar: string }> = {
   transfer: { en: "Transfer", ar: "تحويل" },
 };
 
-export function PatientOperations({ phone, name }: { phone: string; name: string }) {
+export function PatientOperations({
+  phone,
+  name,
+  onTotals,
+}: {
+  phone: string;
+  name: string;
+  onTotals?: (t: Totals) => void;
+}) {
   const { tr, lang } = useLang();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -56,7 +66,9 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
           const j = await res.json();
           setTreatments(j.treatments ?? []);
           setPayments(j.payments ?? []);
-          setTotals(j.totals ?? { billed: 0, paid: 0, balance: 0 });
+          const tot = j.totals ?? { billed: 0, paid: 0, balance: 0 };
+          setTotals(tot);
+          onTotals?.(tot);
         }
       } finally {
         if (alive) setLoading(false);
@@ -66,6 +78,7 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone, reloadKey]);
 
   useEffect(() => {
@@ -138,6 +151,7 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
               {treatments.map((t) => {
                 const remaining = Math.max(0, t.price - t.paid);
                 const settled = remaining <= 0;
+                const hasDiscount = t.discountPct > 0 && t.basePrice != null && t.basePrice > t.price;
                 return (
                   <div key={t.id} className="rounded-xl border border-primary/10 bg-surface p-3">
                     <div className="flex items-start justify-between gap-2">
@@ -155,7 +169,19 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
                     </div>
                     {t.notes && <p className="mt-1 text-xs text-ink/75">{t.notes}</p>}
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                      <span className="font-semibold text-ink/80">{tr({ en: "Price", ar: "السعر" })}: {formatMoney(t.price, lang)}</span>
+                      <span className="font-semibold text-ink/80">
+                        {tr({ en: "Price", ar: "السعر" })}:{" "}
+                        {hasDiscount && (
+                          <span className="text-muted line-through">{formatMoney(t.basePrice!, lang)}</span>
+                        )}{" "}
+                        {formatMoney(t.price, lang)}
+                      </span>
+                      {hasDiscount && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-700">
+                          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 9h.01M15 15h.01M16 8 8 16M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></svg>
+                          {tr({ en: `Discount ${t.discountPct}%`, ar: `خصم ${t.discountPct}٪` })}
+                        </span>
+                      )}
                       <span className="text-emerald-700">{tr({ en: "Paid", ar: "مدفوع" })}: {formatMoney(t.paid, lang)}</span>
                       {settled ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 font-bold text-emerald-700">
@@ -273,6 +299,7 @@ function OperationModal({
   const [procId, setProcId] = useState<string>(procedures[0]?.id ?? "custom");
   const [customName, setCustomName] = useState("");
   const [price, setPrice] = useState<string>(procedures[0] ? String(procedures[0].price) : "");
+  const [discount, setDiscount] = useState("");
   const [payChoice, setPayChoice] = useState<"none" | "full" | "partial">("none");
   const [partial, setPartial] = useState("");
   const [method, setMethod] = useState<string>("cash");
@@ -281,12 +308,18 @@ function OperationModal({
 
   const isCustom = procId === "custom";
   const priceNum = Number(price);
+  const discountPct = Math.min(100, Math.max(0, Number(discount) || 0));
+  // Net price after the percentage discount — this is what the patient owes.
+  const netPrice = useMemo(
+    () => (Number.isFinite(priceNum) ? Math.round(priceNum * (1 - discountPct / 100) * 100) / 100 : 0),
+    [priceNum, discountPct]
+  );
 
   const paidNow = useMemo(() => {
-    if (payChoice === "full") return priceNum;
+    if (payChoice === "full") return netPrice;
     if (payChoice === "partial") return Number(partial) || 0;
     return 0;
-  }, [payChoice, priceNum, partial]);
+  }, [payChoice, netPrice, partial]);
 
   const onPickProc = (id: string) => {
     setProcId(id);
@@ -306,9 +339,10 @@ function OperationModal({
         procedureId: isCustom ? null : procId,
         nameEn: isCustom ? customName.trim() : proc?.nameEn ?? customName.trim(),
         nameAr: isCustom ? customName.trim() : proc?.nameAr ?? customName.trim(),
-        price: priceNum,
+        price: priceNum, // list price (backend applies the discount)
+        discountPct,
         notes: notes.trim() || undefined,
-        paidNow: paidNow > 0 ? Math.min(paidNow, priceNum) : undefined,
+        paidNow: paidNow > 0 ? Math.min(paidNow, netPrice) : undefined,
         method,
       };
       await fetch("/api/admin/treatments", {
@@ -344,10 +378,25 @@ function OperationModal({
           </label>
         )}
 
-        <label className="block text-sm">
-          <span className="mb-1 block font-semibold text-ink">{tr({ en: "Price (EGP)", ar: "السعر (ج.م)" })}</span>
-          <input type="number" min={0} dir="ltr" className={inputCls} value={price} onChange={(e) => setPrice(e.target.value)} />
-        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block text-sm">
+            <span className="mb-1 block font-semibold text-ink">{tr({ en: "Price (EGP)", ar: "السعر (ج.م)" })}</span>
+            <input type="number" min={0} dir="ltr" className={inputCls} value={price} onChange={(e) => setPrice(e.target.value)} />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-semibold text-ink">{tr({ en: "Discount %", ar: "الخصم ٪" })}</span>
+            <input type="number" min={0} max={100} dir="ltr" className={inputCls} value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" />
+          </label>
+        </div>
+
+        {discountPct > 0 && priceNum > 0 && (
+          <p className="rounded-lg border border-amber-300/40 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            {tr({ en: "After discount", ar: "بعد الخصم" })}:{" "}
+            <span className="text-muted line-through" dir="ltr">{priceNum}</span>{" "}
+            <span className="font-bold" dir="ltr">{netPrice} {tr({ en: "EGP", ar: "ج.م" })}</span>{" "}
+            <span className="font-semibold">({tr({ en: `−${discountPct}%`, ar: `خصم ${discountPct}٪` })})</span>
+          </p>
+        )}
 
         <div className="text-sm">
           <span className="mb-1 block font-semibold text-ink">{tr({ en: "Payment now", ar: "الدفع الآن" })}</span>
@@ -389,10 +438,10 @@ function OperationModal({
           <textarea rows={2} className={`${inputCls} resize-none`} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </label>
 
-        {priceNum > 0 && (
+        {netPrice > 0 && (
           <p className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">
             {tr({ en: "Remaining after this", ar: "المتبقي بعد ذلك" })}:{" "}
-            <span className="font-bold text-ink">{Math.max(0, priceNum - paidNow)} {tr({ en: "EGP", ar: "ج.م" })}</span>
+            <span className="font-bold text-ink">{Math.max(0, netPrice - paidNow)} {tr({ en: "EGP", ar: "ج.م" })}</span>
           </p>
         )}
 

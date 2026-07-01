@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/server/guard";
 import { normalizePhone } from "@/lib/server/phone";
 import { sendWhatsApp } from "@/lib/server/whatsapp";
 import { logChat } from "@/lib/server/followups";
+import { nameByPhone } from "@/lib/server/patient-names";
 
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
@@ -21,24 +22,6 @@ function looksCorrupted(text: string): boolean {
   return q >= 5 && nonSpace > 0 && q / nonSpace > 0.5;
 }
 
-/** Build a phone→display-name map from appointments + patients (best name wins). */
-async function nameByPhone(): Promise<Map<string, string>> {
-  const [appts, patients] = await Promise.all([
-    prisma.appointment.findMany({ orderBy: { createdAt: "desc" }, select: { phone: true, patientName: true } }),
-    prisma.patient.findMany({ select: { phone: true, name: true } }),
-  ]);
-  const map = new Map<string, string>();
-  const isReal = (s: string) => (s || "").trim().replace(/[^\p{L}]/gu, "").length >= 2;
-  for (const p of patients) {
-    const t = tail(p.phone);
-    if (t.length >= 8 && isReal(p.name) && !map.has(t)) map.set(t, p.name.trim());
-  }
-  for (const a of appts) {
-    const t = tail(a.phone);
-    if (t.length >= 8 && isReal(a.patientName) && !map.has(t)) map.set(t, a.patientName.trim());
-  }
-  return map;
-}
 
 export async function GET(req: Request) {
   const { error } = await requireSession();

@@ -21,15 +21,26 @@ type ChatMsg = {
   createdAt: string;
 };
 
-export function ClientMessages() {
+export function ClientMessages({
+  initialPhone = null,
+  onOpened,
+}: {
+  initialPhone?: string | null;
+  onOpened?: () => void;
+} = {}) {
   const { tr, lang } = useLang();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [active, setActive] = useState<string | null>(null);
+  const [active, setActive] = useState<string | null>(initialPhone);
   const [activeName, setActiveName] = useState<string>("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [highlightIds, setHighlightIds] = useState<Set<string>>(new Set());
+  // True until the first thread load highlights the follow-up reply that was
+  // opened from an overview alert. A ref (not state) so reading/clearing it
+  // inside the loader doesn't add render churn.
+  const pendingHighlightRef = useRef<boolean>(!!initialPhone);
   const threadRef = useRef<HTMLDivElement | null>(null);
 
   const loadList = useCallback(async () => {
@@ -71,8 +82,24 @@ export function ClientMessages() {
         const res = await fetch(`/api/admin/chats?phone=${encodeURIComponent(active)}`, { cache: "no-store" });
         if (res.ok && alive) {
           const j = await res.json();
-          setMessages(j.messages ?? []);
+          const msgs = (j.messages ?? []) as ChatMsg[];
+          setMessages(msgs);
           setActiveName(j.name ?? `+${active}`);
+          // First load after opening from a follow-up alert: highlight the
+          // reply bubble(s) and scroll the newest into view. Runs once.
+          if (alive && pendingHighlightRef.current) {
+            pendingHighlightRef.current = false;
+            const ids = msgs.filter((m) => m.direction === "in" && m.kind === "reply").map((m) => m.id);
+            const target = ids.length ? ids : msgs.slice(-1).map((m) => m.id);
+            setHighlightIds(new Set(target));
+            const lastId = target[target.length - 1];
+            requestAnimationFrame(() => {
+              document.getElementById(`msg-${lastId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+            window.setTimeout(() => {
+              if (alive) setHighlightIds(new Set());
+            }, 6000);
+          }
         }
       } catch {
         /* ignore */
@@ -90,7 +117,16 @@ export function ClientMessages() {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
   }, [messages]);
 
+  // Notify the parent that the requested chat has been consumed, so it can reset
+  // its "open this phone" state (lets the same alert be tapped again later).
+  useEffect(() => {
+    if (initialPhone) onOpened?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openConversation = (c: Conversation) => {
+    pendingHighlightRef.current = false;
+    setHighlightIds(new Set());
     setActive(c.phone);
     setActiveName(c.name);
     setMessages([]);
@@ -251,18 +287,28 @@ export function ClientMessages() {
                   ) : (
                     messages.map((m) => {
                       const out = m.direction === "out";
+                      const isReply = m.direction === "in" && m.kind === "reply";
+                      const hl = highlightIds.has(m.id);
                       return (
-                        <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
+                        <div key={m.id} id={`msg-${m.id}`} className={`flex ${out ? "justify-end" : "justify-start"}`}>
                           <div
                             className={`max-w-[80%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm ${
                               out
                                 ? "bg-primary/15 text-ink rounded-ee-sm"
+                                : isReply
+                                ? "border border-primary/30 bg-primary/8 text-ink rounded-es-sm"
                                 : "border border-primary/10 bg-background text-ink rounded-es-sm"
-                            }`}
+                            } ${hl ? "chat-highlight" : ""}`}
                           >
                             {m.kind === "followup" && (
                               <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-primary">
                                 {tr({ en: "Follow-up", ar: "متابعة" })}
+                              </span>
+                            )}
+                            {isReply && (
+                              <span className="mb-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-primary">
+                                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8" /></svg>
+                                {tr({ en: "Follow-up reply", ar: "رد المتابعة" })}
                               </span>
                             )}
                             {m.body}

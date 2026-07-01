@@ -315,6 +315,55 @@ export function DoctorDashboard() {
     };
   }, [activeNav]);
 
+  // Post-session follow-up (متابعة) replies awaiting the doctor. Each entry is one
+  // client who answered the automatic follow-up and hasn't been read yet; they
+  // surface as a floating alert on the overview. Opening the chat clears them.
+  type FollowupReply = {
+    phone: string;
+    name: string;
+    chatId: string | null;
+    lastBody: string;
+    lastAt: string;
+    count: number;
+  };
+  const [followupReplies, setFollowupReplies] = useState<FollowupReply[]>([]);
+  // "Now" for relative timestamps, refreshed each poll (keeps render pure — no
+  // Date.now() during render).
+  const [nowTs, setNowTs] = useState(0);
+  // The client chat to auto-open in the Messages tab (set by tapping an alert).
+  const [openChatPhone, setOpenChatPhone] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/admin/followup-replies", { cache: "no-store" });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (alive) {
+          setFollowupReplies((j.replies ?? []) as FollowupReply[]);
+          setNowTs(Date.now());
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    load();
+    const id = setInterval(load, 12000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [activeNav]);
+
+  const openFollowupChat = (r: FollowupReply) => {
+    setOpenChatPhone(r.phone);
+    setActiveNav("messages");
+    // Optimistically drop it from the alert list; the next poll confirms (the
+    // thread GET marks it read server-side).
+    setFollowupReplies((prev) => prev.filter((x) => x.phone !== r.phone));
+  };
+  const handleChatOpened = useCallback(() => setOpenChatPhone(null), []);
+
   // Confirm an online booking lead: lock its slot, create the client + session.
   const confirmLead = (lead: Lead) => {
     if (lead.appointmentId) updateAppointment(lead.appointmentId, { status: "confirmed" });
@@ -480,6 +529,20 @@ export function DoctorDashboard() {
       ? { en: "Good afternoon", ar: "مساء الخير" }
       : { en: "Good evening", ar: "مساء الخير" };
 
+  // Compact "time ago" for the follow-up alert timestamps (nowTs comes from the
+  // poll so this stays pure during render).
+  const timeAgo = (iso: string): string => {
+    const ref = nowTs || new Date(iso).getTime();
+    const diff = ref - new Date(iso).getTime();
+    const mins = Math.max(0, Math.round(diff / 60000));
+    if (mins < 1) return tr({ en: "just now", ar: "الآن" });
+    if (mins < 60) return tr({ en: `${mins}m ago`, ar: `منذ ${mins} د` });
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return tr({ en: `${hrs}h ago`, ar: `منذ ${hrs} س` });
+    const days = Math.round(hrs / 24);
+    return tr({ en: `${days}d ago`, ar: `منذ ${days} يوم` });
+  };
+
   return (
     <div className="dash-light flex min-h-screen bg-background text-ink">
       {/* ---------- Sidebar ---------- */}
@@ -602,6 +665,61 @@ export function DoctorDashboard() {
 
           {activeNav === "overview" && (
           <>
+          {/* floating follow-up (متابعة) reply alerts */}
+          {followupReplies.length > 0 && (
+            <div className="followup-alert sticky top-2 z-20 overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-surface shadow-lg shadow-primary/10 ring-1 ring-primary/20">
+              <div className="flex items-center gap-2.5 border-b border-primary/15 bg-primary/10 px-4 py-2.5">
+                <span className="followup-bell grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/20 text-primary">
+                  <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
+                  </svg>
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-extrabold text-ink">
+                    {tr({ en: "Follow-up replies", ar: "ردود المتابعة" })}
+                  </p>
+                  <p className="truncate text-[11px] text-muted">
+                    {tr({
+                      en: "Patients answered your after-visit message — tap to reply.",
+                      ar: "مرضى ردّوا على رسالة المتابعة — اضغط للرد.",
+                    })}
+                  </p>
+                </div>
+                <span className="ms-auto grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-primary px-2 text-xs font-bold text-[#0a0e12]">
+                  {followupReplies.length}
+                </span>
+              </div>
+              <div className="custom-scroll max-h-64 space-y-1.5 overflow-y-auto p-2.5">
+                {followupReplies.map((r) => (
+                  <button
+                    key={r.phone}
+                    onClick={() => openFollowupChat(r)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-primary/12 bg-surface p-2.5 text-start transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/15 text-sm font-bold text-primary">
+                      {(r.name || "?").trim().charAt(0).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-bold text-ink">{r.name}</span>
+                        <span className="shrink-0 text-[10px] text-muted">{timeAgo(r.lastAt)}</span>
+                      </span>
+                      <span className="truncate text-xs text-muted">{r.lastBody}</span>
+                    </span>
+                    {r.count > 1 && (
+                      <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary/20 px-1 text-[10px] font-bold text-primary">
+                        {r.count}
+                      </span>
+                    )}
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-primary rtl:rotate-180" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* greeting */}
           <div>
             <h2 className="text-xl font-extrabold tracking-tight lg:text-2xl">
@@ -731,7 +849,9 @@ export function DoctorDashboard() {
 
           {activeNav === "whatsapp" && <WhatsAppLink />}
 
-          {activeNav === "messages" && <ClientMessages />}
+          {activeNav === "messages" && (
+            <ClientMessages initialPhone={openChatPhone} onOpened={handleChatOpened} />
+          )}
 
           {activeNav === "offers" && <OffersManager />}
 

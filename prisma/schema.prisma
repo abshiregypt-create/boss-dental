@@ -21,17 +21,75 @@ model User {
 
 /// A person who has booked at least once.
 model Patient {
-  id           String        @id @default(cuid())
+  id           String            @id @default(cuid())
   name         String
   phone        String
   email        String?
   gender       String? // male | female
-  source       String        @default("booking") // booking | manual
+  source       String            @default("booking") // booking | manual
   notes        String?
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime          @default(now())
   appointments Appointment[]
+  treatments   TreatmentRecord[]
+  payments     Payment[]
 
   @@index([phone])
+}
+
+/// The clinic's catalog of operations/procedures (خلع، تركيب، حشو…), each with a
+/// default price. The doctor manages this list; treatment records snapshot the
+/// name + price at the time they're recorded so later edits don't rewrite history.
+model Procedure {
+  id        String   @id @default(cuid())
+  nameEn    String
+  nameAr    String
+  price     Float    @default(0) // default price in EGP
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  treatments TreatmentRecord[]
+
+  @@index([active, sortOrder])
+}
+
+/// A procedure actually performed for a patient in a visit. Price is the amount
+/// charged (snapshot). Balance owed = sum(price) − sum(linked/patient payments).
+model TreatmentRecord {
+  id            String    @id @default(cuid())
+  patientId     String
+  patient       Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  procedureId   String? // catalog link (null if custom or catalog entry was deleted)
+  procedure     Procedure? @relation(fields: [procedureId], references: [id], onDelete: SetNull)
+  appointmentId String? // optional link to the visit it happened in
+  nameEn        String
+  nameAr        String
+  price         Float     @default(0) // amount charged (EGP)
+  notes         String?
+  performedAt   DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  payments Payment[]
+
+  @@index([patientId, performedAt])
+}
+
+/// A payment received from a patient. May be tied to a specific treatment (an
+/// operation's part/full payment) or be a general account payment.
+model Payment {
+  id                String           @id @default(cuid())
+  patientId         String
+  patient           Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  treatmentRecordId String?
+  treatmentRecord   TreatmentRecord? @relation(fields: [treatmentRecordId], references: [id], onDelete: SetNull)
+  amount            Float            @default(0) // EGP
+  method            String           @default("cash") // cash | card | insurance | transfer
+  note              String?
+  paidAt            DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+
+  @@index([patientId, paidAt])
 }
 
 /// A booking. Drives the whole confirm -> WhatsApp -> queue flow.

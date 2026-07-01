@@ -31,6 +31,7 @@ import {
   isoDate,
 } from "@/lib/dashboard";
 import { PatientFiles } from "./PatientFiles";
+import { PatientOperations } from "./PatientOperations";
 
 /* ============================ Forms ============================ */
 
@@ -761,6 +762,9 @@ function ProfileDetail({
           )}
         </div>
       )}
+
+      {/* DB-backed operations & payments (real money tracking) */}
+      <PatientOperations phone={patient.phone} name={patient.name} />
 
       {/* sessions */}
       <section>

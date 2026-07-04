@@ -1,51 +1,42 @@
 /**
  * Single source of truth for clinic identity used by SEO (metadata, JSON-LD,
  * sitemap, Open Graph) and anywhere else that needs canonical business data.
- * Keep this in sync with the visible content in `content.ts`.
+ * Identity fields are derived from the ACTIVE clinic config (src/lib/clinics);
+ * generic settings (hours, price range, service list) are shared here.
  */
+import { activeClinic } from "./clinics";
+
+const clinic = activeClinic();
 
 export const site = {
-  name: "Dr. Ibrahim Salah",
-  shortName: "Dr. Ibrahim Salah",
-  nameAr: "د. إبراهيم صلاح",
+  name: clinic.doctorName.en,
+  shortName: clinic.brand.en,
+  nameAr: clinic.doctorName.ar,
   /** Public base URL — override per environment via NEXT_PUBLIC_SITE_URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "http://localhost:3000",
-  description:
-    "Dr. Ibrahim Salah — consultant cosmetic dentist. Veneers, dental implants, orthodontics and complete smile makeovers for a confident, natural smile. Book your appointment today.",
-  descriptionAr:
-    "د. إبراهيم صلاح — استشاري تجميل الأسنان. عدسات، زراعة أسنان، تقويم، وتجميل الابتسامة الكامل لابتسامة طبيعية وواثقة. احجز موعدك اليوم.",
+  description: clinic.seo.description,
+  descriptionAr: clinic.seo.descriptionAr,
   locale: "en_US",
   localeAlt: "ar_EG",
-  keywords: [
-    "dental implants Cairo",
-    "dentist Maadi",
-    "Badawi Dental",
-    "Hollywood smile Egypt",
-    "teeth whitening Cairo",
-    "orthodontics Maadi",
-    "زراعة الأسنان",
-    "طبيب أسنان المعادي",
-    "ابتسامة هوليوود",
-    "مركز أسنان القاهرة",
-  ],
-  phone: "+201222156274",
-  phoneDisplay: "+20 122 215 6274",
+  keywords: clinic.seo.keywords,
+  phone: clinic.contact.phone,
+  phoneDisplay: clinic.contact.phoneDisplay,
   /**
    * WhatsApp number patients message to confirm/book (digits only, no +).
-   * Set NEXT_PUBLIC_CLINIC_WHATSAPP to the dedicated bot number once you have it;
-   * falls back to the main line until then.
+   * Comes from the active clinic config; NEXT_PUBLIC_CLINIC_WHATSAPP can still
+   * override it per environment.
    */
-  whatsapp: process.env.NEXT_PUBLIC_CLINIC_WHATSAPP || "201222156274",
-  email: "info@bdic.clinic",
+  whatsapp: process.env.NEXT_PUBLIC_CLINIC_WHATSAPP || clinic.contact.whatsapp,
+  email: clinic.contact.email,
   address: {
-    street: "3/3 El Laselky St.",
-    locality: "Maadi",
-    region: "Cairo",
-    country: "EG",
-    postalCode: "11431",
+    street: clinic.contact.address.street,
+    locality: clinic.contact.address.locality,
+    region: clinic.contact.address.region,
+    country: clinic.contact.address.country,
+    postalCode: clinic.contact.address.postalCode,
   },
-  /** Approximate geo for Maadi, Cairo (update with exact clinic coordinates). */
-  geo: { lat: 29.9602, lng: 31.2569 },
+  /** Approximate geo (update with exact clinic coordinates). */
+  geo: { lat: clinic.contact.geo.lat, lng: clinic.contact.geo.lng },
   /** Sat–Thu 12:00–22:00 (Friday closed). */
   openingHours: [
     {
@@ -57,11 +48,7 @@ export const site = {
   priceRange: "$$",
   logo: "/bdic-logo.jpg",
   ogImage: "/opengraph-image",
-  social: [
-    "https://www.facebook.com/badawidentalcenter",
-    "https://instagram.com/badawi_implant_center",
-    "https://wa.me/201222156274",
-  ],
+  social: clinic.contact.social,
   services: [
     "Dental Implants",
     "Hollywood Smile / Veneers",

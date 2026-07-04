@@ -1,4 +1,9 @@
+import { activeClinic } from "./clinics";
+
 export type Lang = "en" | "ar";
+
+/** Identity fields for the active clinic (branding differs per clinic). */
+const clinic = activeClinic();
 
 export type Service = {
   icon: string;
@@ -130,18 +135,7 @@ export const cases: CaseItem[] = [
   },
 ];
 
-export const team: TeamMember[] = [
-  {
-    name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-    role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
-    photo: "/doctor-ibrahim.png",
-  },
-  {
-    name: { en: "Clinical Team", ar: "الفريق الطبي" },
-    role: { en: "Cosmetic & Restorative Dentistry", ar: "تجميل وترميم الأسنان" },
-    photo: "/clinic/doctor-2.jpg",
-  },
-];
+export const team: TeamMember[] = clinic.team;
 
 export const testimonials: Testimonial[] = [
   {
@@ -171,7 +165,7 @@ export const testimonials: Testimonial[] = [
 ];
 
 export const t = {
-  brand: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
+  brand: clinic.brand,
   nav: {
     home: { en: "Home", ar: "الرئيسية" },
     services: { en: "Services", ar: "الخدمات" },
@@ -185,18 +179,15 @@ export const t = {
     book: { en: "Book Appointment", ar: "احجز موعد" },
   },
   hero: {
-    badge: { en: "100% Patient Recommended · Cosmetic Dentistry", ar: "يوصي به ١٠٠٪ من المرضى · تجميل الأسنان" },
+    badge: clinic.hero.badge,
     greeting: { en: "Welcome to", ar: "مرحبًا بك في" },
-    doctorName: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-    doctor1Name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-    doctor2Name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-    doctorRole: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
-    title1: { en: "Craft Your Perfect Smile with", ar: "اصنع ابتسامتك المثالية مع" },
-    title2: { en: "Expert Cosmetic Dentistry", ar: "خبرة تجميل الأسنان" },
-    subtitle: {
-      en: "Consultant cosmetic dentist crafting natural, confident smiles — veneers, implants and complete smile makeovers with a gentle, precise touch.",
-      ar: "استشاري تجميل الأسنان — نصمّم لك ابتسامة طبيعية وواثقة بالعدسات والزراعة وتجميل الابتسامة الكامل بلمسة دقيقة ولطيفة.",
-    },
+    doctorName: clinic.doctorName,
+    doctor1Name: clinic.doctorName,
+    doctor2Name: clinic.doctorName,
+    doctorRole: clinic.role,
+    title1: clinic.hero.title1,
+    title2: clinic.hero.title2,
+    subtitle: clinic.hero.subtitle,
     ctaPrimary: { en: "Book Appointment", ar: "احجز موعدك" },
     ctaSecondary: { en: "Explore Services", ar: "استكشف الخدمات" },
     stat1: { en: "Years of Experience", ar: "سنوات الخبرة" },
@@ -213,22 +204,13 @@ export const t = {
   },
   about: {
     eyebrow: { en: "About the Doctor", ar: "عن الطبيب" },
-    name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-    role: {
-      en: "Consultant Cosmetic Dentist",
-      ar: "استشاري تجميل الأسنان",
-    },
-    bio1: {
-      en: "Dr. Ibrahim Salah is a consultant cosmetic dentist dedicated to crafting natural, confident smiles — from porcelain veneers and smile design to dental implants and full-mouth rehabilitation.",
-      ar: "د. إبراهيم صلاح استشاري تجميل الأسنان، متخصص في تصميم الابتسامات الطبيعية والواثقة — من عدسات البورسلين وتصميم الابتسامة إلى زراعة الأسنان وإعادة تأهيل الفم بالكامل.",
-    },
-    bio2: {
-      en: "Combining international expertise with modern, fully-sterilized facilities, he delivers pain-free treatment and natural-looking results in a calm, welcoming environment.",
-      ar: "يجمع بين الخبرة الدولية والتجهيزات الحديثة المعقّمة بالكامل لتقديم علاج خالٍ من الألم ونتائج طبيعية في بيئة هادئة ومريحة.",
-    },
-    point1: { en: "Cosmetic & smile-design expert", ar: "خبير تجميل وتصميم الابتسامة" },
-    point2: { en: "Pain-free, modern techniques", ar: "تقنيات حديثة بلا ألم" },
-    point3: { en: "Fully sterilized, modern clinic", ar: "عيادة حديثة ومعقّمة بالكامل" },
+    name: clinic.doctorName,
+    role: clinic.about.role,
+    bio1: clinic.about.bio1,
+    bio2: clinic.about.bio2,
+    point1: clinic.about.point1,
+    point2: clinic.about.point2,
+    point3: clinic.about.point3,
   },
   cases: {
     eyebrow: { en: "Our Work", ar: "أعمالنا" },
@@ -250,11 +232,8 @@ export const t = {
   },
   team: {
     eyebrow: { en: "The Doctor", ar: "الطبيب" },
-    title: { en: "Meet Dr. Ibrahim Salah", ar: "تعرّف على د. إبراهيم صلاح" },
-    subtitle: {
-      en: "Consultant cosmetic dentist focused on veneers, implants and complete smile makeovers.",
-      ar: "استشاري تجميل الأسنان، متخصص في العدسات والزراعة وتجميل الابتسامة الكامل.",
-    },
+    title: { en: `Meet ${clinic.doctorName.en}`, ar: `تعرّف على ${clinic.doctorName.ar}` },
+    subtitle: clinic.role,
   },
   reviews: {
     eyebrow: { en: "Reviews", ar: "آراء العملاء" },

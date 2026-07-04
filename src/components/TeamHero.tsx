@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/language";
+import { activeClinic } from "@/lib/clinics";
 
 type Person = {
   src: string;
@@ -10,13 +11,11 @@ type Person = {
   role?: { en: string; ar: string };
 };
 
-// The featured doctor — shown as a single spotlighted hero figure.
+// The featured doctor — from the active clinic config, shown as a spotlighted
+// hero figure.
+const clinic = activeClinic();
 const people: Person[] = [
-  {
-    src: "/doctor-ibrahim.png",
-    name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-    role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
-  },
+  { src: clinic.hero.photo, name: clinic.doctorName, role: clinic.role },
 ];
 
 export function TeamHero() {
@@ -49,7 +48,7 @@ export function TeamHero() {
               type="button"
               onMouseEnter={() => setActive(i)}
               onClick={() => setActive(i)}
-              aria-label={p.name ? tr(p.name) : `Dr. Ibrahim Salah`}
+              aria-label={p.name ? tr(p.name) : tr(clinic.doctorName)}
               className={`stage-figure group relative -mx-3 sm:-mx-4 ${
                 isActive ? "z-20" : "z-10"
               }`}
@@ -60,14 +59,14 @@ export function TeamHero() {
 
               <span className="figure-frame">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.src} alt={p.name ? tr(p.name) : "Dr. Ibrahim Salah"} className="figure-img" />
+                <img src={p.src} alt={p.name ? tr(p.name) : tr(clinic.doctorName)} className="figure-img" />
               </span>
 
               {/* label pill */}
               <span className="figure-label">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  {p.name ? tr(p.name) : tr({ en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" })}
+                  {p.name ? tr(p.name) : tr(clinic.doctorName)}
                 </span>
                 {p.role && <span className="block text-[10px] font-medium text-primary/80">{tr(p.role)}</span>}
               </span>

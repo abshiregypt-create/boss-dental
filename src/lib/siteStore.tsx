@@ -10,6 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { type Appointment, seedAppointments } from "./dashboard";
+import { activeClinic } from "./clinics";
+
+const clinic = activeClinic();
 
 export type Bilingual = { en: string; ar: string };
 
@@ -79,25 +82,15 @@ export const offerIcons: Record<string, string> = {
 };
 
 /* ---------------- Defaults ---------------- */
-export const DEFAULT_THEME: Theme = {
-  primary: "#a87f2b",
-  primaryDark: "#876419",
-  accent: "#d9b659",
-  background: "#f7f5f1",
-  surface: "#ffffff",
-  surface2: "#f1ece3",
-};
+export const DEFAULT_THEME: Theme = { ...clinic.theme };
 
 export const defaultSettings: SiteSettings = {
-  photo: "/doctor-ibrahim.png",
-  doctorName: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-  role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
-  heroTitle1: { en: "Craft Your Perfect Smile with", ar: "اصنع ابتسامتك المثالية مع" },
-  heroTitle2: { en: "Expert Cosmetic Dentistry", ar: "خبرة تجميل الأسنان" },
-  subtitle: {
-    en: "Consultant cosmetic dentist crafting natural, confident smiles — veneers, implants and complete smile makeovers with a gentle, precise touch.",
-    ar: "استشاري تجميل الأسنان — نصمّم لك ابتسامة طبيعية وواثقة بالعدسات والزراعة وتجميل الابتسامة الكامل بلمسة دقيقة ولطيفة.",
-  },
+  photo: clinic.hero.photo,
+  doctorName: clinic.doctorName,
+  role: clinic.role,
+  heroTitle1: clinic.hero.title1,
+  heroTitle2: clinic.hero.title2,
+  subtitle: clinic.hero.subtitle,
   theme: DEFAULT_THEME,
   offers: [
     {

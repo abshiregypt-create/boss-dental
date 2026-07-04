@@ -17,7 +17,34 @@ function waLink(message: string): string {
 const SALES_WHATSAPP = process.env.NEXT_PUBLIC_SALES_WHATSAPP || site.whatsapp;
 
 /** Product name — change this one constant to rebrand the pitch. */
-const PRODUCT = "ClinicOS";
+const PRODUCT = "Clinva";
+
+/** The Clinva logo mark: a chat bubble (soft "C") holding a medical plus. */
+function ClinvaMark({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} role="img" aria-label="Clinva">
+      <defs>
+        <linearGradient id="clinvaGoldMark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#c9a24b" />
+          <stop offset="1" stopColor="#a87f2b" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="16" fill="url(#clinvaGoldMark)" />
+      <path d="M32 15.5c-9.7 0-17.6 6.9-17.6 15.4 0 4.8 2.5 9 6.4 11.9v6.4c0 1.2 1.3 1.9 2.3 1.2l6.2-4.1c.9.1 1.8.2 2.7.2 9.7 0 17.6-6.9 17.6-15.6S41.7 15.5 32 15.5z" fill="#fff" />
+      <path d="M29.4 23.6h5.2v14.8h-5.2z" fill="url(#clinvaGoldMark)" />
+      <path d="M24.6 28.4h14.8v5.2H24.6z" fill="url(#clinvaGoldMark)" />
+    </svg>
+  );
+}
+
+/** The wordmark: "Clin" in ink + "va" in the brand gold. */
+function ClinvaWordmark({ className = "" }: { className?: string }) {
+  return (
+    <span className={`font-extrabold tracking-tight ${className}`}>
+      Clin<span className="text-primary">va</span>
+    </span>
+  );
+}
 
 export function ProductPitch() {
   const { tr } = useLang();
@@ -125,11 +152,9 @@ export function ProductPitch() {
       <header className="sticky top-0 z-40 border-b border-primary/10 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 lg:px-8">
           <div className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-lg shadow-primary/20">
-              <Image src="/bdic-logo.jpg" alt={PRODUCT} width={36} height={36} className="h-full w-full object-contain" />
-            </span>
-            <span className="text-lg font-extrabold tracking-tight">
-              {PRODUCT}
+            <ClinvaMark className="h-9 w-9 shrink-0" />
+            <span className="text-lg">
+              <ClinvaWordmark />
               <span className="ms-1 text-xs font-semibold text-muted">{tr({ en: "for clinics", ar: "للعيادات" })}</span>
             </span>
           </div>
@@ -354,7 +379,10 @@ export function ProductPitch() {
       {/* footer */}
       <footer className="border-t border-primary/10 bg-surface/50">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-8 text-sm text-muted sm:flex-row lg:px-8">
-          <p>© {new Date().getFullYear()} {PRODUCT}. {tr({ en: "All rights reserved.", ar: "جميع الحقوق محفوظة." })}</p>
+          <p className="flex items-center gap-2">
+            <ClinvaMark className="h-5 w-5" />
+            © {new Date().getFullYear()} {PRODUCT}. {tr({ en: "All rights reserved.", ar: "جميع الحقوق محفوظة." })}
+          </p>
           <Link href="/" className="transition hover:text-primary">{tr({ en: "View a live clinic site →", ar: "شاهد موقع عيادة مباشر →" })}</Link>
         </div>
       </footer>

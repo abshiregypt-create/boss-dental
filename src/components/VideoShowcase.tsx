@@ -79,8 +79,8 @@ export function VideoShowcase() {
           </h2>
           <p className="mt-4 text-lg text-muted">
             {tr({
-              en: "A closer look at the Badawi Dental Implant Center experience — real moments from our clinic.",
-              ar: "نظرة أقرب على تجربة مركز بدوي لزراعة الأسنان — لحظات حقيقية من داخل عيادتنا.",
+              en: "A closer look at the care Dr. Ibrahim Salah provides — real moments from our clinic.",
+              ar: "نظرة أقرب على رعاية د. إبراهيم صلاح — لحظات حقيقية من داخل عيادتنا.",
             })}
           </p>
         </Reveal>

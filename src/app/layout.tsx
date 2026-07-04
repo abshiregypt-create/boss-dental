@@ -21,8 +21,8 @@ const arabic = Cairo({
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: "BDIC — Badawi Dental Implant Center | Maadi, Cairo",
-    template: "%s | BDIC — Badawi Dental Implant Center",
+    default: "Dr. Ibrahim Salah — Consultant Cosmetic Dentist",
+    template: "%s | Dr. Ibrahim Salah",
   },
   description: site.description,
   keywords: [...site.keywords],
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: site.name,
-    title: "BDIC — Badawi Dental Implant Center | Maadi, Cairo",
+    title: "Dr. Ibrahim Salah — Consultant Cosmetic Dentist",
     description: site.description,
     url: site.url,
     locale: site.locale,
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "BDIC — Badawi Dental Implant Center",
+    title: "Dr. Ibrahim Salah — Consultant Cosmetic Dentist",
     description: site.description,
   },
   robots: {

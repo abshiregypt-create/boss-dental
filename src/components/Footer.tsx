@@ -51,9 +51,10 @@ export function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
         <div className="sm:col-span-2 lg:col-span-2">
           <div className="flex items-center gap-2 font-bold text-white">
-            <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-white p-1">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/bdic-logo.jpg" alt="BDIC" className="h-full w-full object-contain" />
+            <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-dark p-1.5">
+              <svg viewBox="0 0 24 24" className="h-full w-full text-white" fill="currentColor" aria-hidden>
+                <path d="M12 3.2c-3.4 0-5.6 2-5.6 4.9 0 2 .9 3 .9 6 0 1.9.7 6.9 1.9 6.9 1.2 0 1.1-4 2.8-4s1.6 4 2.8 4c1.2 0 1.9-5 1.9-6.9 0-3 .9-4 .9-6 0-2.9-2.2-4.9-5.6-4.9Z" />
+              </svg>
             </span>
             <span className="text-lg">{tr(t.brand)}</span>
           </div>

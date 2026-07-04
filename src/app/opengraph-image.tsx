@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { site } from "@/lib/site";
 
 export const runtime = "edge";
-export const alt = "Badawi Dental Implant Center — Maadi, Cairo";
+export const alt = "Dr. Ibrahim Salah — Consultant Cosmetic Dentist";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -39,13 +39,13 @@ export default function OpengraphImage() {
           🦷
         </div>
         <div style={{ fontSize: 30, fontWeight: 700, color: "#27d27e", letterSpacing: 2 }}>
-          BADAWI DENTAL IMPLANT CENTER
+          DR. IBRAHIM SALAH
         </div>
         <div style={{ fontSize: 66, fontWeight: 800, marginTop: 10, textAlign: "center" }}>
           Your Confident Smile Starts Here
         </div>
         <div style={{ fontSize: 30, color: "#9fb6b0", marginTop: 22 }}>
-          Dental Implants · Hollywood Smile · Orthodontics — Maadi, Cairo
+          Cosmetic Dentistry · Veneers · Implants · Smile Makeovers
         </div>
         <div style={{ fontSize: 26, color: "#cfe1db", marginTop: 28 }}>
           {site.phoneDisplay}

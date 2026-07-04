@@ -38,9 +38,10 @@ export function Navbar() {
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5 lg:px-8">
         <a href="#home" className="flex items-center gap-2 font-bold text-ink">
-          <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-lg shadow-primary/20">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/bdic-logo.jpg" alt="BDIC" className="h-full w-full object-contain" />
+          <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary-dark p-1.5 shadow-lg shadow-primary/25">
+            <svg viewBox="0 0 24 24" className="h-full w-full text-white" fill="currentColor" aria-hidden>
+              <path d="M12 3.2c-3.4 0-5.6 2-5.6 4.9 0 2 .9 3 .9 6 0 1.9.7 6.9 1.9 6.9 1.2 0 1.1-4 2.8-4s1.6 4 2.8 4c1.2 0 1.9-5 1.9-6.9 0-3 .9-4 .9-6 0-2.9-2.2-4.9-5.6-4.9Z" />
+            </svg>
           </span>
           <span className="text-lg font-extrabold tracking-tight">{tr(t.brand)}</span>
         </a>

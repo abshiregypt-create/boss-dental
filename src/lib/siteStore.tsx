@@ -89,14 +89,14 @@ export const DEFAULT_THEME: Theme = {
 };
 
 export const defaultSettings: SiteSettings = {
-  photo: "/bdic-logo.jpg",
-  doctorName: { en: "Badawi Dental Implant Center", ar: "مركز بدوي لزراعة الأسنان" },
-  role: { en: "Dental Implant Specialists · Maadi, Cairo", ar: "متخصصون في زراعة الأسنان · المعادي، القاهرة" },
-  heroTitle1: { en: "Rebuild Your Smile with", ar: "استعد ابتسامتك مع" },
-  heroTitle2: { en: "Expert Dental Implants", ar: "خبراء زراعة الأسنان" },
+  photo: "/doctor-ibrahim.png",
+  doctorName: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
+  role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
+  heroTitle1: { en: "Craft Your Perfect Smile with", ar: "اصنع ابتسامتك المثالية مع" },
+  heroTitle2: { en: "Expert Cosmetic Dentistry", ar: "خبرة تجميل الأسنان" },
   subtitle: {
-    en: "At Badawi Dental Implant Center we replace missing teeth with world-class implant technology — for a confident, natural smile that lasts a lifetime.",
-    ar: "في مركز بدوي لزراعة الأسنان نعوّض الأسنان المفقودة بأحدث تقنيات الزراعة العالمية — لابتسامة طبيعية وواثقة تدوم مدى الحياة.",
+    en: "Consultant cosmetic dentist crafting natural, confident smiles — veneers, implants and complete smile makeovers with a gentle, precise touch.",
+    ar: "استشاري تجميل الأسنان — نصمّم لك ابتسامة طبيعية وواثقة بالعدسات والزراعة وتجميل الابتسامة الكامل بلمسة دقيقة ولطيفة.",
   },
   theme: DEFAULT_THEME,
   offers: [
@@ -153,7 +153,7 @@ export const defaultSettings: SiteSettings = {
   ],
 };
 
-const SETTINGS_KEY = "site_settings_v3";
+const SETTINGS_KEY = "site_settings_v4";
 const LEADS_KEY = "site_leads_v2";
 const BOOKINGS_KEY = "site_bookings_v2";
 

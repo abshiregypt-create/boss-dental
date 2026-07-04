@@ -10,24 +10,23 @@ type Person = {
   role?: { en: string; ar: string };
 };
 
-// Names/roles left neutral on purpose — provide the real ones and they slot in here.
-// Distribution: the three male team members are grouped on the left, the two
-// female members on the right (per clinic preference).
+// The featured doctor — shown as a single spotlighted hero figure.
 const people: Person[] = [
-  { src: "/clinic/team/person-1.png" },
-  { src: "/clinic/team/person-3.png" },
-  { src: "/clinic/team/person-5.png" },
-  { src: "/clinic/team/person-2.png" },
-  { src: "/clinic/team/person-4.png" },
+  {
+    src: "/doctor-ibrahim.png",
+    name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
+    role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
+  },
 ];
 
 export function TeamHero() {
   const { tr } = useLang();
-  // default-focus the centre figure so the stage looks alive
-  const [active, setActive] = useState<number>(2);
+  // Single featured figure.
+  const [active, setActive] = useState<number>(0);
 
-  // Auto-cycle focus so each doctor is highlighted in turn.
+  // Auto-cycle focus so each doctor is highlighted in turn (no-op for one).
   useEffect(() => {
+    if (people.length < 2) return;
     const id = window.setInterval(() => {
       setActive((prev) => (prev + 1) % people.length);
     }, 2200);
@@ -50,7 +49,7 @@ export function TeamHero() {
               type="button"
               onMouseEnter={() => setActive(i)}
               onClick={() => setActive(i)}
-              aria-label={p.name ? tr(p.name) : `BDIC team member ${i + 1}`}
+              aria-label={p.name ? tr(p.name) : `Dr. Ibrahim Salah`}
               className={`stage-figure group relative -mx-3 sm:-mx-4 ${
                 isActive ? "z-20" : "z-10"
               }`}
@@ -61,14 +60,14 @@ export function TeamHero() {
 
               <span className="figure-frame">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.src} alt={p.name ? tr(p.name) : "BDIC team"} className="figure-img" />
+                <img src={p.src} alt={p.name ? tr(p.name) : "Dr. Ibrahim Salah"} className="figure-img" />
               </span>
 
               {/* label pill */}
               <span className="figure-label">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  {p.name ? tr(p.name) : tr({ en: "Badawi Dental Team", ar: "فريق بدوي للأسنان" })}
+                  {p.name ? tr(p.name) : tr({ en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" })}
                 </span>
                 {p.role && <span className="block text-[10px] font-medium text-primary/80">{tr(p.role)}</span>}
               </span>
@@ -79,7 +78,7 @@ export function TeamHero() {
 
       {/* hint */}
       <p className="mt-14 text-center text-xs font-medium text-muted">
-        {tr({ en: "Team members are auto-highlighted in sequence", ar: "يتم إبراز أعضاء الفريق تلقائيًا بالتتابع" })}
+        {tr({ en: "Crafting confident, natural smiles", ar: "نصنع ابتسامات طبيعية وواثقة" })}
       </p>
     </div>
   );

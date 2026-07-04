@@ -132,13 +132,13 @@ export const cases: CaseItem[] = [
 
 export const team: TeamMember[] = [
   {
-    name: { en: "Dr. Mohamed Badawi", ar: "د. محمد بدوي" },
-    role: { en: "Founder & Implant Specialist", ar: "المؤسس وأخصائي زراعة الأسنان" },
-    photo: "/clinic/doctor-badawi.jpg",
+    name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
+    role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
+    photo: "/doctor-ibrahim.png",
   },
   {
-    name: { en: "BDIC Dental Team", ar: "فريق BDIC الطبي" },
-    role: { en: "Implant & Cosmetic Dentistry", ar: "زراعة وتجميل الأسنان" },
+    name: { en: "Clinical Team", ar: "الفريق الطبي" },
+    role: { en: "Cosmetic & Restorative Dentistry", ar: "تجميل وترميم الأسنان" },
     photo: "/clinic/doctor-2.jpg",
   },
 ];
@@ -171,7 +171,7 @@ export const testimonials: Testimonial[] = [
 ];
 
 export const t = {
-  brand: { en: "BDIC", ar: "BDIC" },
+  brand: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
   nav: {
     home: { en: "Home", ar: "الرئيسية" },
     services: { en: "Services", ar: "الخدمات" },
@@ -185,17 +185,17 @@ export const t = {
     book: { en: "Book Appointment", ar: "احجز موعد" },
   },
   hero: {
-    badge: { en: "100% Patient Recommended · Maadi, Cairo", ar: "يوصي به ١٠٠٪ من المرضى · المعادي، القاهرة" },
+    badge: { en: "100% Patient Recommended · Cosmetic Dentistry", ar: "يوصي به ١٠٠٪ من المرضى · تجميل الأسنان" },
     greeting: { en: "Welcome to", ar: "مرحبًا بك في" },
-    doctorName: { en: "Badawi Dental Implant Center", ar: "مركز بدوي لزراعة الأسنان" },
-    doctor1Name: { en: "Dr. Lamis", ar: "د. لميس" },
-    doctor2Name: { en: "Dr. Omnia", ar: "د. أمنية" },
-    doctorRole: { en: "Dental Implant Specialists · Maadi, Cairo", ar: "متخصصون في زراعة الأسنان · المعادي، القاهرة" },
-    title1: { en: "Rebuild Your Smile with", ar: "استعد ابتسامتك مع" },
-    title2: { en: "Expert Dental Implants", ar: "خبراء زراعة الأسنان" },
+    doctorName: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
+    doctor1Name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
+    doctor2Name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
+    doctorRole: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
+    title1: { en: "Craft Your Perfect Smile with", ar: "اصنع ابتسامتك المثالية مع" },
+    title2: { en: "Expert Cosmetic Dentistry", ar: "خبرة تجميل الأسنان" },
     subtitle: {
-      en: "At Badawi Dental Implant Center we replace missing teeth with world-class implant technology — for a confident, natural smile that lasts a lifetime.",
-      ar: "في مركز بدوي لزراعة الأسنان نعوّض الأسنان المفقودة بأحدث تقنيات الزراعة العالمية — لابتسامة طبيعية وواثقة تدوم مدى الحياة.",
+      en: "Consultant cosmetic dentist crafting natural, confident smiles — veneers, implants and complete smile makeovers with a gentle, precise touch.",
+      ar: "استشاري تجميل الأسنان — نصمّم لك ابتسامة طبيعية وواثقة بالعدسات والزراعة وتجميل الابتسامة الكامل بلمسة دقيقة ولطيفة.",
     },
     ctaPrimary: { en: "Book Appointment", ar: "احجز موعدك" },
     ctaSecondary: { en: "Explore Services", ar: "استكشف الخدمات" },
@@ -212,23 +212,23 @@ export const t = {
     },
   },
   about: {
-    eyebrow: { en: "About the Center", ar: "عن المركز" },
-    name: { en: "Badawi Dental Implant Center", ar: "مركز بدوي لزراعة الأسنان" },
+    eyebrow: { en: "About the Doctor", ar: "عن الطبيب" },
+    name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
     role: {
-      en: "A Dedicated Dental Implant Center in Cairo",
-      ar: "مركز متخصص في زراعة الأسنان بالقاهرة",
+      en: "Consultant Cosmetic Dentist",
+      ar: "استشاري تجميل الأسنان",
     },
     bio1: {
-      en: "BDIC — Badawi Dental Implant Center is a specialized dental center in Cairo focused on restoring missing teeth with advanced implant techniques and full-mouth rehabilitation.",
-      ar: "مركز بدوي لزراعة الأسنان (BDIC) مركز متخصص في القاهرة يهتم بتعويض الأسنان المفقودة بأحدث تقنيات الزراعة وإعادة تأهيل الفم بالكامل.",
+      en: "Dr. Ibrahim Salah is a consultant cosmetic dentist dedicated to crafting natural, confident smiles — from porcelain veneers and smile design to dental implants and full-mouth rehabilitation.",
+      ar: "د. إبراهيم صلاح استشاري تجميل الأسنان، متخصص في تصميم الابتسامات الطبيعية والواثقة — من عدسات البورسلين وتصميم الابتسامة إلى زراعة الأسنان وإعادة تأهيل الفم بالكامل.",
     },
     bio2: {
-      en: "Our team combines international expertise with modern, fully-sterilized facilities to deliver pain-free treatment and natural-looking results in a calm, welcoming environment.",
-      ar: "يجمع فريقنا بين الخبرة الدولية والتجهيزات الحديثة المعقّمة بالكامل لتقديم علاج خالٍ من الألم ونتائج طبيعية في بيئة هادئة ومريحة.",
+      en: "Combining international expertise with modern, fully-sterilized facilities, he delivers pain-free treatment and natural-looking results in a calm, welcoming environment.",
+      ar: "يجمع بين الخبرة الدولية والتجهيزات الحديثة المعقّمة بالكامل لتقديم علاج خالٍ من الألم ونتائج طبيعية في بيئة هادئة ومريحة.",
     },
-    point1: { en: "Specialized dental implant experts", ar: "خبراء متخصصون في زراعة الأسنان" },
+    point1: { en: "Cosmetic & smile-design expert", ar: "خبير تجميل وتصميم الابتسامة" },
     point2: { en: "Pain-free, modern techniques", ar: "تقنيات حديثة بلا ألم" },
-    point3: { en: "Fully sterilized, modern facility", ar: "تجهيزات حديثة ومعقّمة بالكامل" },
+    point3: { en: "Fully sterilized, modern clinic", ar: "عيادة حديثة ومعقّمة بالكامل" },
   },
   cases: {
     eyebrow: { en: "Our Work", ar: "أعمالنا" },
@@ -249,11 +249,11 @@ export const t = {
     after: { en: "After", ar: "بعد" },
   },
   team: {
-    eyebrow: { en: "Our Doctors", ar: "أطباؤنا" },
-    title: { en: "Meet the BDIC Team", ar: "تعرّف على فريق BDIC" },
+    eyebrow: { en: "The Doctor", ar: "الطبيب" },
+    title: { en: "Meet Dr. Ibrahim Salah", ar: "تعرّف على د. إبراهيم صلاح" },
     subtitle: {
-      en: "Led by Dr. Mohamed Badawi, our specialists focus on dental implants and smile restoration.",
-      ar: "بقيادة د. محمد بدوي، يتخصص فريقنا في زراعة الأسنان وتجميل الابتسامة.",
+      en: "Consultant cosmetic dentist focused on veneers, implants and complete smile makeovers.",
+      ar: "استشاري تجميل الأسنان، متخصص في العدسات والزراعة وتجميل الابتسامة الكامل.",
     },
   },
   reviews: {

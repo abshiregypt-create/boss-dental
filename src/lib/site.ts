@@ -5,15 +5,15 @@
  */
 
 export const site = {
-  name: "Badawi Dental Implant Center",
-  shortName: "BDIC",
-  nameAr: "مركز بدوي لزراعة الأسنان",
+  name: "Dr. Ibrahim Salah",
+  shortName: "Dr. Ibrahim Salah",
+  nameAr: "د. إبراهيم صلاح",
   /** Public base URL — override per environment via NEXT_PUBLIC_SITE_URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "http://localhost:3000",
   description:
-    "Badawi Dental Implant Center (BDIC) — a specialized dental implant center in Maadi, Cairo. Replace missing teeth with world-class implants for a confident, natural smile. Book your appointment today.",
+    "Dr. Ibrahim Salah — consultant cosmetic dentist. Veneers, dental implants, orthodontics and complete smile makeovers for a confident, natural smile. Book your appointment today.",
   descriptionAr:
-    "مركز بدوي لزراعة الأسنان (BDIC) — مركز متخصص في زراعة الأسنان بالمعادي، القاهرة. عوّض أسنانك المفقودة بأحدث تقنيات الزراعة العالمية لابتسامة طبيعية وواثقة. احجز موعدك اليوم.",
+    "د. إبراهيم صلاح — استشاري تجميل الأسنان. عدسات، زراعة أسنان، تقويم، وتجميل الابتسامة الكامل لابتسامة طبيعية وواثقة. احجز موعدك اليوم.",
   locale: "en_US",
   localeAlt: "ar_EG",
   keywords: [

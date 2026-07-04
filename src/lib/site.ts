@@ -12,6 +12,9 @@ export const site = {
   name: clinic.doctorName.en,
   shortName: clinic.brand.en,
   nameAr: clinic.doctorName.ar,
+  /** SEO title (default) + template, derived from the active clinic. */
+  titleDefault: `${clinic.doctorName.en} — ${clinic.role.en}`,
+  titleTemplate: `%s | ${clinic.brand.en}`,
   /** Public base URL — override per environment via NEXT_PUBLIC_SITE_URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "http://localhost:3000",
   description: clinic.seo.description,
@@ -46,7 +49,7 @@ export const site = {
     },
   ],
   priceRange: "$$",
-  logo: "/bdic-logo.jpg",
+  logo: clinic.logo || "/bdic-logo.jpg",
   ogImage: "/opengraph-image",
   social: clinic.contact.social,
   services: [
@@ -60,6 +63,11 @@ export const site = {
     "Full-Mouth Rehabilitation",
   ],
 } as const;
+
+/** Google-Maps directions link for the active clinic. */
+export function mapUrl(): string {
+  return `https://maps.google.com/?q=${encodeURIComponent(clinic.contact.mapQuery)}`;
+}
 
 /**
  * Build a wa.me link that opens WhatsApp with a prefilled message FROM the

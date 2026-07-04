@@ -56,6 +56,22 @@ export function About() {
           <p className="mt-5 text-muted">{tr(t.about.bio1)}</p>
           <p className="mt-4 text-muted">{tr(t.about.bio2)}</p>
 
+          {t.about.credentials.length > 0 && (
+            <ul className="mt-6 flex flex-wrap gap-2">
+              {t.about.credentials.map((c, i) => (
+                <li
+                  key={i}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary"
+                >
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3Z" /><path d="m9 12 2 2 4-4" />
+                  </svg>
+                  {tr(c)}
+                </li>
+              ))}
+            </ul>
+          )}
+
           <ul className="mt-7 space-y-3">
             {points.map((p, i) => (
               <li key={i} className="flex items-center gap-3">

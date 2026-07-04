@@ -2,6 +2,7 @@
 
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
+import { activeClinic } from "@/lib/clinics";
 
 const links = [
   { id: "services", key: "services" },
@@ -12,11 +13,21 @@ const links = [
   { id: "contact", key: "contact" },
 ] as const;
 
-const socials: { name: string; href: string }[] = [
-  { name: "facebook", href: "https://www.facebook.com/badawidentalcenter" },
-  { name: "instagram", href: "https://instagram.com/badawi_implant_center" },
-  { name: "whatsapp", href: "https://wa.me/201222156274" },
-];
+/** Derive the footer social icons from the active clinic's social URLs. */
+function socialKind(url: string): string {
+  const u = url.toLowerCase();
+  if (u.includes("facebook")) return "facebook";
+  if (u.includes("instagram")) return "instagram";
+  if (u.includes("wa.me") || u.includes("whatsapp")) return "whatsapp";
+  if (u.includes("tiktok")) return "tiktok";
+  if (u.includes("youtu")) return "youtube";
+  return "link";
+}
+
+const socials: { name: string; href: string }[] = activeClinic().contact.social.map((href) => ({
+  name: socialKind(href),
+  href,
+}));
 
 function SocialIcon({ name }: { name: string }) {
   const common = {

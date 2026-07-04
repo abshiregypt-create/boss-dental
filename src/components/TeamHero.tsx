@@ -17,9 +17,13 @@ const clinic = activeClinic();
 // single spotlighted doctor (e.g. Dr. Ibrahim). Solo figures render much larger.
 const lineup = clinic.hero.lineup ?? [];
 const isLineup = lineup.length > 0;
+// For a solo hero, prefer the explicit figure label (e.g. the lead doctor when
+// the brand/doctorName is the clinic itself), falling back to doctorName.
+const soloName: Bi = clinic.hero.figureName ?? clinic.doctorName;
+const soloRole: Bi = clinic.hero.figureRole ?? clinic.role;
 const people: Person[] = isLineup
   ? lineup.map((f) => ({ src: f.photo, name: f.name, role: f.role }))
-  : [{ src: clinic.hero.photo, name: clinic.doctorName, role: clinic.role }];
+  : [{ src: clinic.hero.photo, name: soloName, role: soloRole }];
 
 const fallbackLabel: Bi = clinic.hero.lineupLabel ?? clinic.doctorName;
 const tagline: Bi =

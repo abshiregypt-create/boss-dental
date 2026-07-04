@@ -203,7 +203,7 @@ export const t = {
     },
   },
   about: {
-    eyebrow: { en: "About the Doctor", ar: "عن الطبيب" },
+    eyebrow: { en: "About the Clinic", ar: "عن العيادة" },
     name: clinic.doctorName,
     role: clinic.about.role,
     bio1: clinic.about.bio1,
@@ -211,6 +211,7 @@ export const t = {
     point1: clinic.about.point1,
     point2: clinic.about.point2,
     point3: clinic.about.point3,
+    credentials: clinic.credentials ?? [],
   },
   cases: {
     eyebrow: { en: "Our Work", ar: "أعمالنا" },
@@ -231,7 +232,7 @@ export const t = {
     after: { en: "After", ar: "بعد" },
   },
   team: {
-    eyebrow: { en: "The Doctor", ar: "الطبيب" },
+    eyebrow: { en: "Our Team", ar: "فريقنا" },
     title: { en: `Meet ${clinic.doctorName.en}`, ar: `تعرّف على ${clinic.doctorName.ar}` },
     subtitle: clinic.role,
   },
@@ -255,10 +256,11 @@ export const t = {
     messageLabel: { en: "How can we help?", ar: "كيف يمكننا مساعدتك؟" },
     send: { en: "Send Request", ar: "إرسال الطلب" },
     addressLabel: { en: "Address", ar: "العنوان" },
-    address: { en: "3/3 El Laselky St., Maadi, Cairo, Egypt", ar: "٣/٣ شارع اللاسلكي، المعادي، القاهرة، مصر" },
-    phoneValue: { en: "+20 122 215 6274", ar: "+20 122 215 6274" },
+    address: clinic.contact.addressDisplay,
+    phoneValue: { en: clinic.contact.phoneDisplay, ar: clinic.contact.phoneDisplay },
+    mapQuery: { en: clinic.contact.mapQuery, ar: clinic.contact.mapQuery },
     hoursLabel: { en: "Working Hours", ar: "ساعات العمل" },
-    hours: { en: "Sat - Thu: 12:00 PM - 10:00 PM", ar: "السبت - الخميس: ١٢ ظهرًا - ١٠ مساءً" },
+    hours: clinic.contact.hours,
   },
   footer: {
     tagline: {

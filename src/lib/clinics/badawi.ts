@@ -67,6 +67,15 @@ export const badawi: ClinicConfig = {
     ],
   },
 
+  videos: [
+    { src: "/clinic/videos/case-video-1.mp4", title: { en: "Inside Our Clinic", ar: "من داخل عيادتنا" }, tag: { en: "Reel", ar: "ريـل" }, duration: "0:20", rotate: true },
+    { src: "/clinic/videos/case-video-2.mp4", title: { en: "Patient Journey", ar: "رحلة المريض" }, tag: { en: "Showcase", ar: "عرض" }, duration: "0:31", orientation: "landscape", ratio: "1080 / 719" },
+  ],
+  videosIntro: {
+    en: "A closer look at the care Badawi Dental Implant Center provides — real moments from our clinic.",
+    ar: "نظرة أقرب على رعاية مركز بدوي لزراعة الأسنان — لحظات حقيقية من داخل عيادتنا.",
+  },
+
   theme: {
     primary: "#a87f2b",
     primaryDark: "#876419",
@@ -82,6 +91,8 @@ export const badawi: ClinicConfig = {
     whatsapp: "201222156274",
     email: "info@bdic.clinic",
     address: { street: "3/3 El Laselky St.", locality: "Maadi", region: "Cairo", country: "EG", postalCode: "11431" },
+    addressDisplay: { en: "3/3 El Laselky St., Maadi, Cairo, Egypt", ar: "٣/٣ شارع اللاسلكي، المعادي، القاهرة، مصر" },
+    hours: { en: "Sat - Thu: 12:00 PM - 10:00 PM", ar: "السبت - الخميس: ١٢ ظهرًا - ١٠ مساءً" },
     geo: { lat: 29.9602, lng: 31.2569 },
     mapQuery: "Badawi Dental Implant Center El Laselky Maadi Cairo",
     social: [

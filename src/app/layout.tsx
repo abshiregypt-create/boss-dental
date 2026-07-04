@@ -21,8 +21,8 @@ const arabic = Cairo({
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: "Dr. Ibrahim Salah — Consultant Cosmetic Dentist",
-    template: "%s | Dr. Ibrahim Salah",
+    default: site.titleDefault,
+    template: site.titleTemplate,
   },
   description: site.description,
   keywords: [...site.keywords],
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: site.name,
-    title: "Dr. Ibrahim Salah — Consultant Cosmetic Dentist",
+    title: site.titleDefault,
     description: site.description,
     url: site.url,
     locale: site.locale,
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dr. Ibrahim Salah — Consultant Cosmetic Dentist",
+    title: site.titleDefault,
     description: site.description,
   },
   robots: {

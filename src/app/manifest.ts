@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { site } from "@/lib/site";
 
 export default function manifest(): MetadataRoute.Manifest {
+  const icon = site.logo;
+  const iconType = icon.endsWith(".png") ? "image/png" : "image/jpeg";
   return {
     name: site.name,
     short_name: site.shortName,
@@ -11,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#0a0e12",
     theme_color: "#0a0e12",
     icons: [
-      { src: "/bdic-logo.jpg", sizes: "192x192", type: "image/jpeg" },
-      { src: "/bdic-logo.jpg", sizes: "512x512", type: "image/jpeg" },
+      { src: icon, sizes: "192x192", type: iconType },
+      { src: icon, sizes: "512x512", type: iconType },
     ],
   };
 }

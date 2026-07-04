@@ -1,55 +1,79 @@
 import type { ClinicConfig } from "./types";
 
-/** Dr. Ibrahim Salah — Consultant Cosmetic Dentist. */
+/**
+ * THE BOSS Dental Clinic — Hadayek El Ahram, Giza.
+ * Clinic-first branding; Dr. Ibrahim Salah Gadallah is the founder & lead
+ * cosmetic/implant dentist. Real identity, contacts and cases sourced from the
+ * clinic's Facebook page and marketing material.
+ */
 export const ibrahim: ClinicConfig = {
   slug: "ibrahim",
-  brand: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-  doctorName: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
-  role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
+  brand: { en: "THE BOSS Dental Clinic", ar: "THE BOSS Dental Clinic" },
+  doctorName: { en: "THE BOSS Dental Clinic", ar: "ذا بوس لطب الأسنان" },
+  role: { en: "Cosmetic & Implant Dentistry · Hadayek El Ahram", ar: "تجميل وزراعة الأسنان · حدائق الأهرام" },
 
   hero: {
-    badge: { en: "100% Patient Recommended · Cosmetic Dentistry", ar: "يوصي به ١٠٠٪ من المرضى · تجميل الأسنان" },
-    title1: { en: "Craft Your Perfect Smile with", ar: "اصنع ابتسامتك المثالية مع" },
-    title2: { en: "Expert Cosmetic Dentistry", ar: "خبرة تجميل الأسنان" },
+    badge: { en: "THE BOSS Dental Clinic · Hadayek El Ahram, Giza", ar: "ذا بوس لطب الأسنان · حدائق الأهرام، الجيزة" },
+    title1: { en: "Start Your Perfect Smile Journey at", ar: "ابدأ رحلة ابتسامتك المثالية في" },
+    title2: { en: "THE BOSS Dental Clinic", ar: "ذا بوس لطب الأسنان" },
     subtitle: {
-      en: "Consultant cosmetic dentist crafting natural, confident smiles — veneers, implants and complete smile makeovers with a gentle, precise touch.",
-      ar: "استشاري تجميل الأسنان — نصمّم لك ابتسامة طبيعية وواثقة بالعدسات والزراعة وتجميل الابتسامة الكامل بلمسة دقيقة ولطيفة.",
+      en: "Led by Dr. Ibrahim Salah — veneers, dental implants, orthodontics and complete smile makeovers, with flexible bank installment plans and a gentle, precise touch.",
+      ar: "بقيادة د. إبراهيم صلاح — عدسات، زراعة أسنان، تقويم، وتجميل الابتسامة الكامل، مع تقسيط مريح على كبرى البنوك ولمسة دقيقة ولطيفة.",
     },
     photo: "/doctor-ibrahim.png",
+    figureName: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
+    figureRole: { en: "Founder & Consultant Cosmetic Dentist", ar: "المؤسس واستشاري تجميل الأسنان" },
     tagline: { en: "Crafting confident, natural smiles", ar: "نصنع ابتسامات طبيعية وواثقة" },
   },
 
   about: {
-    role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" },
+    role: { en: "Founder · Consultant Cosmetic & Implant Dentist", ar: "المؤسس · استشاري تجميل وزراعة الأسنان" },
     bio1: {
-      en: "Dr. Ibrahim Salah is a consultant cosmetic dentist dedicated to crafting natural, confident smiles — from porcelain veneers and smile design to dental implants and full-mouth rehabilitation.",
-      ar: "د. إبراهيم صلاح استشاري تجميل الأسنان، متخصص في تصميم الابتسامات الطبيعية والواثقة — من عدسات البورسلين وتصميم الابتسامة إلى زراعة الأسنان وإعادة تأهيل الفم بالكامل.",
+      en: "THE BOSS Dental Clinic in Hadayek El Ahram is led by Dr. Ibrahim Salah Gadallah, a consultant dentist dedicated to crafting natural, confident smiles — from porcelain veneers and smile design to dental implants and full-mouth rehabilitation.",
+      ar: "عيادة ذا بوس لطب الأسنان في حدائق الأهرام بقيادة د. إبراهيم صلاح جاد الله، استشاري أسنان متخصص في تصميم الابتسامات الطبيعية والواثقة — من عدسات البورسلين وتصميم الابتسامة إلى زراعة الأسنان وإعادة تأهيل الفم بالكامل.",
     },
     bio2: {
-      en: "Combining international expertise with modern, fully-sterilized facilities, he delivers pain-free treatment and natural-looking results in a calm, welcoming environment.",
-      ar: "يجمع بين الخبرة الدولية والتجهيزات الحديثة المعقّمة بالكامل لتقديم علاج خالٍ من الألم ونتائج طبيعية في بيئة هادئة ومريحة.",
+      en: "The clinic combines international expertise with modern, fully-sterilized facilities and flexible bank installment plans — delivering pain-free treatment and natural-looking results in a calm, welcoming environment.",
+      ar: "تجمع العيادة بين الخبرة الدولية والتجهيزات الحديثة المعقّمة بالكامل وحلول التقسيط المريحة مع كبرى البنوك — لتقديم علاج خالٍ من الألم ونتائج طبيعية في بيئة هادئة ومريحة.",
     },
-    point1: { en: "Cosmetic & smile-design expert", ar: "خبير تجميل وتصميم الابتسامة" },
-    point2: { en: "Pain-free, modern techniques", ar: "تقنيات حديثة بلا ألم" },
-    point3: { en: "Fully sterilized, modern clinic", ar: "عيادة حديثة ومعقّمة بالكامل" },
+    point1: { en: "Cosmetic, veneers & smile-design experts", ar: "خبراء تجميل وعدسات وتصميم الابتسامة" },
+    point2: { en: "Implants, orthodontics & pediatric care", ar: "زراعة وتقويم ورعاية أسنان الأطفال" },
+    point3: { en: "Flexible installments with major banks", ar: "تقسيط مريح مع كبرى البنوك" },
   },
 
+  credentials: [
+    { en: "Member, American Dental Association (ADA)", ar: "عضو الجمعية الأمريكية لطب الأسنان (ADA)" },
+    { en: "Fellow, Leeds College — United Kingdom", ar: "زميل ليدز كوليدج — المملكة المتحدة" },
+    { en: "Implants & Cosmetic Dentistry", ar: "زراعة وتجميل الأسنان" },
+  ],
+
   team: [
-    { name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" }, role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" }, photo: "/doctor-ibrahim.png" },
-    { name: { en: "Clinical Team", ar: "الفريق الطبي" }, role: { en: "Cosmetic & Restorative Dentistry", ar: "تجميل وترميم الأسنان" }, photo: "/clinic/doctor-2.jpg" },
+    { name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" }, role: { en: "Founder & Consultant Cosmetic Dentist", ar: "المؤسس واستشاري تجميل الأسنان" }, photo: "/doctor-ibrahim.png" },
+    { name: { en: "Dr. Mennatullah Moamen", ar: "د. منة الله مؤمن" }, role: { en: "Orthodontics Specialist", ar: "أخصائية تقويم الأسنان" }, photo: "/ibrahim/cases/pediatric.png" },
   ],
 
   gallery: {
-    style: "slider",
-    headline: { en: "Drag to See the Difference", ar: "اسحب لترى الفرق" },
+    style: "grid",
+    headline: { en: "Real Patient Results", ar: "نتائج حقيقية لمرضانا" },
     subtitle: {
-      en: "Slide the handle to reveal real before-and-after results from our clinic.",
-      ar: "حرّك المؤشر لتكشف نتائج حقيقية قبل وبعد العلاج في عيادتنا.",
+      en: "Real before-and-after cases from THE BOSS Dental Clinic — veneers, orthodontics and full corrections.",
+      ar: "حالات حقيقية قبل وبعد من عيادة ذا بوس — عدسات، تقويم، وتصحيح كامل.",
     },
     cases: [
-      { before: "/cases/before-1.png", after: "/cases/after-1.png", title: { en: "Implants & Full Restoration", ar: "زراعة وترميم كامل" }, tag: { en: "Implants", ar: "زراعة" } },
-      { before: "/cases/before-2.png", after: "/cases/after-2.png", title: { en: "Crowns & Smile Makeover", ar: "تركيبات وتجميل الابتسامة" }, tag: { en: "Cosmetic", ar: "تجميلي" } },
+      { src: "/ibrahim/cases/veneers.png", title: { en: "Ceramic Veneers", ar: "عدسات سيراميك" }, tag: { en: "Cosmetic", ar: "تجميلي" } },
+      { src: "/ibrahim/cases/orthodontics.png", title: { en: "Orthodontics", ar: "تقويم الأسنان" }, tag: { en: "Braces", ar: "تقويم" } },
+      { src: "/ibrahim/cases/bimax.png", title: { en: "Bimaxillary Correction", ar: "تصحيح بروز الفكين" }, tag: { en: "Orthodontics", ar: "تقويم" } },
+      { src: "/ibrahim/cases/pediatric.png", title: { en: "Pediatric Dentistry", ar: "طب أسنان الأطفال" }, tag: { en: "Kids", ar: "أطفال" } },
     ],
+  },
+
+  videos: [
+    { src: "/ibrahim/videos/intro.mp4", title: { en: "Meet Dr. Ibrahim", ar: "تعرّف على د. إبراهيم" }, tag: { en: "Reel", ar: "ريـل" }, duration: "0:49", orientation: "portrait" },
+    { src: "/ibrahim/videos/case.mp4", title: { en: "Real Case", ar: "حالة حقيقية" }, tag: { en: "Showcase", ar: "عرض" }, duration: "0:24", orientation: "portrait" },
+  ],
+  videosIntro: {
+    en: "A closer look at the care at THE BOSS Dental Clinic — real moments with Dr. Ibrahim Salah.",
+    ar: "نظرة أقرب على الرعاية في عيادة ذا بوس — لحظات حقيقية مع د. إبراهيم صلاح.",
   },
 
   theme: {
@@ -61,33 +85,46 @@ export const ibrahim: ClinicConfig = {
     surface2: "#f1ece3",
   },
 
+  logo: "/doctor-ibrahim.png",
+
   contact: {
-    phone: "+201222156274",
-    phoneDisplay: "+20 122 215 6274",
-    whatsapp: "201222156274",
-    email: "info@dribrahimsalah.clinic",
-    address: { street: "", locality: "Cairo", region: "Cairo", country: "EG", postalCode: "" },
-    geo: { lat: 30.0444, lng: 31.2357 },
-    mapQuery: "Dr Ibrahim Salah Dental Clinic Cairo",
-    social: [],
+    phone: "+201066385892",
+    phoneDisplay: "+20 106 638 5892",
+    whatsapp: "201066385892",
+    email: "dribrahimsalah41@gmail.com",
+    address: { street: "Gardenia 32G, New Gate 2 (Ahmes)", locality: "Hadayek El Ahram", region: "Giza", country: "EG", postalCode: "" },
+    addressDisplay: {
+      en: "Gardenia 32G, New Gate 2 (Ahmes), Hadayek El Ahram, Giza",
+      ar: "حدائق الأهرام – البوابة 2 الجديدة (أحمس) – جاردينيا ٣٢ج",
+    },
+    hours: { en: "Open daily — call to book your visit", ar: "مفتوح يوميًا — اتصل لحجز موعدك" },
+    geo: { lat: 29.9762, lng: 31.1468 },
+    mapQuery: "THE BOSS Dental Clinic Hadayek El Ahram Gardenia",
+    social: [
+      "https://www.facebook.com/profile.php?id=61577819443580",
+      "https://wa.me/201066385892",
+    ],
   },
 
   seo: {
     description:
-      "Dr. Ibrahim Salah — consultant cosmetic dentist. Veneers, dental implants, orthodontics and complete smile makeovers for a confident, natural smile. Book your appointment today.",
+      "THE BOSS Dental Clinic in Hadayek El Ahram, Giza — led by Dr. Ibrahim Salah. Veneers, dental implants, orthodontics and complete smile makeovers, with flexible bank installments. Book your appointment today.",
     descriptionAr:
-      "د. إبراهيم صلاح — استشاري تجميل الأسنان. عدسات، زراعة أسنان، تقويم، وتجميل الابتسامة الكامل لابتسامة طبيعية وواثقة. احجز موعدك اليوم.",
+      "عيادة ذا بوس لطب الأسنان في حدائق الأهرام، الجيزة — بقيادة د. إبراهيم صلاح. عدسات، زراعة أسنان، تقويم، وتجميل الابتسامة الكامل، مع تقسيط مريح على البنوك. احجز موعدك اليوم.",
     keywords: [
-      "cosmetic dentist Cairo",
+      "THE BOSS Dental Clinic",
+      "dentist Hadayek El Ahram",
+      "cosmetic dentist Giza",
       "veneers Egypt",
       "Hollywood smile Cairo",
       "dental implants Egypt",
       "Dr Ibrahim Salah",
+      "طبيب اسنان حدائق الاهرام",
       "تجميل الأسنان",
       "عدسات الأسنان",
       "ابتسامة هوليوود",
       "زراعة الأسنان",
-      "دكتور اسنان القاهرة",
+      "تقويم الأسنان",
     ],
   },
 

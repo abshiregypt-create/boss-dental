@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
 import { useSite } from "@/lib/siteStore";
-import { confirmOnWhatsAppLink } from "@/lib/site";
+import { confirmOnWhatsAppLink, mapUrl, site } from "@/lib/site";
 import { Reveal } from "./Reveal";
 import {
   sessionTypes,
@@ -202,7 +202,7 @@ export function BookingSection() {
               {/* contact info */}
               <div className="mt-9 space-y-3 border-t border-[#0a0e12]/15 pt-6 text-sm text-[#0a0e12]/80">
                 <a
-                  href="https://maps.google.com/?q=Badawi+Dental+Implant+Center+El+Laselky+Maadi+Cairo"
+                  href={mapUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 transition hover:text-[#0a0e12]"
@@ -210,7 +210,7 @@ export function BookingSection() {
                   <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-5.7-7-11a7 7 0 0 1 14 0c0 5.3-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>
                   {tr(t.contact.address)}
                 </a>
-                <a href="tel:+201222156274" dir="ltr" className="flex items-center gap-2 transition hover:text-[#0a0e12]">
+                <a href={`tel:${site.phone}`} dir="ltr" className="flex items-center gap-2 transition hover:text-[#0a0e12]">
                   <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 5-2 1.5a12 12 0 0 0 5 5l1.5-2 5 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" /></svg>
                   {tr(t.contact.phoneValue)}
                 </a>

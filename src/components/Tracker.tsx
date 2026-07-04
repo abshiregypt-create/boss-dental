@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useLang } from "@/lib/language";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { activeClinic } from "@/lib/clinics";
 
 type Stage =
   | "pending"
@@ -29,8 +30,10 @@ type TrackData = {
   now: string;
 };
 
-const CLINIC = { en: "Badawi Dental Implant Center", ar: "مركز بدوي لزراعة الأسنان" };
-const CLINIC_WA = "201222156274";
+const clinicCfg = activeClinic();
+const CLINIC = clinicCfg.doctorName;
+const CLINIC_WA = clinicCfg.contact.whatsapp;
+const CLINIC_LOGO = clinicCfg.logo || "/bdic-logo.jpg";
 
 export function Tracker({ code }: { code: string }) {
   const { tr, lang } = useLang();
@@ -101,7 +104,7 @@ export function Tracker({ code }: { code: string }) {
       <header className="flex items-center justify-between border-b border-primary/10 bg-surface/70 px-5 py-3 backdrop-blur">
         <a href="/" className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-white p-0.5 shadow">
-            <Image src="/bdic-logo.jpg" alt="BDIC" width={36} height={36} className="h-full w-full object-contain" />
+            <Image src={CLINIC_LOGO} alt={tr(CLINIC)} width={36} height={36} className="h-full w-full object-contain" />
           </span>
           <span className="text-sm font-bold tracking-tight text-ink">{tr(CLINIC)}</span>
         </a>

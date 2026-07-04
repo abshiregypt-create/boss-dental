@@ -53,6 +53,20 @@ export type ClinicGallery = {
   cases: GalleryCase[];
 };
 
+/** A short-form video clip shown in the "Clinic in Motion" section. */
+export type ClinicVideo = {
+  src: string;
+  title: Bi;
+  tag: Bi;
+  duration: string;
+  /** portrait (9:16 reel) or landscape. Defaults to landscape. */
+  orientation?: "portrait" | "landscape";
+  /** source filmed sideways — rotate 90° to display upright. */
+  rotate?: boolean;
+  /** natural aspect for landscape clips, e.g. "1080 / 719". */
+  ratio?: string;
+};
+
 export type ClinicConfig = {
   /** URL-safe id, also the default database file name (e.g. "badawi"). */
   slug: string;
@@ -77,6 +91,10 @@ export type ClinicConfig = {
     lineupLabel?: Bi;
     /** Small hint line shown beneath the hero figure(s). */
     tagline?: Bi;
+    /** For a solo figure, the label under the photo (e.g. the lead doctor when
+     *  the clinic brand/`doctorName` is the clinic itself, not a person). */
+    figureName?: Bi;
+    figureRole?: Bi;
   };
 
   about: {
@@ -88,12 +106,24 @@ export type ClinicConfig = {
     point3: Bi;
   };
 
+  /** Doctor/clinic credentials shown as badges in the About section. */
+  credentials?: Bi[];
+
   team: ClinicTeamMember[];
 
   /** Before/After results section (grid of cases or drag-to-compare sliders). */
   gallery: ClinicGallery;
 
+  /** Short-form clips for the "Clinic in Motion" section. Falls back to a
+   *  generic default when omitted. */
+  videos?: ClinicVideo[];
+  /** Intro line under the videos headline. */
+  videosIntro?: Bi;
+
   theme: ClinicTheme;
+
+  /** Logo image (public path) for SEO/JSON-LD/OpenGraph. */
+  logo?: string;
 
   contact: {
     phone: string; // E.164, e.g. +2012...
@@ -102,6 +132,10 @@ export type ClinicConfig = {
     whatsapp: string;
     email: string;
     address: { street: string; locality: string; region: string; country: string; postalCode: string };
+    /** Full formatted address for on-page display (bilingual). */
+    addressDisplay: Bi;
+    /** Working-hours line shown in the footer/booking panel. */
+    hours: Bi;
     geo: { lat: number; lng: number };
     /** Google-Maps search query for the directions link. */
     mapQuery: string;

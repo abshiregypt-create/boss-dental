@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { site } from "@/lib/site";
 
 export const runtime = "edge";
-export const alt = "Dr. Ibrahim Salah — Consultant Cosmetic Dentist";
+export const alt = site.titleDefault;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -38,8 +38,8 @@ export default function OpengraphImage() {
         >
           🦷
         </div>
-        <div style={{ fontSize: 30, fontWeight: 700, color: "#27d27e", letterSpacing: 2 }}>
-          DR. IBRAHIM SALAH
+        <div style={{ fontSize: 30, fontWeight: 700, color: "#27d27e", letterSpacing: 2, textTransform: "uppercase" }}>
+          {site.shortName}
         </div>
         <div style={{ fontSize: 66, fontWeight: 800, marginTop: 10, textAlign: "center" }}>
           Your Confident Smile Starts Here

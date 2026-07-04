@@ -106,6 +106,8 @@ export const ${c.slug}: ClinicConfig = {
     whatsapp: "${esc(c.whatsapp)}",
     email: "${esc(c.email)}",
     address: { street: "", locality: "${esc(c.city)}", region: "${esc(c.city)}", country: "EG", postalCode: "" },
+    addressDisplay: { en: "${esc(c.city)}, Egypt", ar: "${esc(c.city)}، مصر" },
+    hours: { en: "Open daily — call to book your visit", ar: "مفتوح يوميًا — اتصل لحجز موعدك" },
     geo: { lat: 30.0444, lng: 31.2357 },
     mapQuery: "${esc(c.nameEn)} ${esc(c.city)}",
     social: [],

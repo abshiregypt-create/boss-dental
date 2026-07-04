@@ -16,6 +16,7 @@ export const ibrahim: ClinicConfig = {
       ar: "استشاري تجميل الأسنان — نصمّم لك ابتسامة طبيعية وواثقة بالعدسات والزراعة وتجميل الابتسامة الكامل بلمسة دقيقة ولطيفة.",
     },
     photo: "/doctor-ibrahim.png",
+    tagline: { en: "Crafting confident, natural smiles", ar: "نصنع ابتسامات طبيعية وواثقة" },
   },
 
   about: {
@@ -37,6 +38,19 @@ export const ibrahim: ClinicConfig = {
     { name: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" }, role: { en: "Consultant Cosmetic Dentist", ar: "استشاري تجميل الأسنان" }, photo: "/doctor-ibrahim.png" },
     { name: { en: "Clinical Team", ar: "الفريق الطبي" }, role: { en: "Cosmetic & Restorative Dentistry", ar: "تجميل وترميم الأسنان" }, photo: "/clinic/doctor-2.jpg" },
   ],
+
+  gallery: {
+    style: "slider",
+    headline: { en: "Drag to See the Difference", ar: "اسحب لترى الفرق" },
+    subtitle: {
+      en: "Slide the handle to reveal real before-and-after results from our clinic.",
+      ar: "حرّك المؤشر لتكشف نتائج حقيقية قبل وبعد العلاج في عيادتنا.",
+    },
+    cases: [
+      { before: "/cases/before-1.png", after: "/cases/after-1.png", title: { en: "Implants & Full Restoration", ar: "زراعة وترميم كامل" }, tag: { en: "Implants", ar: "زراعة" } },
+      { before: "/cases/before-2.png", after: "/cases/after-2.png", title: { en: "Crowns & Smile Makeover", ar: "تركيبات وتجميل الابتسامة" }, tag: { en: "Cosmetic", ar: "تجميلي" } },
+    ],
+  },
 
   theme: {
     primary: "#a87f2b",

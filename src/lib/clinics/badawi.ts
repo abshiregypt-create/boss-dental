@@ -16,6 +16,18 @@ export const badawi: ClinicConfig = {
       ar: "في مركز بدوي لزراعة الأسنان نعوّض الأسنان المفقودة بأحدث تقنيات الزراعة العالمية — لابتسامة طبيعية وواثقة تدوم مدى الحياة.",
     },
     photo: "/bdic-logo.jpg",
+    lineup: [
+      { photo: "/clinic/team/person-1.png" },
+      { photo: "/clinic/team/person-3.png" },
+      { photo: "/clinic/team/person-5.png" },
+      { photo: "/clinic/team/person-2.png" },
+      { photo: "/clinic/team/person-4.png" },
+    ],
+    lineupLabel: { en: "Badawi Dental Team", ar: "فريق بدوي للأسنان" },
+    tagline: {
+      en: "Team members are auto-highlighted in sequence",
+      ar: "يتم إبراز أعضاء الفريق تلقائيًا بالتتابع",
+    },
   },
 
   about: {
@@ -37,6 +49,23 @@ export const badawi: ClinicConfig = {
     { name: { en: "Dr. Mohamed Badawi", ar: "د. محمد بدوي" }, role: { en: "Founder & Implant Specialist", ar: "المؤسس وأخصائي زراعة الأسنان" }, photo: "/clinic/doctor-badawi.jpg" },
     { name: { en: "BDIC Dental Team", ar: "فريق BDIC الطبي" }, role: { en: "Implant & Cosmetic Dentistry", ar: "زراعة وتجميل الأسنان" }, photo: "/clinic/doctor-2.jpg" },
   ],
+
+  gallery: {
+    style: "grid",
+    headline: { en: "Real Patient Results", ar: "نتائج حقيقية لمرضانا" },
+    subtitle: {
+      en: "Real cases treated at Badawi Dental Implant Center — implants, crowns and smile makeovers.",
+      ar: "حالات حقيقية تم علاجها في مركز بدوي لزراعة الأسنان — زراعة وتركيبات وتجميل الابتسامة.",
+    },
+    cases: [
+      { src: "/clinic/case-gap.jpg", title: { en: "Closing Gaps with Crowns", ar: "إغلاق الفراغات بالتركيبات" }, tag: { en: "Cosmetic", ar: "تجميلي" } },
+      { src: "/clinic/case-fullmouth.jpg", title: { en: "Full-Mouth Rehabilitation", ar: "إعادة تأهيل الفم بالكامل" }, tag: { en: "Implants", ar: "زراعة" } },
+      { src: "/clinic/case-gum.jpg", title: { en: "Smile Design & Veneers", ar: "تصميم الابتسامة والعدسات" }, tag: { en: "Cosmetic", ar: "تجميلي" } },
+      { src: "/clinic/case-veneers.jpg", title: { en: "Porcelain Veneers", ar: "عدسات البورسلين" }, tag: { en: "Hollywood Smile", ar: "ابتسامة هوليوود" } },
+      { src: "/clinic/case-bridge.jpg", title: { en: "Fixed Bridge Restoration", ar: "ترميم بجسر ثابت" }, tag: { en: "Restoration", ar: "ترميم" } },
+      { src: "/clinic/smile-1.jpg", title: { en: "Natural White Smile", ar: "ابتسامة بيضاء طبيعية" }, tag: { en: "Hollywood Smile", ar: "ابتسامة هوليوود" } },
+    ],
+  },
 
   theme: {
     primary: "#a87f2b",

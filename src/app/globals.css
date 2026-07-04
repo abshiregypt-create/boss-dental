@@ -268,6 +268,12 @@ html[dir="rtl"] body {
   -webkit-mask-image: linear-gradient(0deg, transparent 0, #000 16%, #000 100%);
   mask-image: linear-gradient(0deg, transparent 0, #000 16%, #000 100%);
 }
+/* Solo hero figure (single doctor) — rendered much larger than a lineup member.
+   Aspect matches the cutout (704x789) so the photo fills without a dead gap. */
+.figure-frame--solo {
+  width: clamp(17rem, 60vw, 40rem);
+  aspect-ratio: 704 / 789;
+}
 .figure-img {
   width: 100%;
   height: 100%;

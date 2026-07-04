@@ -25,6 +25,34 @@ export type ClinicTeamMember = {
   photo: string;
 };
 
+/** A single cutout figure in the hero stage (a team member or the solo doctor). */
+export type ClinicHeroFigure = {
+  photo: string;
+  name?: Bi;
+  role?: Bi;
+};
+
+/**
+ * One before/after showcase item. Grid galleries use a single combined `src`
+ * image (tap to open in a lightbox); slider galleries use separate `before` +
+ * `after` images (drag-to-compare).
+ */
+export type GalleryCase = {
+  src?: string;
+  before?: string;
+  after?: string;
+  title: Bi;
+  tag: Bi;
+};
+
+export type ClinicGallery = {
+  /** "grid" = before/after cards + lightbox; "slider" = drag-to-compare handle. */
+  style: "grid" | "slider";
+  headline: Bi;
+  subtitle: Bi;
+  cases: GalleryCase[];
+};
+
 export type ClinicConfig = {
   /** URL-safe id, also the default database file name (e.g. "badawi"). */
   slug: string;
@@ -40,8 +68,15 @@ export type ClinicConfig = {
     title1: Bi;
     title2: Bi;
     subtitle: Bi;
-    /** Hero cutout photo (public path). */
+    /** Solo hero cutout photo (public path). Used when `lineup` is empty. */
     photo: string;
+    /** Optional multi-figure cutout lineup (e.g. the whole team). When present,
+     *  the hero shows these figures instead of the single `photo`. */
+    lineup?: ClinicHeroFigure[];
+    /** Pill label for an active lineup figure that has no explicit name. */
+    lineupLabel?: Bi;
+    /** Small hint line shown beneath the hero figure(s). */
+    tagline?: Bi;
   };
 
   about: {
@@ -54,6 +89,9 @@ export type ClinicConfig = {
   };
 
   team: ClinicTeamMember[];
+
+  /** Before/After results section (grid of cases or drag-to-compare sliders). */
+  gallery: ClinicGallery;
 
   theme: ClinicTheme;
 

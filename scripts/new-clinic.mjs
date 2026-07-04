@@ -78,6 +78,19 @@ export const ${c.slug}: ClinicConfig = {
     { name: ${bi(c.name)}, role: ${bi(c.role)}, photo: "${esc(c.photo)}" },
   ],
 
+  gallery: {
+    style: "slider",
+    headline: { en: "Drag to See the Difference", ar: "اسحب لترى الفرق" },
+    subtitle: {
+      en: "Slide the handle to reveal real before-and-after results from our clinic.",
+      ar: "حرّك المؤشر لتكشف نتائج حقيقية قبل وبعد العلاج في عيادتنا.",
+    },
+    cases: [
+      { before: "/cases/before-1.png", after: "/cases/after-1.png", title: { en: "Smile Makeover", ar: "تجميل الابتسامة" }, tag: { en: "Cosmetic", ar: "تجميلي" } },
+      { before: "/cases/before-2.png", after: "/cases/after-2.png", title: { en: "Full Restoration", ar: "ترميم كامل" }, tag: { en: "Restoration", ar: "ترميم" } },
+    ],
+  },
+
   theme: {
     primary: "${c.primary}",
     primaryDark: "${c.primaryDark}",

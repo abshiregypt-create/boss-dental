@@ -1,33 +1,37 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useLang } from "@/lib/language";
 import { Reveal } from "./Reveal";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
+import { activeClinic } from "@/lib/clinics";
 
-type Pair = {
-  before: string;
-  after: string;
-  title: { en: string; ar: string };
-  tag: { en: string; ar: string };
-};
-
-const pairs: Pair[] = [
-  {
-    before: "/cases/before-1.png",
-    after: "/cases/after-1.png",
-    title: { en: "Implants & Full Restoration", ar: "زراعة وترميم كامل" },
-    tag: { en: "Implants", ar: "زراعة" },
-  },
-  {
-    before: "/cases/before-2.png",
-    after: "/cases/after-2.png",
-    title: { en: "Crowns & Smile Makeover", ar: "تركيبات وتجميل الابتسامة" },
-    tag: { en: "Cosmetic", ar: "تجميلي" },
-  },
-];
+const clinic = activeClinic();
+const gallery = clinic.gallery;
+const cases = gallery.cases;
 
 export function ResultsGallery() {
-  const { tr } = useLang();
+  const { tr, lang } = useLang();
+  const [active, setActive] = useState<number | null>(null);
+
+  // Lightbox keyboard nav (grid style only; harmless otherwise since `active`
+  // stays null in slider mode).
+  useEffect(() => {
+    if (active === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActive(null);
+      if (e.key === "ArrowRight") setActive((i) => (i === null ? null : (i + 1) % cases.length));
+      if (e.key === "ArrowLeft") setActive((i) => (i === null ? null : (i - 1 + cases.length) % cases.length));
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [active]);
 
   return (
     <section id="results" className="relative overflow-hidden py-20 lg:py-28">
@@ -42,34 +46,68 @@ export function ResultsGallery() {
             {tr({ en: "Before & After", ar: "قبل وبعد" })}
           </span>
           <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
-            {tr({ en: "Drag to See the Difference", ar: "اسحب لترى الفرق" })}
+            {tr(gallery.headline)}
           </h2>
-          <p className="mt-4 text-lg text-muted">
-            {tr({
-              en: "Slide the handle to reveal real before-and-after results from our clinic.",
-              ar: "حرّك المؤشر لتكشف نتائج حقيقية قبل وبعد العلاج في عيادتنا.",
-            })}
-          </p>
+          <p className="mt-4 text-lg text-muted">{tr(gallery.subtitle)}</p>
         </Reveal>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-2 lg:gap-8">
-          {pairs.map((p, i) => (
-            <Reveal key={p.before} delay={(i % 2) * 100} as="article">
-              <BeforeAfterSlider
-                before={{ src: p.before, alt: tr({ en: `${tr(p.title)} — before`, ar: `${tr(p.title)} — قبل` }) }}
-                after={{ src: p.after, alt: tr({ en: `${tr(p.title)} — after`, ar: `${tr(p.title)} — بعد` }) }}
-                beforeLabel={tr({ en: "Before", ar: "قبل" })}
-                afterLabel={tr({ en: "After", ar: "بعد" })}
-              />
-              <div className="mt-3 flex items-center justify-between gap-2 px-1">
-                <h3 className="text-sm font-bold text-ink">{tr(p.title)}</h3>
-                <span className="shrink-0 rounded-full bg-primary/12 px-2.5 py-1 text-[11px] font-bold text-primary">
-                  {tr(p.tag)}
-                </span>
-              </div>
-            </Reveal>
-          ))}
-        </div>
+        {gallery.style === "slider" ? (
+          <div className="mt-14 grid gap-6 lg:grid-cols-2 lg:gap-8">
+            {cases.map((p, i) => (
+              <Reveal key={p.before ?? i} delay={(i % 2) * 100} as="article">
+                <BeforeAfterSlider
+                  before={{ src: p.before!, alt: `${tr(p.title)} — ${tr({ en: "before", ar: "قبل" })}` }}
+                  after={{ src: p.after!, alt: `${tr(p.title)} — ${tr({ en: "after", ar: "بعد" })}` }}
+                  beforeLabel={tr({ en: "Before", ar: "قبل" })}
+                  afterLabel={tr({ en: "After", ar: "بعد" })}
+                />
+                <div className="mt-3 flex items-center justify-between gap-2 px-1">
+                  <h3 className="text-sm font-bold text-ink">{tr(p.title)}</h3>
+                  <span className="shrink-0 rounded-full bg-primary/12 px-2.5 py-1 text-[11px] font-bold text-primary">
+                    {tr(p.tag)}
+                  </span>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-14 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
+            {cases.map((c, i) => (
+              <Reveal
+                key={c.src ?? i}
+                delay={(i % 3) * 80}
+                as="article"
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-primary/15 bg-surface shadow-sm transition hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"
+              >
+                <button onClick={() => setActive(i)} className="block w-full text-start" aria-label={tr(c.title)}>
+                  <div className="relative aspect-[3/4] overflow-hidden bg-[#0a0e12]">
+                    <Image
+                      src={c.src!}
+                      alt={tr(c.title)}
+                      fill
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                      className="object-contain transition duration-700 group-hover:scale-[1.03]"
+                    />
+                    <span className="absolute top-3 start-3 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-[#0a0e12] shadow">
+                      {tr(c.tag)}
+                    </span>
+                    <span className="absolute top-3 end-3 grid h-8 w-8 place-items-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="7" /><path d="m20 20-3-3M11 8v6M8 11h6" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-4 py-3">
+                    <h3 className="text-sm font-bold text-ink">{tr(c.title)}</h3>
+                    <span className="shrink-0 text-[11px] font-semibold text-muted">
+                      {tr({ en: "Before / After", ar: "قبل / بعد" })}
+                    </span>
+                  </div>
+                </button>
+              </Reveal>
+            ))}
+          </div>
+        )}
 
         <p className="mt-10 text-center text-xs text-muted">
           {tr({
@@ -78,6 +116,49 @@ export function ResultsGallery() {
           })}
         </p>
       </div>
+
+      {/* lightbox (grid style) */}
+      {gallery.style === "grid" && active !== null && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+          onClick={() => setActive(null)}
+        >
+          <button
+            onClick={() => setActive(null)}
+            aria-label="Close"
+            className="absolute end-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setActive((i) => (i === null ? null : (i - 1 + cases.length) % cases.length)); }}
+            aria-label="Previous"
+            className="absolute start-3 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          >
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setActive((i) => (i === null ? null : (i + 1) % cases.length)); }}
+            aria-label="Next"
+            className="absolute end-3 grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          >
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+
+          <figure className="relative max-h-[88vh] w-auto" onClick={(e) => e.stopPropagation()} dir={lang === "ar" ? "rtl" : "ltr"}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cases[active].src!}
+              alt={tr(cases[active].title)}
+              className="max-h-[82vh] w-auto rounded-2xl border border-white/10 object-contain"
+            />
+            <figcaption className="mt-3 text-center">
+              <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#0a0e12]">{tr(cases[active].tag)}</span>
+              <p className="mt-2 text-sm font-semibold text-white">{tr(cases[active].title)}</p>
+            </figcaption>
+          </figure>
+        </div>
+      )}
     </section>
   );
 }

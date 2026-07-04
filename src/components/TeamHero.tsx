@@ -3,27 +3,34 @@
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/language";
 import { activeClinic } from "@/lib/clinics";
+import type { Bi } from "@/lib/clinics/types";
 
 type Person = {
   src: string;
-  /** Optional real name/role — fill once provided by the clinic. */
-  name?: { en: string; ar: string };
-  role?: { en: string; ar: string };
+  name?: Bi;
+  role?: Bi;
 };
 
-// The featured doctor — from the active clinic config, shown as a spotlighted
-// hero figure.
 const clinic = activeClinic();
-const people: Person[] = [
-  { src: clinic.hero.photo, name: clinic.doctorName, role: clinic.role },
-];
+
+// A clinic either shows a whole team lineup (e.g. Badawi's five cutouts) or a
+// single spotlighted doctor (e.g. Dr. Ibrahim). Solo figures render much larger.
+const lineup = clinic.hero.lineup ?? [];
+const isLineup = lineup.length > 0;
+const people: Person[] = isLineup
+  ? lineup.map((f) => ({ src: f.photo, name: f.name, role: f.role }))
+  : [{ src: clinic.hero.photo, name: clinic.doctorName, role: clinic.role }];
+
+const fallbackLabel: Bi = clinic.hero.lineupLabel ?? clinic.doctorName;
+const tagline: Bi =
+  clinic.hero.tagline ?? { en: "Crafting confident, natural smiles", ar: "نصنع ابتسامات طبيعية وواثقة" };
 
 export function TeamHero() {
   const { tr } = useLang();
-  // Single featured figure.
-  const [active, setActive] = useState<number>(0);
+  // Default-focus the centre figure so the stage looks alive.
+  const [active, setActive] = useState<number>(isLineup ? Math.floor(people.length / 2) : 0);
 
-  // Auto-cycle focus so each doctor is highlighted in turn (no-op for one).
+  // Auto-cycle focus so each doctor is highlighted in turn (no-op for a solo figure).
   useEffect(() => {
     if (people.length < 2) return;
     const id = window.setInterval(() => {
@@ -42,13 +49,14 @@ export function TeamHero() {
       <div dir="ltr" className="flex items-end justify-center">
         {people.map((p, i) => {
           const isActive = active === i;
+          const label = p.name ? tr(p.name) : tr(fallbackLabel);
           return (
             <button
               key={p.src}
               type="button"
               onMouseEnter={() => setActive(i)}
               onClick={() => setActive(i)}
-              aria-label={p.name ? tr(p.name) : tr(clinic.doctorName)}
+              aria-label={label}
               className={`stage-figure group relative -mx-3 sm:-mx-4 ${
                 isActive ? "z-20" : "z-10"
               }`}
@@ -57,16 +65,16 @@ export function TeamHero() {
               {/* spotlight halo behind the active figure */}
               <span className="figure-halo" aria-hidden />
 
-              <span className="figure-frame">
+              <span className={`figure-frame${isLineup ? "" : " figure-frame--solo"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.src} alt={p.name ? tr(p.name) : tr(clinic.doctorName)} className="figure-img" />
+                <img src={p.src} alt={label} className="figure-img" />
               </span>
 
               {/* label pill */}
               <span className="figure-label">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  {p.name ? tr(p.name) : tr(clinic.doctorName)}
+                  {label}
                 </span>
                 {p.role && <span className="block text-[10px] font-medium text-primary/80">{tr(p.role)}</span>}
               </span>
@@ -76,9 +84,7 @@ export function TeamHero() {
       </div>
 
       {/* hint */}
-      <p className="mt-14 text-center text-xs font-medium text-muted">
-        {tr({ en: "Crafting confident, natural smiles", ar: "نصنع ابتسامات طبيعية وواثقة" })}
-      </p>
+      <p className="mt-14 text-center text-xs font-medium text-muted">{tr(tagline)}</p>
     </div>
   );
 }

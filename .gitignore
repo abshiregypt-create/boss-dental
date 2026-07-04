@@ -82,3 +82,10 @@ next-env.d.ts
 /.wwebjs_auth
 /.wwebjs_cache
 wa-worker.log
+
+# throwaway preview build dirs for non-default clinics
+.next-*
+
+# local clinic preview helper + logs
+/run-ibrahim.cmd
+ibrahim-dev*.log

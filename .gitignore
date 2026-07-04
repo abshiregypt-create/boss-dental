@@ -52,6 +52,14 @@ next-env.d.ts
 # database
 /prisma/dev.db
 /prisma/dev.db-journal
+# per-clinic databases (each clinic keeps its own private data)
+/prisma/*.db
+/prisma/*.db-journal
+
+# standalone per-clinic export builds (regenerable via scripts/export-clinic.mjs)
+/deploy
+# per-clinic scaffold env + assets contain secrets / private files
+/clinics/*/.env
 
 # keep example env
 !.env.example

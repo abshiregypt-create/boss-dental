@@ -1,14 +1,8 @@
 import type { ClinicConfig } from "./types";
-import { badawi } from "./badawi";
-import { ibrahim } from "./ibrahim";
+import { clinics } from "./registry.generated";
 
 export type { ClinicConfig, ClinicTheme, ClinicTeamMember, Bi } from "./types";
-
-/** Every clinic this codebase knows about, keyed by slug. */
-export const clinics: Record<string, ClinicConfig> = {
-  badawi,
-  ibrahim,
-};
+export { clinics };
 
 /** Fallback clinic when none is selected. */
 export const DEFAULT_CLINIC = "badawi";

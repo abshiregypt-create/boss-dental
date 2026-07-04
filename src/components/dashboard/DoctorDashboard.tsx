@@ -15,6 +15,8 @@ import { WhatsAppLink } from "./WhatsAppLink";
 import { ClientMessages } from "./ClientMessages";
 import { SettingsSection } from "./SettingsSection";
 import { OperationsManager } from "./OperationsManager";
+import { AnalyticsSection } from "./AnalyticsSection";
+import { RemindersSection } from "./RemindersSection";
 import {
   type BookingRequest,
   type Appointment,
@@ -87,9 +89,11 @@ function ComingSoon({ label }: { label: string }) {
 
 const navItems = [
   { id: "overview", label: { en: "Overview", ar: "الرئيسية" }, icon: "M3 12 12 4l9 8M5 10v9h5v-6h4v6h5v-9" },
+  { id: "analytics", label: { en: "Analytics", ar: "التحليلات" }, icon: "M4 20V10M10 20V4M16 20v-7M20 20H3" },
   { id: "bookings", label: { en: "Bookings", ar: "الحجوزات" }, icon: "M4 5h16v10H7l-3 3V5Z" },
   { id: "whatsapp", label: { en: "WhatsApp", ar: "واتساب" }, icon: "M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Z" },
   { id: "messages", label: { en: "Client Messages", ar: "رسائل العملاء" }, icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" },
+  { id: "reminders", label: { en: "Reminders", ar: "التذكيرات" }, icon: "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" },
   { id: "calendar", label: { en: "Calendar", ar: "التقويم" }, icon: "M3 9h18M7 3v4m10-4v4M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" },
   { id: "patients", label: { en: "Clients", ar: "العملاء" }, icon: "M16 19a4 4 0 0 0-8 0M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" },
   { id: "operations", label: { en: "Operations", ar: "العمليات" }, icon: "M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M12 11v6M9 14h6" },
@@ -844,6 +848,10 @@ export function DoctorDashboard() {
           )}
 
           {activeNav === "operations" && <OperationsManager />}
+
+          {activeNav === "analytics" && <AnalyticsSection />}
+
+          {activeNav === "reminders" && <RemindersSection />}
 
           {activeNav === "bookings" && <OnlineBookings />}
 

@@ -95,6 +95,10 @@ export type ClinicConfig = {
      *  the clinic brand/`doctorName` is the clinic itself, not a person). */
     figureName?: Bi;
     figureRole?: Bi;
+    /** Video shown in the hero's side "tilt" card. `seamless` renders it
+     *  borderless with faded edges so it blends into the page (no LIVE badge,
+     *  no frame) — reads as part of the site, not an embedded video box. */
+    video?: { src: string; poster?: string; seamless?: boolean };
   };
 
   about: {

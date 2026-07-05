@@ -28,6 +28,7 @@ export const badawi: ClinicConfig = {
       en: "Team members are auto-highlighted in sequence",
       ar: "يتم إبراز أعضاء الفريق تلقائيًا بالتتابع",
     },
+    video: { src: "/clinic/videos/case-video-1.mp4", poster: "/clinic/smile-1.jpg" },
   },
 
   about: {

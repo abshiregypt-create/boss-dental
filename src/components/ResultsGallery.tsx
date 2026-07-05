@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { useLang } from "@/lib/language";
 import { Reveal } from "./Reveal";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
@@ -71,22 +70,22 @@ export function ResultsGallery() {
             ))}
           </div>
         ) : (
-          <div className="mt-14 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
+          <div className="mt-14 gap-4 sm:gap-5 [column-fill:_balance] columns-2 lg:columns-3">
             {cases.map((c, i) => (
               <Reveal
                 key={c.src ?? i}
                 delay={(i % 3) * 80}
                 as="article"
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-primary/15 bg-surface shadow-sm transition hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"
+                className="group relative mb-4 block cursor-pointer break-inside-avoid overflow-hidden rounded-2xl border border-primary/15 bg-surface shadow-sm transition hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 sm:mb-5"
               >
                 <button onClick={() => setActive(i)} className="block w-full text-start" aria-label={tr(c.title)}>
-                  <div className="relative aspect-[3/4] overflow-hidden bg-[#0a0e12]">
-                    <Image
+                  <div className="relative overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={c.src!}
                       alt={tr(c.title)}
-                      fill
-                      sizes="(max-width: 640px) 50vw, 33vw"
-                      className="object-contain transition duration-700 group-hover:scale-[1.03]"
+                      loading="lazy"
+                      className="block w-full h-auto transition duration-700 group-hover:scale-[1.03]"
                     />
                     <span className="absolute top-3 start-3 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-[#0a0e12] shadow">
                       {tr(c.tag)}

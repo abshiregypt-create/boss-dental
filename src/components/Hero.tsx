@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
 import { useSite } from "@/lib/siteStore";
+import { activeClinic } from "@/lib/clinics";
 import { TypingName } from "./TypingName";
 import { TeamHero } from "./TeamHero";
 
@@ -13,6 +14,12 @@ const stats = [
   { value: "5K+", key: "stat2" as const },
   { value: "3K+", key: "stat3" as const },
 ];
+
+const heroVideo = activeClinic().hero.video ?? {
+  src: "/clinic/videos/case-video-1.mp4",
+  poster: "/clinic/smile-1.jpg",
+  seamless: false,
+};
 
 export function Hero() {
   const { tr, lang } = useLang();
@@ -147,57 +154,115 @@ export function Hero() {
 
         {/* tilt visual */}
         <div className="fade-up relative mx-auto w-full max-w-lg" style={{ animationDelay: "1.45s" }}>
-          <div
-            ref={cardRef}
-            className="hero-video-card relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-primary/20 shadow-2xl shadow-primary/10 transition-transform duration-200 will-change-transform"
-          >
-            <video
-              src="/clinic/videos/case-video-1.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              poster="/clinic/smile-1.jpg"
-              className="ken-burns h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0e12] via-[#0a0e12]/20 to-transparent" />
-            <span className="absolute top-3 start-3 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-              </span>
-              {tr({ en: "LIVE", ar: "مباشر" })}
-            </span>
-          </div>
-
-          <div className="glass absolute -bottom-5 start-[-1rem] flex items-center gap-3 rounded-2xl p-3.5 shadow-xl">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary">
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6 9 17l-5-5" />
+          {heroVideo.seamless ? (
+            <div ref={cardRef} className="hero-seamless relative transition-transform duration-200 will-change-transform">
+              {/* Luminance-key filter: alpha = perceptual brightness, so the clip's
+                  black background becomes fully transparent while the lit 3D model
+                  stays — it sits directly on the page like a native element. */}
+              <svg width="0" height="0" className="absolute" aria-hidden focusable="false">
+                <filter id="hero-lumakey" colorInterpolationFilters="sRGB">
+                  <feColorMatrix
+                    type="matrix"
+                    values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0.2126 0.7152 0.0722 0 0"
+                  />
+                  <feComponentTransfer>
+                    <feFuncA type="table" tableValues="0 0 0.62 1 1" />
+                  </feComponentTransfer>
+                </filter>
               </svg>
-            </div>
-            <div>
-              <div className="text-sm font-bold text-ink">100%</div>
-              <div className="text-xs text-muted">Painless Care</div>
-            </div>
-          </div>
+              <video
+                src={heroVideo.src}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                poster={heroVideo.poster}
+                className="ken-burns hero-seamless-video block w-full"
+              />
+              <div className="glass absolute -bottom-5 start-[-1rem] flex items-center gap-3 rounded-2xl p-3.5 shadow-xl">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-ink">100%</div>
+                  <div className="text-xs text-muted">Painless Care</div>
+                </div>
+              </div>
 
-          <div className="glass absolute -top-4 end-[-1rem] flex items-center gap-2 rounded-2xl px-4 py-3 shadow-xl">
-            <div className="flex -space-x-2 rtl:space-x-reverse">
-              {["/clinic/smile-1.jpg", "/clinic/smile-2.jpg", "/clinic/case-gap.jpg"].map((src, idx) => (
-                <Image
-                  key={idx}
-                  src={src}
-                  alt="patient"
-                  width={28}
-                  height={28}
-                  className="h-7 w-7 rounded-full border-2 border-surface object-cover"
-                />
-              ))}
+              <div className="glass absolute -top-4 end-[-1rem] flex items-center gap-2 rounded-2xl px-4 py-3 shadow-xl">
+                <div className="flex -space-x-2 rtl:space-x-reverse">
+                  {["/clinic/smile-1.jpg", "/clinic/smile-2.jpg", "/clinic/case-gap.jpg"].map((src, idx) => (
+                    <Image
+                      key={idx}
+                      src={src}
+                      alt="patient"
+                      width={28}
+                      height={28}
+                      className="h-7 w-7 rounded-full border-2 border-surface object-cover"
+                    />
+                  ))}
+                </div>
+                <div className="text-xs font-semibold text-accent">★ 4.9 / 5</div>
+              </div>
             </div>
-            <div className="text-xs font-semibold text-accent">★ 4.9 / 5</div>
-          </div>
+          ) : (
+            <>
+              <div
+                ref={cardRef}
+                className="hero-video-card relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-primary/20 shadow-2xl shadow-primary/10 transition-transform duration-200 will-change-transform"
+              >
+                <video
+                  src={heroVideo.src}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  poster={heroVideo.poster}
+                  className="ken-burns h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0e12] via-[#0a0e12]/20 to-transparent" />
+                <span className="absolute top-3 start-3 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                  </span>
+                  {tr({ en: "LIVE", ar: "مباشر" })}
+                </span>
+              </div>
+
+              <div className="glass absolute -bottom-5 start-[-1rem] flex items-center gap-3 rounded-2xl p-3.5 shadow-xl">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-ink">100%</div>
+                  <div className="text-xs text-muted">Painless Care</div>
+                </div>
+              </div>
+
+              <div className="glass absolute -top-4 end-[-1rem] flex items-center gap-2 rounded-2xl px-4 py-3 shadow-xl">
+                <div className="flex -space-x-2 rtl:space-x-reverse">
+                  {["/clinic/smile-1.jpg", "/clinic/smile-2.jpg", "/clinic/case-gap.jpg"].map((src, idx) => (
+                    <Image
+                      key={idx}
+                      src={src}
+                      alt="patient"
+                      width={28}
+                      height={28}
+                      className="h-7 w-7 rounded-full border-2 border-surface object-cover"
+                    />
+                  ))}
+                </div>
+                <div className="text-xs font-semibold text-accent">★ 4.9 / 5</div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

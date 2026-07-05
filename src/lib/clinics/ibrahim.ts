@@ -24,6 +24,7 @@ export const ibrahim: ClinicConfig = {
     figureName: { en: "Dr. Ibrahim Salah", ar: "د. إبراهيم صلاح" },
     figureRole: { en: "Founder & Consultant Cosmetic Dentist", ar: "المؤسس واستشاري تجميل الأسنان" },
     tagline: { en: "Crafting confident, natural smiles", ar: "نصنع ابتسامات طبيعية وواثقة" },
+    video: { src: "/ibrahim/videos/hero.mp4", seamless: true },
   },
 
   about: {

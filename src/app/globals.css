@@ -428,6 +428,35 @@ html[dir="rtl"] body {
   100% { transform: scale(1.12); }
 }
 
+/* ===== Seamless hero video =====
+   A borderless clip that sits on the page like a native element. The clip has a
+   BLACK background, so a luminance-key SVG filter turns brightness into alpha:
+   black → transparent (vanishes into the page), the lit 3D model stays. A soft
+   warm radial sits behind it so the floating model feels grounded, not stark. */
+.hero-seamless {
+  position: relative;
+  filter: drop-shadow(0 20px 38px rgba(0, 0, 0, 0.14));
+}
+.hero-seamless::before {
+  content: "";
+  position: absolute;
+  inset: 4% 2%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 60% 62% at 50% 48%, rgba(201, 162, 75, 0.16), transparent 70%);
+  filter: blur(8px);
+}
+.hero-seamless-video {
+  position: relative;
+  z-index: 1;
+  aspect-ratio: 4 / 5;
+  width: 100%;
+  object-fit: cover;
+  filter: url(#hero-lumakey);
+  -webkit-mask-image: radial-gradient(ellipse 80% 84% at 50% 47%, #000 58%, transparent 92%);
+  mask-image: radial-gradient(ellipse 80% 84% at 50% 47%, #000 58%, transparent 92%);
+}
+
 /* ===== Video showcase: large autoplay clips ===== */
 /* Reel filmed sideways → rotate 90° upright. Frame keeps the resulting
    landscape ratio (source 596x1280 → 1280x596). The video is sized as a

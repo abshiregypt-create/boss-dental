@@ -16,7 +16,7 @@ export function waMeLink(digits: string, text: string): string {
 }
 
 /** Are templates enabled for the Meta Cloud provider? (default yes) */
-export function useTemplates(): boolean {
+export function templatesEnabled(): boolean {
   return (process.env.WHATSAPP_USE_TEMPLATES ?? "1") !== "0";
 }
 
@@ -32,7 +32,7 @@ export function buildMetaPayload(
   text: string,
   template?: TemplateSpec | null
 ): Record<string, unknown> {
-  if (template && useTemplates()) {
+  if (template && templatesEnabled()) {
     return {
       messaging_product: "whatsapp",
       recipient_type: "individual",

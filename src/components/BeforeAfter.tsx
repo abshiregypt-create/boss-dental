@@ -4,6 +4,24 @@ import Image from "next/image";
 import { useCallback, useRef, useState } from "react";
 import { useLang } from "@/lib/language";
 
+/** One side of the comparison. Hoisted to module scope so it isn't recreated on
+ *  every render of BeforeAfter (react-hooks/static-components). */
+function Pic({ src, label, alt }: { src: string; label: string; alt: string }) {
+  return src.startsWith("data:") ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={`${alt} - ${label}`} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+  ) : (
+    <Image
+      src={src}
+      alt={`${alt} - ${label}`}
+      fill
+      sizes="(max-width: 768px) 100vw, 50vw"
+      className="object-cover"
+      draggable={false}
+    />
+  );
+}
+
 export function BeforeAfter({
   before,
   after,
@@ -51,21 +69,6 @@ export function BeforeAfter({
   // In RTL the visual "after" (clipped) should still read naturally
   const clipStart = dir === "rtl" ? 100 - pos : pos;
 
-  const Pic = ({ src, label }: { src: string; label: string }) =>
-    src.startsWith("data:") ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt={`${alt} - ${label}`} className="absolute inset-0 h-full w-full object-cover" draggable={false} />
-    ) : (
-      <Image
-        src={src}
-        alt={`${alt} - ${label}`}
-        fill
-        sizes="(max-width: 768px) 100vw, 50vw"
-        className="object-cover"
-        draggable={false}
-      />
-    );
-
   return (
     <div
       ref={ref}
@@ -75,7 +78,7 @@ export function BeforeAfter({
       onPointerLeave={onUp}
     >
       {/* AFTER (base, full) */}
-      <Pic src={after} label={afterLabel} />
+      <Pic src={after} label={afterLabel} alt={alt} />
       <span className="pointer-events-none absolute bottom-3 end-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#0a0e12]">
         {afterLabel}
       </span>
@@ -90,7 +93,7 @@ export function BeforeAfter({
               : `inset(0 ${100 - clipStart}% 0 0)`,
         }}
       >
-        <Pic src={before} label={beforeLabel} />
+        <Pic src={before} label={beforeLabel} alt={alt} />
         <span className="pointer-events-none absolute bottom-3 start-3 rounded-full bg-[#0a0e12]/80 px-3 py-1 text-xs font-bold text-white">
           {beforeLabel}
         </span>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useLang } from "@/lib/language";
 
 export default function LoginPage() {
@@ -96,9 +97,9 @@ export default function LoginPage() {
               : tr({ en: "Sign in", ar: "تسجيل الدخول" })}
           </button>
 
-          <a href="/" className="block text-center text-sm text-muted transition hover:text-primary">
+          <Link href="/" className="block text-center text-sm text-muted transition hover:text-primary">
             {tr({ en: "← Back to site", ar: "← العودة للموقع" })}
-          </a>
+          </Link>
         </form>
       </div>
     </div>

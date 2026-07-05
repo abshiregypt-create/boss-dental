@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -582,7 +583,7 @@ export function DoctorDashboard() {
           ))}
         </nav>
 
-        <a
+        <Link
           href="/"
           className="mt-auto flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition hover:bg-primary/5 hover:text-primary"
         >
@@ -590,7 +591,7 @@ export function DoctorDashboard() {
             <path d="M15 18l-6-6 6-6" />
           </svg>
           {tr({ en: "Back to site", ar: "العودة للموقع" })}
-        </a>
+        </Link>
         <button
           onClick={() => {
             fetch("/api/auth/logout", { method: "POST" }).finally(() => window.location.assign("/login"));

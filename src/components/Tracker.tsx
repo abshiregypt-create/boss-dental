@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useLang } from "@/lib/language";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { activeClinic } from "@/lib/clinics";
@@ -102,12 +103,12 @@ export function Tracker({ code }: { code: string }) {
     <div className="min-h-screen bg-background">
       {/* top bar */}
       <header className="flex items-center justify-between border-b border-primary/10 bg-surface/70 px-5 py-3 backdrop-blur">
-        <a href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-white p-0.5 shadow">
             <Image src={CLINIC_LOGO} alt={tr(CLINIC)} width={36} height={36} className="h-full w-full object-contain" />
           </span>
           <span className="text-sm font-bold tracking-tight text-ink">{tr(CLINIC)}</span>
-        </a>
+        </Link>
         <LanguageToggle />
       </header>
 

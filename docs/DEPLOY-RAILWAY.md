@@ -36,6 +36,7 @@ and fill in the real values. The essential ones:
 |---|---|
 | `NEXT_PUBLIC_CLINIC` | `ibrahim` |
 | `CLINIC` | `ibrahim` |
+| `PORT` | `8080` (must match your domain's target port) |
 | `DATABASE_URL` | `file:/data/boss.db` |
 | `UPLOADS_DIR` | `/data/uploads` |
 | `AUTH_SECRET` | a long random string (see below) |
@@ -84,6 +85,31 @@ Service → **Settings → Networking → Custom Domain** → add e.g.
 `app.theboss.clinic`, then create the shown CNAME at your DNS provider. After it
 verifies, update `APP_URL` + `NEXT_PUBLIC_SITE_URL` to the custom domain and
 redeploy.
+
+---
+
+## Troubleshooting: "Healthcheck failure"
+The build succeeded but Railway can't get a `200` from `/api/health`. Almost
+always one of these:
+
+1. **Port mismatch (most common).** Railway routes to a single target port and
+   the healthcheck uses it too. The app must listen on that same port. This app
+   binds to `$PORT` (start command: `next start -H 0.0.0.0 -p ${PORT:-8080}`).
+   Make all three agree:
+   - Domain → **target port = 8080** (you set this).
+   - Service **Variable `PORT=8080`**.
+   - That's it — app, domain, and healthcheck are all 8080.
+2. **Volume not mounted / `DATABASE_URL` wrong.** On boot the app runs
+   `prisma migrate deploy`, which creates `/data/boss.db`. If there's no Volume
+   mounted at `/data`, that path doesn't exist and migrate crashes before the
+   server starts. Fix: add the **Volume at `/data`** and set
+   `DATABASE_URL=file:/data/boss.db`.
+3. **First boot is slow.** migrate + seed + start can take a bit; the healthcheck
+   timeout is set to 300s, which is plenty. If it still times out, check the
+   Deploy logs for the real error.
+
+Check the **Deploy Logs** tab — the failing line (crash vs. wrong port) tells you
+which of the above it is.
 
 ---
 

@@ -43,6 +43,9 @@ export type GalleryCase = {
   after?: string;
   title: Bi;
   tag: Bi;
+  /** Optional Tailwind aspect class for slider cases (e.g. "aspect-[4/5]" for
+   *  portrait profile shots). Defaults to landscape 16/10. */
+  aspect?: string;
 };
 
 export type ClinicGallery = {

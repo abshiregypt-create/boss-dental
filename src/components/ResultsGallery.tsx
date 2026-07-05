@@ -59,6 +59,7 @@ export function ResultsGallery() {
                   after={{ src: p.after!, alt: `${tr(p.title)} — ${tr({ en: "after", ar: "بعد" })}` }}
                   beforeLabel={tr({ en: "Before", ar: "قبل" })}
                   afterLabel={tr({ en: "After", ar: "بعد" })}
+                  aspectClass={p.aspect}
                 />
                 <div className="mt-3 flex items-center justify-between gap-2 px-1">
                   <h3 className="text-sm font-bold text-ink">{tr(p.title)}</h3>

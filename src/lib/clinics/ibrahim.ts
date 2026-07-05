@@ -54,17 +54,16 @@ export const ibrahim: ClinicConfig = {
   ],
 
   gallery: {
-    style: "grid",
+    style: "slider",
     headline: { en: "Real Patient Results", ar: "نتائج حقيقية لمرضانا" },
     subtitle: {
-      en: "Real before-and-after cases from THE BOSS Dental Clinic — veneers, orthodontics and full corrections.",
-      ar: "حالات حقيقية قبل وبعد من عيادة ذا بوس — عدسات، تقويم، وتصحيح كامل.",
+      en: "Drag the handle to reveal real before-and-after results from THE BOSS Dental Clinic.",
+      ar: "حرّك المؤشر لتكشف نتائج حقيقية قبل وبعد من عيادة ذا بوس.",
     },
     cases: [
-      { src: "/ibrahim/cases/veneers.png", title: { en: "Ceramic Veneers", ar: "عدسات سيراميك" }, tag: { en: "Cosmetic", ar: "تجميلي" } },
-      { src: "/ibrahim/cases/orthodontics.png", title: { en: "Orthodontics", ar: "تقويم الأسنان" }, tag: { en: "Braces", ar: "تقويم" } },
-      { src: "/ibrahim/cases/bimax.png", title: { en: "Bimaxillary Correction", ar: "تصحيح بروز الفكين" }, tag: { en: "Orthodontics", ar: "تقويم" } },
-      { src: "/ibrahim/cases/pediatric.png", title: { en: "Pediatric Dentistry", ar: "طب أسنان الأطفال" }, tag: { en: "Kids", ar: "أطفال" } },
+      { before: "/ibrahim/cases/restoration-before.png", after: "/ibrahim/cases/restoration-after.png", title: { en: "Implants & Full-Mouth Restoration", ar: "زراعة وترميم كامل للفم" }, tag: { en: "Implants", ar: "زراعة" } },
+      { before: "/ibrahim/cases/ortho-before.png", after: "/ibrahim/cases/ortho-after.png", title: { en: "Orthodontics", ar: "تقويم الأسنان" }, tag: { en: "Braces", ar: "تقويم" } },
+      { before: "/ibrahim/cases/bimax-before.png", after: "/ibrahim/cases/bimax-after.png", title: { en: "Bimaxillary Correction", ar: "تصحيح بروز الفكين" }, tag: { en: "Orthodontics", ar: "تقويم" }, aspect: "aspect-[4/5]" },
     ],
   },
 

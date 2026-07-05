@@ -17,11 +17,13 @@ export function BeforeAfterSlider({
   after,
   beforeLabel,
   afterLabel,
+  aspectClass = "aspect-[16/10]",
 }: {
   before: ImgSpec;
   after: ImgSpec;
   beforeLabel: string;
   afterLabel: string;
+  aspectClass?: string;
 }) {
   const [pos, setPos] = useState(50);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -69,7 +71,7 @@ export function BeforeAfterSlider({
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      className="group relative aspect-[16/10] w-full select-none overflow-hidden rounded-2xl border border-primary/15 bg-[#0a0e12] shadow-sm touch-none cursor-ew-resize"
+      className={`group relative ${aspectClass} w-full select-none overflow-hidden rounded-2xl border border-primary/15 bg-[#0a0e12] shadow-sm touch-none cursor-ew-resize`}
     >
       {/* after (base layer) */}
       <Image

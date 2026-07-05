@@ -1,0 +1,16 @@
+# Railway (Nixpacks) build for THE BOSS — web + doctor dashboard.
+#
+# Explicit phases so the build is deterministic:
+#  - install: force devDependencies (next build needs tailwind + typescript)
+#             and skip optionalDependencies (whatsapp-web.js / Chromium — the
+#             booking bot is NOT part of this web deploy).
+#  - build:   generate the Prisma client, then build Next.
+#
+# The start command + healthcheck live in railway.json.
+
+[phases.install]
+cmds = ["npm ci --include=dev --omit=optional"]
+
+[phases.build]
+dependsOn = ["install"]
+cmds = ["npx prisma generate", "npm run build"]

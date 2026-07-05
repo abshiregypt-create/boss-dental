@@ -63,6 +63,7 @@ next-env.d.ts
 
 # keep example env
 !.env.example
+!.env.railway.example
 
 # patient file uploads (private)
 /private-uploads

@@ -38,6 +38,7 @@
     "jose": "^6.2.3",
     "next": "16.2.9",
     "node-cron": "^4.4.1",
+    "prisma": "^6.19.3",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -54,7 +55,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "playwright": "^1.61.0",
-    "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

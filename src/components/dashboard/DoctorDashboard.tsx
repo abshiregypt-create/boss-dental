@@ -19,6 +19,7 @@ import { OperationsManager } from "./OperationsManager";
 import { AnalyticsSection } from "./AnalyticsSection";
 import { DoctorsManager } from "./DoctorsManager";
 import { RevenueSection } from "./RevenueSection";
+import { EarningsDashboard } from "./EarningsDashboard";
 import { RemindersSection } from "./RemindersSection";
 import { AddAppointmentModal, QuickOperationModal } from "./QuickActions";
 import type { Procedure, DoctorLite } from "./PatientOperations";
@@ -97,6 +98,7 @@ const navItems = [
   { id: "overview", label: { en: "Overview", ar: "الرئيسية" }, icon: "M3 12 12 4l9 8M5 10v9h5v-6h4v6h5v-9" },
   { id: "analytics", label: { en: "Analytics", ar: "التحليلات" }, icon: "M4 20V10M10 20V4M16 20v-7M20 20H3" },
   { id: "revenue", label: { en: "Revenue", ar: "الإيرادات" }, icon: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" },
+  { id: "earnings", label: { en: "Earnings", ar: "الأرباح" }, icon: "M3 3v18h18M7 14l4-4 3 3 5-6" },
   { id: "bookings", label: { en: "Bookings", ar: "الحجوزات" }, icon: "M4 5h16v10H7l-3 3V5Z" },
   { id: "whatsapp", label: { en: "WhatsApp", ar: "واتساب" }, icon: "M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Z" },
   { id: "messages", label: { en: "Client Messages", ar: "رسائل العملاء" }, icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" },
@@ -126,6 +128,23 @@ export function DoctorDashboard() {
   const [patients, setPatients] = useState<Patient[]>(seedPatients);
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [activeNav, setActiveNav] = useState("overview");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem("dash_theme") : null;
+    if (saved === "dark" || saved === "light") setTheme(saved);
+  }, []);
+  const toggleTheme = useCallback(() => {
+    setTheme((t) => {
+      const next = t === "dark" ? "light" : "dark";
+      try {
+        window.localStorage.setItem("dash_theme", next);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
   // Persist clients so manual additions / edits survive refresh.
   useEffect(() => {
@@ -586,7 +605,7 @@ export function DoctorDashboard() {
   };
 
   return (
-    <div className="dash-light flex min-h-screen bg-background text-ink">
+    <div className={`${theme === "dark" ? "dash-dark" : "dash-light"} flex min-h-screen bg-background text-ink`}>
       {/* ---------- Sidebar ---------- */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-primary/10 bg-surface/60 p-4 lg:flex">
         <div className="flex items-center gap-2 px-2 py-2">
@@ -659,6 +678,23 @@ export function DoctorDashboard() {
 
           <div className="flex items-center gap-2.5">
             <LanguageToggle />
+            <button
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              title={tr({ en: "Toggle dark / light", ar: "تبديل الوضع الليلي/النهاري" })}
+              className="grid h-9 w-9 place-items-center rounded-full border border-primary/20 text-ink transition hover:border-primary hover:text-primary"
+            >
+              {theme === "dark" ? (
+                <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+                </svg>
+              )}
+            </button>
             <button
               aria-label="Notifications"
               className="relative grid h-9 w-9 place-items-center rounded-full border border-primary/20 text-ink transition hover:border-primary hover:text-primary"
@@ -925,6 +961,8 @@ export function DoctorDashboard() {
           {activeNav === "analytics" && <AnalyticsSection />}
 
           {activeNav === "revenue" && <RevenueSection />}
+
+          {activeNav === "earnings" && <EarningsDashboard />}
 
           {activeNav === "reminders" && <RemindersSection />}
 

@@ -9,6 +9,8 @@
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/db";
 import { activeClinic } from "@/lib/clinics";
+import { monthKeyOf, round2 } from "@/lib/server/doctors";
+import { settleStatus, type SettleStatus } from "@/lib/server/earnings";
 
 const CLINIC_TAG = activeClinic().slug.toUpperCase();
 const CLINIC_CREATOR = `${activeClinic().brand.en} Dashboard`;
@@ -267,11 +269,217 @@ export async function buildProfilesWorkbook(): Promise<Buffer> {
   return Buffer.from(buf);
 }
 
-export function exportFileName(type: "schedule" | "profiles"): string {
+/** ---------- Doctor Earnings workbook (3 sheets) ---------- */
+const STATUS_LABEL: Record<SettleStatus, string> = {
+  paid: "Paid",
+  partial: "Partially Paid",
+  pending: "Pending",
+  none: "—",
+};
+
+const MONTH_LABEL = (key: string) => {
+  const [y, m] = key.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-GB", { year: "numeric", month: "short" }).format(new Date(y, (m || 1) - 1, 1));
+};
+
+/**
+ * Build a 3-sheet doctor-earnings workbook:
+ *   1. Operations     — one row per doctor per operation (date, doctor, patient,
+ *      operation, category, price, %, doctor earnings, clinic earnings, status).
+ *   2. Monthly Summary — one row per doctor per month (ops, revenue, earnings,
+ *      clinic, paid, pending).
+ *   3. Doctor Summary  — one row per doctor (lifetime totals + settlement).
+ * Pass `doctorId` to scope every sheet to a single doctor.
+ */
+export async function buildEarningsWorkbook(doctorId?: string): Promise<Buffer> {
+  const [doctors, links, payouts] = await Promise.all([
+    prisma.doctor.findMany({ orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }] }),
+    prisma.treatmentDoctor.findMany({
+      where: doctorId ? { doctorId } : {},
+      include: {
+        treatmentRecord: {
+          include: {
+            patient: { select: { name: true } },
+            procedure: { select: { nameEn: true } },
+            doctors: { select: { amount: true } },
+            payments: { select: { amount: true, paidAt: true } },
+          },
+        },
+      },
+    }),
+    prisma.doctorPayout.findMany({ where: doctorId ? { doctorId } : {} }),
+  ]);
+
+  const docById = new Map(doctors.map((d) => [d.id, d]));
+  const now = new Date();
+  const curMonth = monthKeyOf(now);
+  const prevMonth = monthKeyOf(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = CLINIC_CREATOR;
+  wb.created = new Date();
+
+  // --- Sheet 1: Operations ---
+  const wsOps = wb.addWorksheet("Operations");
+  setup(wsOps, [
+    { header: "Date", key: "date", width: 16 },
+    { header: "Doctor", key: "doctor", width: 22 },
+    { header: "Patient", key: "patient", width: 22 },
+    { header: "Operation", key: "op", width: 22 },
+    { header: "Category", key: "cat", width: 18 },
+    { header: "Operation Price", key: "price", width: 16, money: true },
+    { header: "Doctor %", key: "pct", width: 10 },
+    { header: "Doctor Earnings", key: "docEarn", width: 16, money: true },
+    { header: "Clinic Earnings", key: "clinicEarn", width: 16, money: true },
+    { header: "Payment Status", key: "status", width: 16 },
+    { header: "Payment Date", key: "payDate", width: 16 },
+    { header: "Notes", key: "notes", width: 28 },
+  ]);
+  const opsSorted = [...links].sort((a, b) =>
+    a.treatmentRecord.performedAt < b.treatmentRecord.performedAt ? 1 : -1,
+  );
+  for (const l of opsSorted) {
+    const t = l.treatmentRecord;
+    const opCommission = t.doctors.reduce((s, d) => s + (d.amount || 0), 0);
+    const paid = t.payments.reduce((s, p) => s + (p.amount || 0), 0);
+    const status = settleStatus(paid, t.price || 0);
+    const lastPay = t.payments.reduce<Date | null>((acc, p) => (!acc || p.paidAt > acc ? p.paidAt : acc), null);
+    wsOps.addRow({
+      date: fmtDate(t.performedAt),
+      doctor: docById.get(l.doctorId)?.nameEn ?? "",
+      patient: t.patient?.name ?? "",
+      op: t.nameEn || t.nameAr,
+      cat: t.procedure?.nameEn ?? "Custom",
+      price: t.price || 0,
+      pct: l.commissionPct || 0,
+      docEarn: l.amount || 0,
+      clinicEarn: round2((t.price || 0) - opCommission - (t.cost || 0)),
+      status: STATUS_LABEL[status],
+      payDate: status === "paid" && lastPay ? fmtDate(lastPay) : "",
+      notes: t.notes ?? "",
+    });
+  }
+  zebra(wsOps);
+
+  // --- Sheet 2: Monthly Summary (per doctor per month) ---
+  type M = { operations: number; revenue: number; earnings: number; materials: number; paid: number };
+  const monthMap = new Map<string, M>(); // key: doctorId|monthKey
+  const mk = (d: string, m: string) => `${d}|${m}`;
+  const ensureM = (d: string, m: string) => {
+    const k = mk(d, m);
+    let v = monthMap.get(k);
+    if (!v) {
+      v = { operations: 0, revenue: 0, earnings: 0, materials: 0, paid: 0 };
+      monthMap.set(k, v);
+    }
+    return v;
+  };
+  for (const l of links) {
+    const t = l.treatmentRecord;
+    const v = ensureM(l.doctorId, monthKeyOf(t.performedAt));
+    v.operations += 1;
+    v.revenue += t.price || 0;
+    v.earnings += l.amount || 0;
+    v.materials += t.cost || 0;
+  }
+  for (const p of payouts) ensureM(p.doctorId, monthKeyOf(p.paidAt)).paid += p.amount || 0;
+
+  const wsMonthly = wb.addWorksheet("Monthly Summary");
+  setup(wsMonthly, [
+    { header: "Doctor", key: "doctor", width: 22 },
+    { header: "Year", key: "year", width: 8 },
+    { header: "Month", key: "month", width: 14 },
+    { header: "Operations", key: "ops", width: 12 },
+    { header: "Total Revenue", key: "revenue", width: 16, money: true },
+    { header: "Doctor Earnings", key: "earnings", width: 16, money: true },
+    { header: "Clinic Earnings", key: "clinic", width: 16, money: true },
+    { header: "Paid", key: "paid", width: 14, money: true },
+    { header: "Pending", key: "pending", width: 14, money: true },
+  ]);
+  const monthKeys = [...monthMap.keys()].sort((a, b) => (a < b ? 1 : -1));
+  for (const key of monthKeys) {
+    const [dId, monthKey] = key.split("|");
+    const v = monthMap.get(key)!;
+    wsMonthly.addRow({
+      doctor: docById.get(dId)?.nameEn ?? "",
+      year: monthKey.split("-")[0],
+      month: MONTH_LABEL(monthKey),
+      ops: v.operations,
+      revenue: round2(v.revenue),
+      earnings: round2(v.earnings),
+      clinic: round2(v.revenue - v.earnings - v.materials),
+      paid: round2(v.paid),
+      pending: round2(Math.max(0, v.earnings - v.paid)),
+    });
+  }
+  zebra(wsMonthly);
+
+  // --- Sheet 3: Doctor Summary ---
+  type D = { operations: number; revenue: number; earnings: number; materials: number; cur: number; prev: number };
+  const docMap = new Map<string, D>();
+  const ensureD = (id: string) => {
+    let v = docMap.get(id);
+    if (!v) {
+      v = { operations: 0, revenue: 0, earnings: 0, materials: 0, cur: 0, prev: 0 };
+      docMap.set(id, v);
+    }
+    return v;
+  };
+  for (const l of links) {
+    const t = l.treatmentRecord;
+    const v = ensureD(l.doctorId);
+    v.operations += 1;
+    v.revenue += t.price || 0;
+    v.earnings += l.amount || 0;
+    v.materials += t.cost || 0;
+    const key = monthKeyOf(t.performedAt);
+    if (key === curMonth) v.cur += l.amount || 0;
+    if (key === prevMonth) v.prev += l.amount || 0;
+  }
+  const paidByDoctor = new Map<string, number>();
+  for (const p of payouts) paidByDoctor.set(p.doctorId, (paidByDoctor.get(p.doctorId) || 0) + (p.amount || 0));
+
+  const wsDoc = wb.addWorksheet("Doctor Summary");
+  setup(wsDoc, [
+    { header: "Doctor Name", key: "name", width: 24 },
+    { header: "Specialty", key: "spec", width: 20 },
+    { header: "Total Operations", key: "ops", width: 14 },
+    { header: "Total Revenue", key: "revenue", width: 16, money: true },
+    { header: "Lifetime Earnings", key: "life", width: 16, money: true },
+    { header: "Current Month", key: "cur", width: 16, money: true },
+    { header: "Previous Month", key: "prev", width: 16, money: true },
+    { header: "Total Paid", key: "paid", width: 16, money: true },
+    { header: "Remaining Balance", key: "remaining", width: 16, money: true },
+    { header: "Clinic Profit Generated", key: "clinic", width: 20, money: true },
+  ]);
+  const rankDoctors = doctorId ? doctors.filter((d) => d.id === doctorId) : doctors;
+  for (const d of rankDoctors) {
+    const v = docMap.get(d.id) ?? { operations: 0, revenue: 0, earnings: 0, materials: 0, cur: 0, prev: 0 };
+    const paid = paidByDoctor.get(d.id) ?? 0;
+    wsDoc.addRow({
+      name: d.nameEn,
+      spec: d.specialtyEn ?? "",
+      ops: v.operations,
+      revenue: round2(v.revenue),
+      life: round2(v.earnings),
+      cur: round2(v.cur),
+      prev: round2(v.prev),
+      paid: round2(paid),
+      remaining: round2(Math.max(0, v.earnings - paid)),
+      clinic: round2(v.revenue - v.earnings - v.materials),
+    });
+  }
+  zebra(wsDoc);
+
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
+}
+
+export function exportFileName(type: "schedule" | "profiles" | "earnings"): string {
   const stamp = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TZ })
     .format(new Date())
     .replace(/-/g, "");
-  return type === "schedule"
-    ? `${CLINIC_TAG}-Schedule-${stamp}.xlsx`
-    : `${CLINIC_TAG}-Profiles-and-Interactions-${stamp}.xlsx`;
+  if (type === "schedule") return `${CLINIC_TAG}-Schedule-${stamp}.xlsx`;
+  if (type === "earnings") return `${CLINIC_TAG}-Doctor-Earnings-${stamp}.xlsx`;
+  return `${CLINIC_TAG}-Profiles-and-Interactions-${stamp}.xlsx`;
 }

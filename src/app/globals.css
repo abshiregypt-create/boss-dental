@@ -44,6 +44,23 @@
   color: var(--ink);
 }
 
+/* Dark variant of the dashboard theme (toggled from the topbar). Same gold
+   accent, dark warm-neutral surfaces. Re-tints every bg-surface / text-ink /
+   border-primary utility used by the dashboard components. */
+.dash-dark {
+  --background: #0f1216;     /* near-black page */
+  --surface: #171b21;        /* dark cards */
+  --surface-2: #1f242c;      /* dark panel / inputs */
+  --foreground: #e6e8eb;
+  --ink: #e6e8eb;
+  --primary: #d9b659;        /* brighter gold for contrast */
+  --primary-dark: #a87f2b;   /* deep gold */
+  --accent: #e9cf86;         /* bright gold */
+  --muted: #9aa3af;
+  --border: rgba(217, 182, 89, 0.24);
+  color: var(--ink);
+}
+
 html {
   scroll-behavior: smooth;
 }

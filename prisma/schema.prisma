@@ -249,12 +249,12 @@ model Doctor {
 
   treatments TreatmentDoctor[]
   appointments Appointment[]
+  payouts    DoctorPayout[]
 
   @@index([active, sortOrder])
 }
 
-/// Join row: a doctor assigned to a treatment/operation, with the commission
-/// percentage and earned amount SNAPSHOT at the time it was recorded (so later
+/// Join row: a doctor assigned to a treatment/operation, with the commission/// percentage and earned amount SNAPSHOT at the time it was recorded (so later
 /// profile edits don't rewrite history). More than one doctor can share one
 /// operation; the clinic's share = price − Σ(amount).
 model TreatmentDoctor {
@@ -269,6 +269,23 @@ model TreatmentDoctor {
 
   @@unique([treatmentRecordId, doctorId])
   @@index([doctorId])
+}
+
+/// A payout PAID TO a doctor against their accrued commission earnings. Earnings
+/// accrue per operation (TreatmentDoctor.amount); payouts draw them down. The
+/// doctor's outstanding balance = Σ(earnings) − Σ(payouts).
+model DoctorPayout {
+  id        String   @id @default(cuid())
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  amount    Float    @default(0) // EGP paid to the doctor
+  method    String   @default("cash") // cash | card | transfer | other
+  reference String? // cheque/transfer reference number
+  note      String?
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([doctorId, paidAt])
 }
 
 /// A recurring monthly clinic expense (rent, electricity, or a custom type) that

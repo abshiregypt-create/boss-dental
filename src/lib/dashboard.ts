@@ -50,6 +50,7 @@ export type Appointment = {
   code?: string; // booking code (DB-backed online/WhatsApp bookings)
   online?: boolean; // true if it comes from the DB (website/WhatsApp), not local seed
   done?: boolean; // true once the doctor marks the session finished (completed)
+  doctorName?: string; // assigned doctor (DB appointments booked from the dashboard)
 };
 
 export const seedAppointments: Appointment[] = [

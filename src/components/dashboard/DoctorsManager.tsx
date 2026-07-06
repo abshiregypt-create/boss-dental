@@ -398,12 +398,12 @@ function DoctorProfile({ id, onBack, onEdit }: { id: string; onBack: () => void;
                 data.operations.map((o) => (
                   <div key={o.id} className="flex items-center justify-between gap-3 rounded-xl border border-primary/10 bg-surface-2 px-3 py-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-ink">{lang === "ar" ? o.nameAr : o.nameEn}</p>
-                      <p className="truncate text-[11px] text-muted">{o.patientName || o.patientPhone || "—"} · {fmtDate(o.performedAt)}</p>
+                      <p className="truncate text-sm font-bold text-ink">{o.patientName || o.patientPhone || tr({ en: "Client", ar: "عميل" })}</p>
+                      <p className="truncate text-[11px] text-muted">{lang === "ar" ? o.nameAr : o.nameEn} · {fmtDate(o.performedAt)}</p>
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="text-sm font-bold text-primary">{formatMoney(o.amount, lang)}</p>
-                      <p className="text-[11px] text-muted">{o.commissionPct}% {tr({ en: "of", ar: "من" })} {formatMoney(o.price, lang)}</p>
+                      <p className="text-[11px] text-muted" dir="ltr">{o.commissionPct}% × {formatMoney(o.price, lang)}</p>
                     </div>
                   </div>
                 ))

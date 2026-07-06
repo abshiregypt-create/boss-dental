@@ -168,6 +168,14 @@ export function DaySchedule({
                     </svg>
                     {e.appt.phone}
                   </span>
+                  {e.appt.doctorName && (
+                    <span className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-primary">
+                      <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" />
+                      </svg>
+                      {tr({ en: "Dr.", ar: "د." })} {e.appt.doctorName}
+                    </span>
+                  )}
                   {canFinish && (
                     <button
                       onClick={() => onFinish!(e.appt.code!)}

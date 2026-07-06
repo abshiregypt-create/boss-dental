@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLang } from "@/lib/language";
 import { formatMoney } from "@/lib/patients";
 
-type Procedure = { id: string; nameEn: string; nameAr: string; price: number; cost: number | null; active: boolean };
-type DoctorLite = { id: string; nameEn: string; nameAr: string; commissionPct: number; active: boolean };
+export type Procedure = { id: string; nameEn: string; nameAr: string; price: number; cost: number | null; active: boolean };
+export type DoctorLite = { id: string; nameEn: string; nameAr: string; commissionPct: number; active: boolean };
 type TreatmentDoctor = { doctorId: string; nameEn: string; nameAr: string; commissionPct: number; amount: number };
 type Treatment = {
   id: string;
@@ -291,7 +291,7 @@ function Overlay({ title, children, onClose }: { title: string; children: React.
 
 const inputCls = "w-full rounded-lg border border-primary/15 bg-surface px-3 py-2 text-ink outline-none focus:border-primary";
 
-function OperationModal({
+export function OperationModal({
   phone,
   name,
   procedures,
@@ -310,7 +310,6 @@ function OperationModal({
   const [procId, setProcId] = useState<string>(procedures[0]?.id ?? "custom");
   const [customName, setCustomName] = useState("");
   const [price, setPrice] = useState<string>(procedures[0] ? String(procedures[0].price) : "");
-  const [cost, setCost] = useState<string>(procedures[0]?.cost != null ? String(procedures[0].cost) : "");
   const [discount, setDiscount] = useState("");
   const [assigned, setAssigned] = useState<{ doctorId: string; pct: string }[]>([]);
   const [payChoice, setPayChoice] = useState<"none" | "full" | "partial">("none");
@@ -368,7 +367,6 @@ function OperationModal({
     const p = procedures.find((x) => x.id === id);
     if (p) {
       setPrice(String(p.price));
-      setCost(p.cost != null ? String(p.cost) : "");
     }
   };
 
@@ -376,9 +374,6 @@ function OperationModal({
     if (!Number.isFinite(priceNum) || priceNum < 0) return;
     if (isCustom && !customName.trim()) return;
     if (overCommission) return;
-    const costTrim = cost.trim();
-    const costNum = costTrim === "" ? null : Number(costTrim);
-    if (costNum != null && (!Number.isFinite(costNum) || costNum < 0)) return;
     setSaving(true);
     try {
       const proc = procedures.find((x) => x.id === procId);
@@ -390,7 +385,6 @@ function OperationModal({
         nameAr: isCustom ? customName.trim() : proc?.nameAr ?? customName.trim(),
         price: priceNum, // list price (backend applies the discount)
         discountPct,
-        cost: costNum,
         doctors: assigned
           .filter((a) => (Number(a.pct) || 0) > 0)
           .map((a) => ({ doctorId: a.doctorId, commissionPct: Number(a.pct) || 0 })),
@@ -441,11 +435,6 @@ function OperationModal({
             <input type="number" min={0} max={100} dir="ltr" className={inputCls} value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" />
           </label>
         </div>
-
-        <label className="block text-sm">
-          <span className="mb-1 block font-semibold text-ink">{tr({ en: "Net cost (optional)", ar: "التكلفة الصافية (اختياري)" })}</span>
-          <input type="number" min={0} dir="ltr" className={inputCls} value={cost} onChange={(e) => setCost(e.target.value)} placeholder={tr({ en: "materials/lab — for profit tracking", ar: "خامات/معمل — لحساب الربح" })} />
-        </label>
 
         {doctors.length > 0 && (
           <div className="rounded-xl border border-primary/12 bg-surface-2 p-3">

@@ -20,6 +20,8 @@ import { AnalyticsSection } from "./AnalyticsSection";
 import { DoctorsManager } from "./DoctorsManager";
 import { RevenueSection } from "./RevenueSection";
 import { RemindersSection } from "./RemindersSection";
+import { AddAppointmentModal, QuickOperationModal } from "./QuickActions";
+import type { Procedure, DoctorLite } from "./PatientOperations";
 import {
   type BookingRequest,
   type Appointment,
@@ -166,6 +168,8 @@ export function DoctorDashboard() {
     status: string;
     complaint?: string | null;
     createdAt: string;
+    doctorNameEn?: string | null;
+    doctorNameAr?: string | null;
   };
   const [dbAppts, setDbAppts] = useState<DbAppt[]>([]);
   // Bookings the doctor just confirmed/declined here — hidden from the request
@@ -189,6 +193,32 @@ export function DoctorDashboard() {
     const id = setInterval(run, 15000);
     return () => clearInterval(id);
   }, [loadDbAppts]);
+
+  // Quick-add (appointment / operation) modals on the overview + their catalogs.
+  const [quickAdd, setQuickAdd] = useState<null | "appointment" | "operation">(null);
+  const [qaDoctors, setQaDoctors] = useState<DoctorLite[]>([]);
+  const [qaProcedures, setQaProcedures] = useState<Procedure[]>([]);
+  const loadQuickCatalogs = useCallback(async () => {
+    try {
+      const [dRes, pRes] = await Promise.all([
+        fetch("/api/admin/doctors", { cache: "no-store" }),
+        fetch("/api/admin/procedures", { cache: "no-store" }),
+      ]);
+      if (dRes.ok) {
+        const j = await dRes.json();
+        setQaDoctors((j.doctors ?? []) as DoctorLite[]);
+      }
+      if (pRes.ok) {
+        const j = await pRes.json();
+        setQaProcedures((j.procedures ?? []) as Procedure[]);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    loadQuickCatalogs();
+  }, [loadQuickCatalogs]);
 
   const todayMid = useMemo(() => {
     const x = new Date(base);
@@ -214,6 +244,7 @@ export function DoctorDashboard() {
       .filter((a) => a.status === "confirmed" || a.status === "pending" || a.status === "completed")
       .map((a) => {
         const typeId = sessionTypes.some((s) => s.id === a.serviceId) ? a.serviceId : "checkup";
+        const doctorName = (lang === "ar" ? a.doctorNameAr : a.doctorNameEn) || a.doctorNameEn || a.doctorNameAr || undefined;
         return {
           id: `online-${a.code}`,
           patient: { en: a.patientName, ar: a.patientName },
@@ -225,11 +256,12 @@ export function DoctorDashboard() {
           code: a.code,
           online: true,
           done: a.status === "completed",
+          doctorName: doctorName ?? undefined,
         } as Appointment;
       })
       .filter((a) => a.dayOffset >= 0 && a.dayOffset < WEEK_DAYS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dbAppts, todayMid]);
+  }, [dbAppts, todayMid, lang]);
 
   // Pending DB bookings mapped into the Lead shape so WhatsApp/website requests
   // show in the "Recent Bookings — requests to review" panel for the doctor to
@@ -743,6 +775,39 @@ export function DoctorDashboard() {
             </p>
           </div>
 
+          {/* quick actions */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => setQuickAdd("appointment")}
+              className="group flex items-center gap-3 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-surface p-4 text-start transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-lg hover:shadow-primary/10"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary transition group-hover:bg-primary/25">
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4.5" width="18" height="17" rx="2" />
+                  <path d="M3 9h18M8 2.5v4M16 2.5v4M12 13v4M10 15h4" />
+                </svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-ink">{tr({ en: "Add appointment", ar: "إضافة موعد" })}</span>
+                <span className="block truncate text-xs text-muted">{tr({ en: "Book a day, pick the doctor & client.", ar: "احجز يومًا، اختر الطبيب والعميل." })}</span>
+              </span>
+            </button>
+            <button
+              onClick={() => setQuickAdd("operation")}
+              className="group flex items-center gap-3 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-surface p-4 text-start transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-lg hover:shadow-primary/10"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary transition group-hover:bg-primary/25">
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 4.5c-2-1.4-5-1.6-6.3.3-1.2 1.8-.6 4.3 0 6.6.5 1.9.3 3 .8 5.2.3 1.4.7 2.9 1.6 2.9 1.1 0 1.1-2 1.6-3.6.3-1 .8-1.7 1.3-1.7s1 .7 1.3 1.7c.5 1.6.5 3.6 1.6 3.6.9 0 1.3-1.5 1.6-2.9.5-2.2.3-3.3.8-5.2.6-2.3 1.2-4.8 0-6.6C17 2.9 14 3.1 12 4.5Z" />
+                </svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-ink">{tr({ en: "Record operation", ar: "تسجيل عملية" })}</span>
+                <span className="block truncate text-xs text-muted">{tr({ en: "Log a procedure just done & the doctors.", ar: "سجّل عملية تمّت للتو والأطباء." })}</span>
+              </span>
+            </button>
+          </div>
+
           {/* stats */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard
@@ -882,6 +947,28 @@ export function DoctorDashboard() {
           )}
         </main>
       </div>
+
+      {quickAdd === "appointment" && (
+        <AddAppointmentModal
+          doctors={qaDoctors}
+          onClose={() => setQuickAdd(null)}
+          onSaved={() => {
+            setQuickAdd(null);
+            loadDbAppts();
+          }}
+        />
+      )}
+      {quickAdd === "operation" && (
+        <QuickOperationModal
+          procedures={qaProcedures.filter((p) => p.active)}
+          doctors={qaDoctors.filter((d) => d.active)}
+          onClose={() => setQuickAdd(null)}
+          onSaved={() => {
+            setQuickAdd(null);
+            loadDbAppts();
+          }}
+        />
+      )}
     </div>
   );
 }

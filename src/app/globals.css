@@ -430,9 +430,10 @@ html[dir="rtl"] body {
 
 /* ===== Seamless hero video =====
    A borderless clip that sits on the page like a native element. The clip has a
-   BLACK background, so a luminance-key SVG filter turns brightness into alpha:
-   black → transparent (vanishes into the page), the lit 3D model stays. A soft
-   warm radial sits behind it so the floating model feels grounded, not stark. */
+   BLACK background; <SeamlessVideo> keys it out per-frame on a canvas (luminance
+   → alpha), so the lit 3D model floats directly on the page — identically on
+   desktop and mobile. A soft warm radial sits behind it so the floating model
+   feels grounded, not stark. */
 .hero-seamless {
   position: relative;
   filter: drop-shadow(0 20px 38px rgba(0, 0, 0, 0.14));
@@ -452,37 +453,8 @@ html[dir="rtl"] body {
   aspect-ratio: 4 / 5;
   width: 100%;
   object-fit: cover;
-  filter: url(#hero-lumakey);
   -webkit-mask-image: radial-gradient(ellipse 80% 84% at 50% 47%, #000 58%, transparent 92%);
   mask-image: radial-gradient(ellipse 80% 84% at 50% 47%, #000 58%, transparent 92%);
-}
-
-/* Mobile / tablet: iOS Safari (and some mobile browsers) don't apply the SVG
-   luminance-key filter to <video>, so the clip's BLACK background would show as
-   an ugly black box. Fall back to a warm dark "stage" + `mix-blend-mode: screen`
-   — screen makes the black background merge into the dark stage while the lit 3D
-   model pops. This is fully supported on iOS/Android and looks intentional. */
-@media (max-width: 1023px) {
-  .hero-seamless {
-    border-radius: 1.75rem;
-    overflow: hidden;
-    background: radial-gradient(ellipse 72% 62% at 50% 42%, #1b2430 0%, #121820 56%, #0b0f14 100%);
-    box-shadow:
-      0 22px 44px -20px rgba(0, 0, 0, 0.6),
-      inset 0 0 0 1px rgba(201, 162, 75, 0.18);
-  }
-  .hero-seamless::before {
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(ellipse 62% 58% at 50% 40%, rgba(201, 162, 75, 0.24), transparent 68%);
-    filter: blur(6px);
-  }
-  .hero-seamless-video {
-    filter: none;
-    mix-blend-mode: screen;
-    -webkit-mask-image: radial-gradient(ellipse 90% 92% at 50% 46%, #000 72%, transparent 97%);
-    mask-image: radial-gradient(ellipse 90% 92% at 50% 46%, #000 72%, transparent 97%);
-  }
 }
 
 /* ===== Video showcase: large autoplay clips ===== */

@@ -9,6 +9,7 @@ import { activeClinic } from "@/lib/clinics";
 import { TypingName } from "./TypingName";
 import { TeamHero } from "./TeamHero";
 import { CountUp } from "./CountUp";
+import { SeamlessVideo } from "./SeamlessVideo";
 
 const stats = [
   { value: "15+", key: "stat1" as const },
@@ -157,27 +158,8 @@ export function Hero() {
         <div className="fade-up relative mx-auto w-full max-w-lg" style={{ animationDelay: "1.45s" }}>
           {heroVideo.seamless ? (
             <div ref={cardRef} className="hero-seamless relative transition-transform duration-200 will-change-transform">
-              {/* Luminance-key filter: alpha = perceptual brightness, so the clip's
-                  black background becomes fully transparent while the lit 3D model
-                  stays — it sits directly on the page like a native element. */}
-              <svg width="0" height="0" className="absolute" aria-hidden focusable="false">
-                <filter id="hero-lumakey" colorInterpolationFilters="sRGB">
-                  <feColorMatrix
-                    type="matrix"
-                    values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0.2126 0.7152 0.0722 0 0"
-                  />
-                  <feComponentTransfer>
-                    <feFuncA type="table" tableValues="0 0 0.62 1 1" />
-                  </feComponentTransfer>
-                </filter>
-              </svg>
-              <video
+              <SeamlessVideo
                 src={heroVideo.src}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
                 poster={heroVideo.poster}
                 className="ken-burns hero-seamless-video block w-full"
               />

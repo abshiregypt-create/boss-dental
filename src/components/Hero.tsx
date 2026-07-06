@@ -137,9 +137,17 @@ export function Hero() {
       </div>
 
       {/* Headline + visual */}
-      <div className="mx-auto mt-14 grid max-w-7xl items-center gap-14 px-5 lg:grid-cols-2 lg:px-8">
+      <div
+        className={`mx-auto mt-14 max-w-7xl items-center gap-14 px-5 lg:px-8 ${
+          logoHero
+            ? "flex flex-col text-center"
+            : "grid lg:grid-cols-2"
+        }`}
+      >
         <div
-          className="fade-up text-center lg:text-start"
+          className={`fade-up ${
+            logoHero ? "text-center" : "text-center lg:text-start"
+          }`}
           style={{ animationDelay: "1.35s" }}
         >
           <h2 className="text-3xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-4xl lg:text-5xl">
@@ -151,7 +159,11 @@ export function Hero() {
             {tr(settings.subtitle)}
           </p>
 
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
+          <div
+            className={`mt-8 flex flex-col items-center gap-3 sm:flex-row ${
+              logoHero ? "justify-center" : "lg:justify-start"
+            }`}
+          >
             <a
               href="#contact"
               className="w-full rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3.5 text-center font-semibold text-[color:var(--on-primary)] shadow-xl shadow-primary/30 transition hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/40 sm:w-auto"
@@ -166,9 +178,16 @@ export function Hero() {
             </a>
           </div>
 
-          <div className="mt-12 grid max-w-md grid-cols-3 gap-4 lg:mx-0">
+          <div
+            className={`mt-12 grid max-w-md grid-cols-3 gap-4 ${
+              logoHero ? "mx-auto" : "lg:mx-0"
+            }`}
+          >
             {heroStats.map((s, i) => (
-              <div key={i} className="text-center lg:text-start">
+              <div
+                key={i}
+                className={logoHero ? "text-center" : "text-center lg:text-start"}
+              >
                 <div className="text-3xl font-extrabold text-primary">
                   <CountUp value={s.value} />
                 </div>
@@ -181,21 +200,27 @@ export function Hero() {
         </div>
 
         {/* tilt visual */}
-        <div className="fade-up relative mx-auto w-full max-w-lg" style={{ animationDelay: "1.45s" }}>
+        <div
+          className={`fade-up relative mx-auto w-full ${
+            logoHero ? "max-w-2xl" : "max-w-lg"
+          }`}
+          style={{ animationDelay: "1.45s" }}
+        >
           {logoHero ? (
             <div
               ref={cardRef}
-              className="relative grid aspect-[4/5] place-items-center overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-surface to-primary/10 shadow-2xl shadow-primary/15 transition-transform duration-200 will-change-transform"
+              className="relative grid aspect-square place-items-center overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-surface to-primary/10 shadow-2xl shadow-primary/15 transition-transform duration-200 will-change-transform"
             >
-              <span className="absolute h-[88%] w-[88%] rounded-full border border-primary/20 animate-[spin_22s_linear_infinite]" />
-              <span className="absolute h-[72%] w-[72%] rounded-full border border-accent/35 animate-[spin_16s_linear_infinite_reverse]" />
+              <span className="absolute h-[92%] w-[92%] rounded-full border border-primary/25 animate-[spin_22s_linear_infinite]" />
+              <span className="absolute h-[78%] w-[78%] rounded-full border border-accent/35 animate-[spin_16s_linear_infinite_reverse]" />
+              <span className="absolute h-[62%] w-[62%] rounded-full border border-primary/20 animate-[spin_12s_linear_infinite]" />
               <span className="absolute h-3 w-3 rounded-full bg-primary shadow-[0_0_20px_var(--primary)] animate-[pulse_2.2s_ease-in-out_infinite]" />
-              <div className="relative z-10 grid h-56 w-56 place-items-center rounded-full border border-primary/20 bg-white/85 p-7 shadow-xl backdrop-blur">
+              <div className="relative z-10 grid h-64 w-64 place-items-center rounded-full border border-primary/20 bg-white/85 p-8 shadow-xl backdrop-blur">
                 <Image
                   src={heroLogo!}
                   alt={tr(settings.doctorName)}
-                  width={200}
-                  height={200}
+                  width={240}
+                  height={240}
                   priority
                   className="h-full w-full object-contain animate-[pulse_3.8s_ease-in-out_infinite]"
                 />

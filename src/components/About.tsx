@@ -5,6 +5,7 @@ import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
 import { useSite } from "@/lib/siteStore";
 import { site } from "@/lib/site";
+import { activeClinic } from "@/lib/clinics";
 import { Reveal } from "./Reveal";
 import { CountUp } from "./CountUp";
 
@@ -22,6 +23,9 @@ function ProfileIcon({ path }: { path: string }) {
 export function About() {
   const { tr } = useLang();
   const { settings } = useSite();
+  const clinic = activeClinic();
+  const aboutImage =
+    clinic.slug === "dce" && clinic.logo ? clinic.logo : settings.photo;
   const points = [t.about.point1, t.about.point2, t.about.point3];
 
   return (
@@ -32,16 +36,16 @@ export function About() {
       <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 lg:grid-cols-2 lg:px-8">
         <Reveal className="relative mx-auto w-full max-w-md">
           <div className="relative grid aspect-[4/5] place-items-center overflow-hidden rounded-[2rem] border border-primary/15 bg-white p-12 shadow-2xl shadow-primary/20">
-            {settings.photo.startsWith("data:") ? (
+            {aboutImage.startsWith("data:") ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={settings.photo}
+                src={aboutImage}
                 alt={tr(settings.doctorName)}
                 className="h-full w-full object-contain"
               />
             ) : (
               <Image
-                src={settings.photo}
+                src={aboutImage}
                 alt={tr(settings.doctorName)}
                 width={460}
                 height={460}
@@ -89,12 +93,12 @@ export function About() {
             <div className="mt-7 rounded-2xl border border-primary/15 bg-surface/70 p-5 shadow-sm">
               <div className="flex items-center gap-3.5">
                 <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/20 bg-white">
-                  {settings.photo.startsWith("data:") ? (
+                  {aboutImage.startsWith("data:") ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={settings.photo} alt={tr(t.about.profile.name)} className="h-full w-full object-cover" />
+                    <img src={aboutImage} alt={tr(t.about.profile.name)} className="h-full w-full object-cover" />
                   ) : (
                     <Image
-                      src={settings.photo}
+                      src={aboutImage}
                       alt={tr(t.about.profile.name)}
                       width={56}
                       height={56}

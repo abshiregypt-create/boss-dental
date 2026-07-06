@@ -157,13 +157,18 @@ function loadSettings(): SiteSettings {
     if (!raw) return defaultSettings;
     const parsed = JSON.parse(raw) as Partial<SiteSettings>;
     // shallow-merge with defaults so new fields always exist
-    return {
+    const merged: SiteSettings = {
       ...defaultSettings,
       ...parsed,
       theme: { ...DEFAULT_THEME, ...(parsed.theme ?? {}) },
       offers: parsed.offers ?? defaultSettings.offers,
       cases: parsed.cases ?? defaultSettings.cases,
     };
+    // DCE landing is logo-first branding, never a single doctor photo.
+    if (clinic.slug === "dce" && clinic.logo) {
+      merged.photo = clinic.logo;
+    }
+    return merged;
   } catch {
     return defaultSettings;
   }

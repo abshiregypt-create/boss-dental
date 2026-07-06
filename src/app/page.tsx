@@ -5,7 +5,6 @@ import { ImplantShowcase } from "@/components/ImplantShowcase";
 import { About } from "@/components/About";
 import { Offers } from "@/components/Offers";
 import { ResultsGallery } from "@/components/ResultsGallery";
-import { BeforeAfterSection } from "@/components/BeforeAfterSection";
 import { VideoShowcase } from "@/components/VideoShowcase";
 import { Team } from "@/components/Team";
 import { Testimonials } from "@/components/Testimonials";
@@ -28,7 +27,6 @@ export default function Home() {
         <About />
         <Offers />
         <ResultsGallery />
-        <BeforeAfterSection />
         <VideoShowcase />
         <Team />
         <Testimonials />

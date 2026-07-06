@@ -3,7 +3,7 @@
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
 import { useSite } from "@/lib/siteStore";
-import { BeforeAfter } from "./BeforeAfter";
+import { BeforeAfterSlider } from "./BeforeAfterSlider";
 import { Reveal } from "./Reveal";
 
 export function BeforeAfterSection() {
@@ -29,13 +29,14 @@ export function BeforeAfterSection() {
         <div className="mt-14 grid gap-8 md:grid-cols-2">
           {pairs.map((p, i) => (
             <Reveal key={p.id} delay={i * 120}>
-              <BeforeAfter
-                before={p.before}
-                after={p.after}
+              <BeforeAfterSlider
+                before={{ src: p.before, alt: `${tr(p.label)} ${tr(t.beforeAfter.before)}` }}
+                after={{ src: p.after, alt: `${tr(p.label)} ${tr(t.beforeAfter.after)}` }}
                 beforeLabel={tr(t.beforeAfter.before)}
                 afterLabel={tr(t.beforeAfter.after)}
-                alt={tr(p.label)}
+                aspectClass="aspect-[16/10]"
               />
+              <div className="mt-3 px-1 text-sm font-semibold text-ink">{tr(p.label)}</div>
             </Reveal>
           ))}
         </div>

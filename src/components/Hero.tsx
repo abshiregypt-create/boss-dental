@@ -32,6 +32,8 @@ const heroVideo = activeClinic().hero.video ?? {
 const heroImage = activeClinic().hero.image;
 // Whether to hide the doctor-cutout stage and lead with the brand.
 const hideStage = activeClinic().hero.hideStage ?? false;
+const heroLogo = activeClinic().logo;
+const logoHero = hideStage && Boolean(heroLogo);
 
 // Small avatar stack on the floating rating badge - use this clinic's own
 // before/after thumbnails rather than shared stock, so it always looks on-brand.
@@ -180,7 +182,27 @@ export function Hero() {
 
         {/* tilt visual */}
         <div className="fade-up relative mx-auto w-full max-w-lg" style={{ animationDelay: "1.45s" }}>
-          {heroImage ? (
+          {logoHero ? (
+            <div
+              ref={cardRef}
+              className="relative grid aspect-[4/5] place-items-center overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-surface to-primary/10 shadow-2xl shadow-primary/15 transition-transform duration-200 will-change-transform"
+            >
+              <span className="absolute h-[88%] w-[88%] rounded-full border border-primary/20 animate-[spin_22s_linear_infinite]" />
+              <span className="absolute h-[72%] w-[72%] rounded-full border border-accent/35 animate-[spin_16s_linear_infinite_reverse]" />
+              <span className="absolute h-3 w-3 rounded-full bg-primary shadow-[0_0_20px_var(--primary)] animate-[pulse_2.2s_ease-in-out_infinite]" />
+              <div className="relative z-10 grid h-56 w-56 place-items-center rounded-full border border-primary/20 bg-white/85 p-7 shadow-xl backdrop-blur">
+                <Image
+                  src={heroLogo!}
+                  alt={tr(settings.doctorName)}
+                  width={200}
+                  height={200}
+                  priority
+                  className="h-full w-full object-contain animate-[pulse_3.8s_ease-in-out_infinite]"
+                />
+              </div>
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(10,14,18,0.08)_100%)]" />
+            </div>
+          ) : heroImage ? (
             <>
               <div
                 ref={cardRef}

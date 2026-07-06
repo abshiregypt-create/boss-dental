@@ -151,6 +151,10 @@ export type ClinicConfig = {
   videos?: ClinicVideo[];
   /** Intro line under the videos headline. */
   videosIntro?: Bi;
+  /** Optional dedicated "client voices" reels shown in a separate section. */
+  testimonialVideos?: ClinicVideo[];
+  /** Intro line under the client voices headline. */
+  testimonialVideosIntro?: Bi;
 
   theme: ClinicTheme;
 

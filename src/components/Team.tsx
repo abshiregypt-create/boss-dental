@@ -7,6 +7,7 @@ import { Reveal } from "./Reveal";
 
 export function Team() {
   const { tr } = useLang();
+  if (team.length === 0) return null;
 
   return (
     <section

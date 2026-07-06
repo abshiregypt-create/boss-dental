@@ -1,7 +1,7 @@
 import type { ClinicConfig } from "./types";
 
 /**
- * Dental Center of Egypt — Dr. Medhat Basseem · Heliopolis, Cairo.
+ * Dental Center of Egypt — Heliopolis, Cairo.
  *
  * Founded 1987; one of Egypt's largest specialised dental centers — 20
  * specialised clinics covering every branch of dentistry plus a dedicated
@@ -11,7 +11,7 @@ import type { ClinicConfig } from "./types";
  * person-cutout stage) and a royal-blue theme drawn from the real logo.
  *
  * All imagery here is the client's OWN brand material (logo, heritage flag,
- * founder, real before/after cases) extracted from their Instagram/Facebook,
+ * real before/after cases and videos) extracted from their Instagram/Facebook,
  * saved under public/dce/.
  */
 export const dce: ClinicConfig = {
@@ -19,8 +19,8 @@ export const dce: ClinicConfig = {
   brand: { en: "Dental Center of Egypt", ar: "دينتال سنتر أوف إيجيبت" },
   doctorName: { en: "Dental Center of Egypt", ar: "دينتال سنتر أوف إيجيبت" },
   role: {
-    en: "Trusted Since 1987 · 20 Specialised Clinics · Heliopolis, Cairo",
-    ar: "ثقة منذ عام ١٩٨٧ · ٢٠ عيادة متخصصة · مصر الجديدة، القاهرة",
+    en: "An integrated dental system since 1987 · 20 specialised clinics",
+    ar: "منظومة أسنان متكاملة منذ ١٩٨٧ · ٢٠ عيادة متخصصة",
   },
 
   hero: {
@@ -31,10 +31,10 @@ export const dce: ClinicConfig = {
     title1: { en: "With You in Every Smile —", ar: "معاكم في كل ابتسامة —" },
     title2: { en: "Dental Center of Egypt", ar: "دينتال سنتر أوف إيجيبت" },
     subtitle: {
-      en: "Since 1987 we build trust before any treatment. 20 specialised clinics under one roof, 45+ specialist doctors and consultants, a dedicated pediatric wing and branches across Greater Cairo — one place for the whole family, from Hollywood smiles and implants to clear aligners and whitening.",
-      ar: "منذ عام ١٩٨٧ ونحن نبني الثقة قبل أي علاج. ٢٠ عيادة متخصصة تحت سقف واحد، وأكثر من ٤٥ طبيبًا واستشاريًا، وجناح مخصص للأطفال، وفروع في أنحاء القاهرة الكبرى — مكان واحد للعائلة كلها، من ابتسامة هوليوود والزراعة إلى التقويم الشفاف والتبييض.",
+      en: "Since 1987 we have operated as one integrated dental system: 20 specialised clinics under one umbrella, 45+ specialists and consultants, a dedicated pediatric wing, and advanced protocols built around safe, precise, family-first care.",
+      ar: "منذ عام ١٩٨٧ ونحن نعمل كمنظومة أسنان متكاملة: ٢٠ عيادة متخصصة تحت مظلة واحدة، وأكثر من ٤٥ أخصائيًا واستشاريًا، وجناح مخصص للأطفال، وبروتوكولات علاج متقدمة تركز على الأمان والدقة وراحة العائلة.",
     },
-    photo: "/dce/doctor-square.jpg",
+    photo: "/dce/logo.png",
     hideStage: true,
     image: "/dce/hero-heritage.jpg",
     lineupLabel: { en: "Our Specialists", ar: "نخبة المتخصصين" },
@@ -52,8 +52,8 @@ export const dce: ClinicConfig = {
   about: {
     role: { en: "Egypt's Largest Specialised Dental Center", ar: "أكبر مركز أسنان متخصص في مصر" },
     bio1: {
-      en: "Founded in 1987 by Dr. Medhat Basseem, Dental Center of Egypt has grown into one of the country's largest and most trusted dental destinations — 20 specialised clinics covering every branch of dentistry, a dedicated wing for children, and a team of 45+ specialist doctors and consultants.",
-      ar: "تأسس مركز دينتال سنتر أوف إيجيبت عام ١٩٨٧ على يد د. مدحت بسيم، وأصبح واحدًا من أكبر وأوثق مراكز الأسنان في مصر — ٢٠ عيادة متخصصة تغطي كل فروع طب الأسنان، وجناح مخصص للأطفال، وفريق من أكثر من ٤٥ طبيبًا واستشاريًا متخصصًا.",
+      en: "Founded in 1987, Dental Center of Egypt has grown into one of the country's largest and most trusted dental systems — 20 specialised clinics covering every branch of dentistry, a dedicated wing for children, and a team of 45+ specialist doctors and consultants.",
+      ar: "تأسس مركز دينتال سنتر أوف إيجيبت عام ١٩٨٧، وأصبح واحدًا من أكبر وأوثق منظومات طب الأسنان في مصر — ٢٠ عيادة متخصصة تغطي كل فروع طب الأسنان، وجناح مخصص للأطفال، وفريق من أكثر من ٤٥ طبيبًا واستشاريًا متخصصًا.",
     },
     bio2: {
       en: "For nearly four decades we've built trust before any treatment. With branches across Greater Cairo, acceptance by 55+ medical insurance companies and flexible installment plans, we make world-class dentistry easy for the whole family — natural smiles that last a lifetime.",
@@ -62,14 +62,6 @@ export const dce: ClinicConfig = {
     point1: { en: "20 specialised clinics — every branch of dentistry", ar: "٢٠ عيادة متخصصة — كل فروع طب الأسنان" },
     point2: { en: "45+ specialist doctors & consultants, plus a pediatric wing", ar: "أكثر من ٤٥ طبيبًا واستشاريًا، وجناح لأسنان الأطفال" },
     point3: { en: "Accepted by 55+ insurers · flexible installments · 5 branches", ar: "أكثر من ٥٥ شركة تأمين · تقسيط مريح · ٥ فروع" },
-    profile: {
-      name: { en: "Dr. Medhat Basseem", ar: "د. مدحت بسيم" },
-      title: {
-        en: "Founder & Director · Dental Center of Egypt",
-        ar: "المؤسس والمدير · دينتال سنتر أوف إيجيبت",
-      },
-      languages: { en: "Arabic · English", ar: "العربية · الإنجليزية" },
-    },
   },
 
   credentials: [
@@ -81,13 +73,7 @@ export const dce: ClinicConfig = {
     { en: "Flexible Installment Plans", ar: "أنظمة تقسيط مريحة" },
   ],
 
-  team: [
-    {
-      name: { en: "Dr. Medhat Basseem", ar: "د. مدحت بسيم" },
-      role: { en: "Founder & Director", ar: "المؤسس والمدير" },
-      photo: "/dce/doctor-square.jpg",
-    },
-  ],
+  team: [],
 
   gallery: {
     style: "grid",
@@ -105,6 +91,60 @@ export const dce: ClinicConfig = {
       { src: "/dce/cases/ba-braces.jpg", title: { en: "Orthodontic Braces", ar: "تقويم بالأسلاك" }, tag: { en: "Orthodontics", ar: "تقويم" } },
     ],
   },
+  videosIntro: {
+    en: "Real moments from inside Dental Center of Egypt: treatment workflows, precision steps, and quality standards in daily practice.",
+    ar: "لحظات حقيقية من داخل دينتال سنتر أوف إيجيبت: خطوات العلاج، دقة التنفيذ، ومعايير الجودة في العمل اليومي.",
+  },
+  videos: [
+    {
+      src: "/dce/videos/dce-work-1.mp4",
+      title: { en: "Inside Our Clinical Workflow", ar: "من داخل رحلة العلاج" },
+      tag: { en: "Clinical Work", ar: "عمل العيادة" },
+      duration: "0:30",
+      orientation: "portrait",
+    },
+    {
+      src: "/dce/videos/dce-work-2.mp4",
+      title: { en: "Accuracy You Can See", ar: "دقة تشوفها بعينك" },
+      tag: { en: "Clinical Work", ar: "عمل العيادة" },
+      duration: "0:12",
+      orientation: "portrait",
+    },
+  ],
+  testimonialVideosIntro: {
+    en: "Voices of real clients sharing their experience with our clinics, doctors, and care journey.",
+    ar: "آراء عملاء حقيقيين بيحكوا تجربتهم مع العيادة والأطباء ورحلة العلاج.",
+  },
+  testimonialVideos: [
+    {
+      src: "/dce/videos/dce-client-1.mp4",
+      title: { en: "A Complete Care Experience", ar: "مش بس علاج... دي تجربة" },
+      tag: { en: "Client Voice", ar: "رأي عميل" },
+      duration: "0:49",
+      orientation: "portrait",
+    },
+    {
+      src: "/dce/videos/dce-client-2.mp4",
+      title: { en: "A Happy Patient Story", ar: "البيشنت اللذيذ رزق" },
+      tag: { en: "Client Voice", ar: "رأي عميل" },
+      duration: "0:34",
+      orientation: "portrait",
+    },
+    {
+      src: "/dce/videos/dce-client-3.mp4",
+      title: { en: "Generations of Trust", ar: "جيل بيسلم جيل" },
+      tag: { en: "Client Voice", ar: "رأي عميل" },
+      duration: "0:44",
+      orientation: "portrait",
+    },
+    {
+      src: "/dce/videos/dce-client-4.mp4",
+      title: { en: "One Place for the Whole Family", ar: "مكان واحد للعيلة كلها" },
+      tag: { en: "Client Voice", ar: "رأي عميل" },
+      duration: "0:40",
+      orientation: "portrait",
+    },
+  ],
 
   theme: {
     primary: "#1b5fd6",
@@ -130,7 +170,7 @@ export const dce: ClinicConfig = {
     },
     hours: { en: "Open daily — call or WhatsApp to book your visit", ar: "مفتوح يوميًا — اتصل أو راسلنا واتساب لحجز موعدك" },
     geo: { lat: 30.0989, lng: 31.339 },
-    mapQuery: "Dental Center Dr Medhat Basseem, Abu Bakr El Sadik, Safir Square, Heliopolis, Cairo",
+    mapQuery: "Dental Center of Egypt, Abu Bakr El Sadik, Safir Square, Heliopolis, Cairo",
     social: [
       "https://www.facebook.com/dentalcenter.medhatbasseem",
       "https://www.instagram.com/dentalcenter_medhatbasseem",
@@ -140,12 +180,11 @@ export const dce: ClinicConfig = {
 
   seo: {
     description:
-      "Dental Center of Egypt (Dr. Medhat Basseem) — trusted since 1987 in Heliopolis, Cairo. 20 specialised clinics, 45+ specialist doctors, a pediatric wing, EMax veneers, implants, clear aligners and whitening. Accepted by 55+ insurers with flexible installments. Book today.",
+      "Dental Center of Egypt — trusted since 1987 in Heliopolis, Cairo. 20 specialised clinics, 45+ specialist doctors, a pediatric wing, EMax veneers, implants, clear aligners and whitening. Accepted by 55+ insurers with flexible installments. Book today.",
     descriptionAr:
-      "دينتال سنتر أوف إيجيبت (د. مدحت بسيم) — ثقة منذ عام ١٩٨٧ في مصر الجديدة، القاهرة. ٢٠ عيادة متخصصة، أكثر من ٤٥ طبيبًا، جناح للأطفال، عدسات إيماكس، زراعة، تقويم شفاف وتبييض. معتمد لدى أكثر من ٥٥ شركة تأمين مع تقسيط مريح. احجز اليوم.",
+      "دينتال سنتر أوف إيجيبت — ثقة منذ عام ١٩٨٧ في مصر الجديدة، القاهرة. ٢٠ عيادة متخصصة، أكثر من ٤٥ طبيبًا، جناح للأطفال، عدسات إيماكس، زراعة، تقويم شفاف وتبييض. معتمد لدى أكثر من ٥٥ شركة تأمين مع تقسيط مريح. احجز اليوم.",
     keywords: [
       "Dental Center of Egypt",
-      "Dr Medhat Basseem",
       "dentist Heliopolis",
       "cosmetic dentist Cairo",
       "veneers Egypt",
@@ -157,7 +196,6 @@ export const dce: ClinicConfig = {
       "dental insurance Egypt",
       "مركز أسنان مصر الجديدة",
       "دينتال سنتر",
-      "دكتور مدحت بسيم",
       "عدسات الأسنان",
       "ابتسامة هوليوود",
       "زراعة الأسنان",

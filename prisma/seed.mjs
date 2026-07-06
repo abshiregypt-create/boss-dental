@@ -8,21 +8,23 @@ async function main() {
   // All overridable via SEED_DOCTOR_* env vars (set these in Railway).
   const slug = process.env.NEXT_PUBLIC_CLINIC || process.env.CLINIC || "badawi";
   const DEFAULTS = {
-    badawi: { email: "doctor@bdic.clinic", name: "Dr. Badawi" },
-    ibrahim: { email: "doctor@theboss.clinic", name: "Dr. Ibrahim Salah" },
+    badawi: { email: "doctor@bdic.clinic", name: "Dr. Badawi", username: "badawi" },
+    ibrahim: { email: "doctor@theboss.clinic", name: "Dr. Ibrahim Salah", username: "boss" },
   };
-  const d = DEFAULTS[slug] || { email: `doctor@${slug}.clinic`, name: "Doctor" };
+  const d = DEFAULTS[slug] || { email: `doctor@${slug}.clinic`, name: "Doctor", username: slug };
 
   const email = process.env.SEED_DOCTOR_EMAIL || d.email;
-  const password = process.env.SEED_DOCTOR_PASSWORD || "bdic12345";
+  const username = (process.env.SEED_DOCTOR_USERNAME || d.username).toLowerCase();
+  const password = process.env.SEED_DOCTOR_PASSWORD || "boss2026";
   const name = process.env.SEED_DOCTOR_NAME || d.name;
   const passwordHash = await bcrypt.hash(password, 10);
 
   await prisma.user.upsert({
     where: { email },
-    update: {},
+    update: { username },
     create: {
       email,
+      username,
       passwordHash,
       name,
       role: "doctor",
@@ -43,7 +45,7 @@ async function main() {
     },
   });
 
-  console.log(`Seeded doctor: ${email} / ${password}`);
+  console.log(`Seeded doctor: ${username} (${email}) / ${password}`);
 }
 
 main()

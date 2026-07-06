@@ -8,7 +8,7 @@ import { site } from "@/lib/site";
 
 export default function LoginPage() {
   const { tr } = useLang();
-  const [email, setEmail] = useState(process.env.NEXT_PUBLIC_LOGIN_EMAIL || "");
+  const [username, setUsername] = useState(process.env.NEXT_PUBLIC_LOGIN_USERNAME || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,14 +21,14 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
       if (res.ok) {
         const next = new URLSearchParams(window.location.search).get("next") || "/dashboard";
         window.location.assign(next);
         return;
       }
-      setError(tr({ en: "Invalid email or password.", ar: "البريد الإلكتروني أو كلمة المرور غير صحيحة." }));
+      setError(tr({ en: "Invalid username or password.", ar: "اسم المستخدم أو كلمة المرور غير صحيحة." }));
     } catch {
       setError(tr({ en: "Something went wrong. Try again.", ar: "حدث خطأ ما. حاول مرة أخرى." }));
     } finally {
@@ -57,14 +57,15 @@ export default function LoginPage() {
         >
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-ink">
-              {tr({ en: "Email", ar: "البريد الإلكتروني" })}
+              {tr({ en: "Username", ar: "اسم المستخدم" })}
             </label>
             <input
-              type="email"
+              type="text"
               dir="ltr"
+              autoComplete="username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full rounded-xl border border-primary/20 bg-background px-4 py-2.5 text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>

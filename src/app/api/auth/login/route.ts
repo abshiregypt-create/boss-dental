@@ -4,10 +4,15 @@ import { prisma } from "@/lib/db";
 import { createSessionToken, SESSION_COOKIE, sessionCookieOptions } from "@/lib/server/auth";
 
 export async function POST(req: Request) {
-  const { email, password } = await req.json().catch(() => ({}) as Record<string, string>);
-  if (!email || !password) return NextResponse.json({ error: "missing" }, { status: 400 });
+  const body = (await req.json().catch(() => ({}))) as Record<string, string>;
+  const identifier = String(body.username ?? body.email ?? "").toLowerCase().trim();
+  const password = body.password;
+  if (!identifier || !password) return NextResponse.json({ error: "missing" }, { status: 400 });
 
-  const user = await prisma.user.findUnique({ where: { email: String(email).toLowerCase().trim() } });
+  // Accept either the simple username or the email address.
+  const user = await prisma.user.findFirst({
+    where: { OR: [{ username: identifier }, { email: identifier }] },
+  });
   if (!user) return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
 
   const ok = await bcrypt.compare(String(password), user.passwordHash);

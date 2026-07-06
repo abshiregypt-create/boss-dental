@@ -8,6 +8,7 @@ import { useSite } from "@/lib/siteStore";
 import { activeClinic } from "@/lib/clinics";
 import { TypingName } from "./TypingName";
 import { TeamHero } from "./TeamHero";
+import { CountUp } from "./CountUp";
 
 const stats = [
   { value: "15+", key: "stat1" as const },
@@ -142,7 +143,7 @@ export function Hero() {
             {stats.map((s) => (
               <div key={s.key} className="text-center lg:text-start">
                 <div className="text-3xl font-extrabold text-primary">
-                  {s.value}
+                  <CountUp value={s.value} />
                 </div>
                 <div className="mt-1 text-xs font-medium text-muted">
                   {tr(t.hero[s.key])}

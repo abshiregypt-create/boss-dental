@@ -38,6 +38,7 @@ import {
   newPatient,
 } from "@/lib/patients";
 import { useSite, type Lead } from "@/lib/siteStore";
+import { site } from "@/lib/site";
 
 const WEEK_DAYS = 7;
 
@@ -554,7 +555,7 @@ export function DoctorDashboard() {
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-primary/10 bg-surface/60 p-4 lg:flex">
         <div className="flex items-center gap-2 px-2 py-2">
           <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-xl bg-white p-0.5 shadow-lg shadow-primary/20">
-            <Image src="/bdic-logo.jpg" alt={tr(t.brand)} width={40} height={40} className="h-full w-full object-contain" />
+            <Image src={site.logo} alt={tr(t.brand)} width={40} height={40} className="h-full w-full object-contain" />
           </span>
           <span className="text-base font-bold tracking-tight">{tr(t.brand)}</span>
         </div>
@@ -636,7 +637,7 @@ export function DoctorDashboard() {
               )}
             </button>
             <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-white p-0.5 ring-2 ring-primary/40">
-              <Image src="/bdic-logo.jpg" alt={tr(t.brand)} width={40} height={40} className="h-full w-full object-contain" />
+              <Image src={site.logo} alt={tr(t.brand)} width={40} height={40} className="h-full w-full object-contain" />
             </span>
           </div>
         </header>

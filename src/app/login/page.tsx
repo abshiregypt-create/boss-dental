@@ -4,10 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useLang } from "@/lib/language";
+import { site } from "@/lib/site";
 
 export default function LoginPage() {
   const { tr } = useLang();
-  const [email, setEmail] = useState("doctor@bdic.clinic");
+  const [email, setEmail] = useState(process.env.NEXT_PUBLIC_LOGIN_EMAIL || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,7 +41,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-2xl bg-white p-1 shadow-lg shadow-primary/20">
-            <Image src="/bdic-logo.jpg" alt="BDIC" width={64} height={64} className="h-full w-full object-contain" />
+            <Image src={site.logo} alt={site.shortName} width={64} height={64} className="h-full w-full object-contain" />
           </span>
           <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-ink">
             {tr({ en: "Doctor Dashboard", ar: "لوحة الطبيب" })}

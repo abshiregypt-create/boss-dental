@@ -40,6 +40,14 @@ export const ibrahim: ClinicConfig = {
     point1: { en: "Cosmetic, veneers & smile-design experts", ar: "خبراء تجميل وعدسات وتصميم الابتسامة" },
     point2: { en: "Implants, orthodontics & pediatric care", ar: "زراعة وتقويم ورعاية أسنان الأطفال" },
     point3: { en: "Flexible installments with major banks", ar: "تقسيط مريح مع كبرى البنوك" },
+    profile: {
+      name: { en: "Dr. Ibrahim Salah Gadallah", ar: "د. إبراهيم صلاح جاد الله" },
+      title: {
+        en: "Consultant Cosmetic & Implant Dentist · Founder of THE BOSS Dental Clinic",
+        ar: "استشاري تجميل وزراعة الأسنان · مؤسس عيادة ذا بوس لطب الأسنان",
+      },
+      languages: { en: "Arabic · English", ar: "العربية · الإنجليزية" },
+    },
   },
 
   credentials: [

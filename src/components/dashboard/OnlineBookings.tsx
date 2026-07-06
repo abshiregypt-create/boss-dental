@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLang } from "@/lib/language";
+import { site } from "@/lib/site";
 
 type Msg = { id: string; kind: string; status: string; createdAt: string };
 type Appt = {
@@ -95,7 +96,7 @@ export function OnlineBookings() {
     const digits = a.phone.replace(/\D/g, "").replace(/^0/, "20");
     const track = typeof window !== "undefined" ? `${window.location.origin}/track/${a.code}` : "";
     const text = tr({
-      en: `Hi ${a.patientName}, your appointment at Badawi Dental Implant Center is reserved \u2705\nTrack it live: ${track}`,
+      en: `Hi ${a.patientName}, your appointment at ${site.name} is reserved \u2705\nTrack it live: ${track}`,
       ar: `\u0623\u0647\u0644\u0627\u064b ${a.patientName}\u060c \u062a\u0645 \u062d\u062c\u0632 \u0645\u0648\u0639\u062f\u0643 \u2705\n\u062a\u0627\u0628\u0639\u0647: ${track}`,
     });
     return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;

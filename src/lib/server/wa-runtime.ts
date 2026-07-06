@@ -14,6 +14,7 @@ import {
 } from "./wa-agent";
 import { createBooking } from "./appointments";
 import { logChat } from "./followups";
+import { activeClinic } from "@/lib/clinics";
 
 const VALID_STATES: WaState[] = ["idle", "day", "slot", "why", "name", "followup"];
 
@@ -222,7 +223,14 @@ export async function processInbound(
     slotsByDate[conv.draft.dateISO] = await computeDaySlots(conv.draft.dateISO, now, lang);
   }
 
-  const result = handleMessage(conv, text, phone, { now, name: resolvedName, openDays, slotsByDate });
+  const clinic = activeClinic();
+  const result = handleMessage(conv, text, phone, {
+    now,
+    name: resolvedName,
+    openDays,
+    slotsByDate,
+    clinicName: { en: clinic.doctorName.en, ar: clinic.doctorName.ar },
+  });
   await saveConv(phone, result.next);
 
   const replies: string[] = [];

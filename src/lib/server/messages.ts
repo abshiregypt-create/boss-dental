@@ -1,9 +1,10 @@
 import type { Appointment } from "@prisma/client";
+import { site } from "@/lib/site";
 
 export type MsgKind = "reserved" | "reminder" | "queue" | "turn";
 export type MsgCtx = { ahead?: number };
 
-const CLINIC = { en: "Badawi Dental Implant Center", ar: "مركز بدوي لزراعة الأسنان" };
+const CLINIC = { en: site.name, ar: site.nameAr };
 
 function langOf(appt: Appointment): "en" | "ar" {
   return appt.lang === "ar" ? "ar" : "en";

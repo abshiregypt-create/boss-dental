@@ -4,7 +4,20 @@ import Image from "next/image";
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
 import { useSite } from "@/lib/siteStore";
+import { site } from "@/lib/site";
 import { Reveal } from "./Reveal";
+import { CountUp } from "./CountUp";
+
+function ProfileIcon({ path }: { path: string }) {
+  return (
+    <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d={path} />
+      </svg>
+    </span>
+  );
+}
+
 
 export function About() {
   const { tr } = useLang();
@@ -38,7 +51,7 @@ export function About() {
             )}
           </div>
           <div className="glass absolute bottom-5 start-[-1rem] rounded-2xl px-5 py-3 shadow-xl">
-            <div className="text-2xl font-extrabold text-primary">15+</div>
+            <div className="text-2xl font-extrabold text-primary"><CountUp value="15+" /></div>
             <div className="text-xs font-medium text-muted">Years</div>
           </div>
         </Reveal>
@@ -70,6 +83,59 @@ export function About() {
                 </li>
               ))}
             </ul>
+          )}
+
+          {t.about.profile && (
+            <div className="mt-7 rounded-2xl border border-primary/15 bg-surface/70 p-5 shadow-sm">
+              <div className="flex items-center gap-3.5">
+                <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/20 bg-white">
+                  {settings.photo.startsWith("data:") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={settings.photo} alt={tr(t.about.profile.name)} className="h-full w-full object-cover" />
+                  ) : (
+                    <Image
+                      src={settings.photo}
+                      alt={tr(t.about.profile.name)}
+                      width={56}
+                      height={56}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-base font-extrabold text-ink">{tr(t.about.profile.name)}</div>
+                  <div className="mt-0.5 text-sm font-semibold text-primary">{tr(t.about.profile.title)}</div>
+                </div>
+              </div>
+
+              <dl className="mt-4 grid gap-2.5 text-sm sm:grid-cols-2">
+                <div className="flex items-start gap-2.5">
+                  <ProfileIcon path="M5 8l6 4 6-4M4 6h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z" />
+                  <div>
+                    <dt className="text-xs font-medium text-muted">{tr({ en: "Languages", ar: "اللغات" })}</dt>
+                    <dd className="font-semibold text-ink">{tr(t.about.profile.languages)}</dd>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <ProfileIcon path="M12 21s-7-5.7-7-11a7 7 0 1 1 14 0c0 5.3-7 11-7 11Z M12 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
+                  <div>
+                    <dt className="text-xs font-medium text-muted">{tr(t.contact.addressLabel)}</dt>
+                    <dd className="font-semibold text-ink">{tr(t.contact.address)}</dd>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 sm:col-span-2">
+                  <ProfileIcon path="M4 5a1 1 0 0 1 1-1h3l2 5-2 1a11 11 0 0 0 5 5l1-2 5 2v3a1 1 0 0 1-1 1A16 16 0 0 1 4 5Z" />
+                  <div>
+                    <dt className="text-xs font-medium text-muted">{tr(t.contact.phoneLabel)}</dt>
+                    <dd dir="ltr" className="rtl:text-right">
+                      <a href={`tel:${site.phone}`} className="font-semibold text-ink transition hover:text-primary">
+                        {tr(t.contact.phoneValue)}
+                      </a>
+                    </dd>
+                  </div>
+                </div>
+              </dl>
+            </div>
           )}
 
           <ul className="mt-7 space-y-3">

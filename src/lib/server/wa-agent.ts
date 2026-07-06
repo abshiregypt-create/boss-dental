@@ -35,6 +35,7 @@ export type AgentCtx = {
   name?: string; // WhatsApp contact name (used as the patient name)
   openDays?: DayOption[];
   slotsByDate?: Record<string, SlotOption[]>;
+  clinicName?: { en: string; ar: string }; // injected per active clinic
 };
 
 export type BookingIntent = {
@@ -85,10 +86,12 @@ export function detectConfirm(text: string): { isConfirm: boolean; code?: string
   return { isConfirm: mentions || /كود الحجز|booking code/i.test(t), code: m ? m[1] : undefined };
 }
 
+const CLINIC_NAME_DEFAULT = { ar: "مركز بدوي لزراعة الأسنان", en: "Badawi Dental Implant Center" };
+
 const T = {
   greet: {
-    ar: "أهلاً بك في مركز بدوي لزراعة الأسنان 🦷\nهنحجزلك موعد بسرعة. اختر اليوم المناسب بالرد بالرقم:",
-    en: "Welcome to Badawi Dental Implant Center 🦷\nLet's book your visit. Choose a day by replying with its number:",
+    ar: "أهلاً بك في {clinic} 🦷\nهنحجزلك موعد بسرعة. اختر اليوم المناسب بالرد بالرقم:",
+    en: "Welcome to {clinic} 🦷\nLet's book your visit. Choose a day by replying with its number:",
   },
   noDays: {
     ar: "لا توجد أيام متاحة حاليًا. برجاء التواصل مع العيادة مباشرة.",
@@ -161,6 +164,8 @@ export function handleMessage(
   const slotsByDate = ctx.slotsByDate ?? {};
   const lang = conv.lang || detectLang(text);
   const tr = (k: keyof typeof T) => T[k][lang];
+  const clinicName = ctx.clinicName ?? CLINIC_NAME_DEFAULT;
+  const greet = (l: "ar" | "en") => T.greet[l].replace("{clinic}", clinicName[l]);
 
   // cancel from anywhere
   if (isCancel(text) && conv.state !== "idle") {
@@ -176,7 +181,7 @@ export function handleMessage(
         return { reply: T.noDays[l], next: { state: "idle", draft: {}, lang: l } };
       }
       return {
-        reply: `${T.greet[l]}\n\n${dayMenu(openDays)}`,
+        reply: `${greet(l)}\n\n${dayMenu(openDays)}`,
         next: { state: "day", draft: {}, lang: l },
       };
     }
@@ -194,7 +199,7 @@ export function handleMessage(
         return { reply: T.noDays[l], next: { state: "idle", draft: {}, lang: l } };
       }
       return {
-        reply: `${T.greet[l]}\n\n${dayMenu(openDays)}`,
+        reply: `${greet(l)}\n\n${dayMenu(openDays)}`,
         next: { state: "day", draft: {}, lang: l },
       };
     }
@@ -272,7 +277,7 @@ export function handleMessage(
 
     default:
       return {
-        reply: `${T.greet[lang]}\n\n${dayMenu(openDays)}`,
+        reply: `${greet(lang)}\n\n${dayMenu(openDays)}`,
         next: { state: "day", draft: {}, lang },
       };
   }

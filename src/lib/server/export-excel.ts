@@ -8,6 +8,10 @@
  */
 import ExcelJS from "exceljs";
 import { prisma } from "@/lib/db";
+import { activeClinic } from "@/lib/clinics";
+
+const CLINIC_TAG = activeClinic().slug.toUpperCase();
+const CLINIC_CREATOR = `${activeClinic().brand.en} Dashboard`;
 
 const TZ = "Africa/Cairo";
 
@@ -70,7 +74,7 @@ export async function buildScheduleWorkbook(): Promise<Buffer> {
   const appts = await prisma.appointment.findMany({ orderBy: { scheduledAt: "desc" } });
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "BDIC Dashboard";
+  wb.creator = CLINIC_CREATOR;
   wb.created = new Date();
   const ws = wb.addWorksheet("Schedule", { views: [{ rightToLeft: false }] });
 
@@ -141,7 +145,7 @@ export async function buildProfilesWorkbook(): Promise<Buffer> {
   }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "BDIC Dashboard";
+  wb.creator = CLINIC_CREATOR;
   wb.created = new Date();
 
   // --- Patients (profiles) ---
@@ -268,6 +272,6 @@ export function exportFileName(type: "schedule" | "profiles"): string {
     .format(new Date())
     .replace(/-/g, "");
   return type === "schedule"
-    ? `BDIC-Schedule-${stamp}.xlsx`
-    : `BDIC-Profiles-and-Interactions-${stamp}.xlsx`;
+    ? `${CLINIC_TAG}-Schedule-${stamp}.xlsx`
+    : `${CLINIC_TAG}-Profiles-and-Interactions-${stamp}.xlsx`;
 }

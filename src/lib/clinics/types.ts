@@ -111,6 +111,14 @@ export type ClinicConfig = {
     point1: Bi;
     point2: Bi;
     point3: Bi;
+    /** Optional lead-doctor profile card shown in the About section. When set,
+     *  the site highlights the named dentist (name, title, spoken languages)
+     *  alongside the clinic story. Location + phone are read from `contact`. */
+    profile?: {
+      name: Bi;
+      title: Bi;
+      languages: Bi;
+    };
   };
 
   /** Doctor/clinic credentials shown as badges in the About section. */

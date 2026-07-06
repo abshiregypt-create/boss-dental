@@ -10,6 +10,7 @@ import type { Appointment } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { sendWhatsApp } from "./whatsapp";
 import { normalizePhone } from "./phone";
+import { site } from "@/lib/site";
 
 const SETTING_KEY = "followup";
 
@@ -74,7 +75,7 @@ export function sessionEnd(appt: Appointment): Date {
 function buildFollowupMessage(appt: Appointment): string {
   const ar = appt.lang === "ar";
   const name = appt.patientName || "";
-  const clinic = ar ? "مركز بدوي لزراعة الأسنان" : "Badawi Dental Implant Center";
+  const clinic = ar ? site.nameAr : site.name;
   return ar
     ? `أهلاً ${name} 🌟\nمعاك ${clinic}. عاملين معاك متابعة بعد الجلسة 🦷\nعامل/ة إيه دلوقتي؟ حاسس/ة بإيه بعد الجلسة، وبقيت أحسن؟\n\nردّك يهمنا — اكتبلنا هنا وهنتابع معاك. 💙`
     : `Hi ${name} 🌟\nThis is ${clinic} checking in after your visit 🦷\nHow are you feeling now — any better since the session?\n\nYour reply matters to us — just message us here and we'll follow up. 💙`;

@@ -9,9 +9,11 @@ import { VideoShowcase } from "@/components/VideoShowcase";
 import { Team } from "@/components/Team";
 import { Testimonials } from "@/components/Testimonials";
 import { BookingSection } from "@/components/BookingSection";
+import { LocationMap } from "@/components/LocationMap";
 import { Footer } from "@/components/Footer";
 import { ThemeApplier } from "@/components/ThemeApplier";
 import { OfferPopup } from "@/components/OfferPopup";
+import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 
 export default function Home() {
   return (
@@ -29,9 +31,11 @@ export default function Home() {
         <Team />
         <Testimonials />
         <BookingSection />
+        <LocationMap />
       </main>
       <Footer />
       <OfferPopup />
+      <WhatsAppFloat />
     </>
   );
 }

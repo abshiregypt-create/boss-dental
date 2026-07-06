@@ -2,6 +2,7 @@
 
 import { useLang } from "@/lib/language";
 import { useSite, type Lead } from "@/lib/siteStore";
+import { site } from "@/lib/site";
 import {
   type BookingRequest,
   sessionTypeById,
@@ -37,8 +38,8 @@ function LeadCard({
       ? `${window.location.origin}/track/${lead.trackCode}`
       : "";
   const waText = tr({
-    en: `Hi ${lead.name || "there"}, your appointment at Badawi Dental Implant Center is reserved \u2705${trackUrl ? `\nTrack it live: ${trackUrl}` : ""}`,
-    ar: `\u0623\u0647\u0644\u0627\u064b ${lead.name || ""}\u060c \u062a\u0645 \u062d\u062c\u0632 \u0645\u0648\u0639\u062f\u0643 \u0641\u064a \u0645\u0631\u0643\u0632 \u0628\u062f\u0648\u064a \u0644\u0632\u0631\u0627\u0639\u0629 \u0627\u0644\u0623\u0633\u0646\u0627\u0646 \u2705${trackUrl ? `\n\u062a\u0627\u0628\u0639\u0647 \u0645\u0628\u0627\u0634\u0631\u0629: ${trackUrl}` : ""}`,
+    en: `Hi ${lead.name || "there"}, your appointment at ${site.name} is reserved \u2705${trackUrl ? `\nTrack it live: ${trackUrl}` : ""}`,
+    ar: `\u0623\u0647\u0644\u0627\u064b ${lead.name || ""}\u060c \u062a\u0645 \u062d\u062c\u0632 \u0645\u0648\u0639\u062f\u0643 \u0641\u064a ${site.nameAr} \u2705${trackUrl ? `\n\u062a\u0627\u0628\u0639\u0647 \u0645\u0628\u0627\u0634\u0631\u0629: ${trackUrl}` : ""}`,
   });
   const waHref = `https://wa.me/${waDigits}?text=${encodeURIComponent(waText)}`;
 

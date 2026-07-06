@@ -212,6 +212,7 @@ export const t = {
     point2: clinic.about.point2,
     point3: clinic.about.point3,
     credentials: clinic.credentials ?? [],
+    profile: clinic.about.profile ?? null,
   },
   cases: {
     eyebrow: { en: "Our Work", ar: "أعمالنا" },

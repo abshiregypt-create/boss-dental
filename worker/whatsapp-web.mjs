@@ -151,6 +151,7 @@ client.on("disconnected", (r) => {
 let fatalCount = 0;
 function maybeFatal(err) {
   const msg = String(err?.message || err || "");
+  console.error("[wa] error:", msg);
   if (/detached Frame|Session closed|Target closed|Protocol error|Execution context/i.test(msg)) {
     fatalCount++;
     if (fatalCount >= 3) {
@@ -161,6 +162,10 @@ function maybeFatal(err) {
   }
 }
 process.on("unhandledRejection", maybeFatal);
+
+// Surface lifecycle progress so a silent hang during startup is diagnosable.
+client.on("loading_screen", (percent, message) => console.log(`[wa] loading ${percent}% ${message || ""}`));
+client.on("change_state", (state) => console.log(`[wa] state: ${state}`));
 
 /** Forward an inbound message to the booking agent and return its replies. */
 async function askAgent(phone, text, name, chatId) {
@@ -345,5 +350,36 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
+// A persistent volume can keep a stale Chromium "SingletonLock" from an unclean
+// shutdown, which makes a fresh container refuse to launch ("profile appears to
+// be in use by another Chromium process on another computer"). Clear those
+// leftover lock files before starting so Chromium can boot cleanly.
+function clearChromiumLocks(dir) {
+  let removed = 0;
+  try {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, entry.name);
+      if (/^Singleton(Lock|Cookie|Socket)$/.test(entry.name)) {
+        try {
+          fs.rmSync(p, { force: true, recursive: true });
+          removed++;
+        } catch {
+          /* ignore */
+        }
+      } else if (entry.isDirectory()) {
+        removed += clearChromiumLocks(p);
+      }
+    }
+  } catch {
+    /* session dir may not exist on the very first run */
+  }
+  return removed;
+}
+const cleared = clearChromiumLocks(SESSION_DIR);
+if (cleared) console.log(`[wa] cleared ${cleared} stale Chromium lock(s) under ${SESSION_DIR}`);
+
 console.log(`[wa] starting worker → agent at ${BASE}/api/whatsapp/agent`);
-client.initialize();
+client.initialize().catch((e) => {
+  console.error("[wa] initialize() failed:", e?.stack || e?.message || e);
+  setTimeout(() => process.exit(1), 500);
+});

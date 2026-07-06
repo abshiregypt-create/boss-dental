@@ -106,15 +106,15 @@ export function Hero() {
 
         {logoHero && (
           <div className="fade-up mx-auto mt-4 mb-5 w-fit" style={{ animationDelay: "0.2s" }}>
-            <div className="relative grid h-72 w-72 place-items-center sm:h-96 sm:w-96">
+            <div className="relative grid h-80 w-80 place-items-center sm:h-[32rem] sm:w-[32rem]">
               <Image
                 src={heroLogo!}
                 alt={tr(settings.doctorName)}
                 width={768}
                 height={768}
                 priority
-                sizes="(max-width: 640px) 18rem, 24rem"
-                className="h-64 w-64 object-contain drop-shadow-[0_16px_30px_rgba(27,95,214,0.35)] sm:h-80 sm:w-80 animate-[bounce_1.8s_ease-in-out_infinite]"
+                sizes="(max-width: 640px) 20rem, 32rem"
+                className="h-72 w-72 object-contain drop-shadow-[0_20px_34px_rgba(27,95,214,0.35)] sm:h-[28rem] sm:w-[28rem] animate-[bounce_1.6s_ease-in-out_infinite]"
               />
             </div>
           </div>

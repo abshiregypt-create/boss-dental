@@ -1,11 +1,11 @@
-// BDIC backend schema. SQLite for dev; switch `provider` to "postgresql" and
-// point DATABASE_URL at the VPS Postgres for production (run a fresh migration).
+// BDIC backend schema. Postgres in every environment (Railway provisions the
+// database; DATABASE_URL points at it). Run `prisma migrate deploy` on release.
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

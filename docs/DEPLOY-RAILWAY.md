@@ -1,11 +1,12 @@
-# Deploy THE BOSS Dental Clinic to Railway (SQLite on a Volume)
+# Deploy THE BOSS Dental Clinic to Railway (Postgres + Volume for uploads)
 
 This deploys the **landing page + doctor dashboard** for THE BOSS Dental Clinic
 (clinic slug `ibrahim`). The WhatsApp booking bot is intentionally **excluded**
 (it needs Chromium + a persistent phone session — run it on a VPS later).
 
-Data (the SQLite database + uploaded x-rays/photos) is kept on a **Railway
-Volume** mounted at `/data`, so it survives every redeploy.
+Data lives in a **Railway Postgres** service (its own clickable/browsable box on
+the canvas). Uploaded x-rays/photos are kept on a **Railway Volume** mounted at
+`/data`, so both survive every redeploy.
 
 ---
 
@@ -22,11 +23,13 @@ Volume** mounted at `/data`, so it survives every redeploy.
 2. Railway detects Nixpacks and starts a first build. It will fail/half-work
    until you add the variables and the volume below — that's expected.
 
-## 2. Add the persistent Volume (do this before the next deploy)
-1. Open the service → **Settings → Volumes → New Volume** (or the **+ Volume**
-   button on the service canvas).
-2. **Mount path:** `/data`  → Create.
-   This is where `boss.db` and `uploads/` will live permanently.
+## 2. Add the Postgres database + the uploads Volume
+1. **Postgres:** Project canvas → **New → Database → Add PostgreSQL**. Railway
+   creates a `Postgres` service. Leave it as-is; you'll reference its URL below.
+2. **Volume (for uploads):** open the web service → **Settings → Volumes → New
+   Volume** (or the **+ Volume** button on the service canvas).
+3. **Mount path:** `/data`  → Create.
+   This is where `uploads/` will live permanently (the database is in Postgres).
 
 ## 3. Set the service Variables
 Service → **Variables** → **Raw Editor** → paste from `.env.railway.example`
@@ -37,7 +40,7 @@ and fill in the real values. The essential ones:
 | `NEXT_PUBLIC_CLINIC` | `ibrahim` |
 | `CLINIC` | `ibrahim` |
 | `PORT` | `8080` (must match your domain's target port) |
-| `DATABASE_URL` | `file:/data/boss.db` |
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference the Postgres service) |
 | `UPLOADS_DIR` | `/data/uploads` |
 | `AUTH_SECRET` | a long random string (see below) |
 | `SEED_DOCTOR_EMAIL` | `doctor@theboss.clinic` |
@@ -59,7 +62,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 - Service → **Deploy** (or push a new commit). Railway will:
   1. `npm ci --include=dev --omit=optional` → install (skips Chromium).
   2. `prisma generate` + `next build` → build the site.
-  3. On start: `prisma migrate deploy` (creates `/data/boss.db` + tables) →
+  3. On start: `prisma migrate deploy` (creates the Postgres tables) →
      `node prisma/seed.mjs` (creates your dashboard login) → `next start`.
 
 ## 5. Get your URL + finish config
@@ -99,11 +102,12 @@ always one of these:
    - Domain → **target port = 8080** (you set this).
    - Service **Variable `PORT=8080`**.
    - That's it — app, domain, and healthcheck are all 8080.
-2. **Volume not mounted / `DATABASE_URL` wrong.** On boot the app runs
-   `prisma migrate deploy`, which creates `/data/boss.db`. If there's no Volume
-   mounted at `/data`, that path doesn't exist and migrate crashes before the
-   server starts. Fix: add the **Volume at `/data`** and set
-   `DATABASE_URL=file:/data/boss.db`.
+2. **`DATABASE_URL` wrong / Postgres not reachable.** On boot the app runs
+   `prisma migrate deploy` against Postgres. If `DATABASE_URL` doesn't point at
+   the Postgres service, migrate crashes before the server starts. Fix: set
+   `DATABASE_URL=${{Postgres.DATABASE_URL}}` (reference the Postgres service) and
+   make sure that service is running. Uploads use the **Volume at `/data`**; if
+   it's missing, `UPLOADS_DIR=/data/uploads` writes fail — add the volume.
 3. **First boot is slow.** migrate + seed + start can take a bit; the healthcheck
    timeout is set to 300s, which is plenty. If it still times out, check the
    Deploy logs for the real error.
@@ -114,11 +118,12 @@ which of the above it is.
 ---
 
 ## Notes & gotchas
-- **Single instance only.** A SQLite-on-volume service must not be scaled to
-  multiple replicas (they'd each get a separate disk). One replica is perfect
-  for a single clinic.
-- **Backups.** Download `boss.db` periodically (Railway shell:
-  `cp /data/boss.db /data/boss-backup-$(date +%F).db`, or use `npm run db:backup`).
+- **Single instance still recommended.** The uploads Volume at `/data` is a
+  single disk, and the in-process reminder scheduler assumes one instance, so
+  keep the web service at one replica. (Postgres itself handles concurrency
+  fine, but multiple replicas would each get a separate uploads disk.)
+- **Backups.** Postgres → Railway's **Backups** tab (or `pg_dump` via the
+  service shell). Uploaded files live under `/data/uploads` on the Volume.
 - **The bot / reminders.** `WHATSAPP_PROVIDER=mock` logs messages to the DB and
   the "Confirm on WhatsApp" wa.me links still work for patients. To run the real
   booking bot + scheduled reminders, deploy `worker/` on a machine with Chromium

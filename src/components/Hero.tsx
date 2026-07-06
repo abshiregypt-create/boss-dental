@@ -104,10 +104,31 @@ export function Hero() {
           </div>
         )}
 
+        {logoHero && (
+          <div className="fade-up mx-auto mt-4 mb-5 w-fit" style={{ animationDelay: "0.2s" }}>
+            <div className="relative grid h-60 w-60 place-items-center sm:h-72 sm:w-72">
+              <span className="absolute h-full w-full rounded-full border border-primary/25 border-dashed animate-[spin_18s_linear_infinite]" />
+              <span className="absolute h-[78%] w-[78%] rounded-full border border-accent/35 border-dashed animate-[spin_14s_linear_infinite_reverse]" />
+              <span className="absolute start-1/2 top-[6%] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-primary/80 shadow-[0_0_14px_var(--primary)] animate-[bounce_2.8s_ease-in-out_infinite]" />
+              <Image
+                src={heroLogo!}
+                alt={tr(settings.doctorName)}
+                width={512}
+                height={512}
+                priority
+                sizes="(max-width: 640px) 11rem, 16rem"
+                className="h-44 w-44 object-contain mix-blend-multiply drop-shadow-[0_14px_28px_rgba(27,95,214,0.3)] sm:h-64 sm:w-64 animate-[pulse_3.2s_ease-in-out_infinite]"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Animated clinic name under the team */}
         <h1
           key={`${lang}-${tr(settings.doctorName)}`}
-          className="relative z-10 mt-8 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl"
+          className={`relative z-10 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl ${
+            logoHero ? "mt-2" : "mt-8"
+          }`}
         >
           <TypingName
             text={tr(settings.doctorName)}
@@ -138,16 +159,14 @@ export function Hero() {
 
       {/* Headline + visual */}
       <div
-        className={`mx-auto mt-14 max-w-7xl items-center gap-14 px-5 lg:px-8 ${
+        className={`mx-auto px-5 lg:px-8 ${
           logoHero
-            ? "flex flex-col text-center"
-            : "grid lg:grid-cols-2"
+            ? "mt-8 max-w-4xl"
+            : "mt-14 grid max-w-7xl items-center gap-14 lg:grid-cols-2"
         }`}
       >
         <div
-          className={`fade-up ${
-            logoHero ? "text-center" : "text-center lg:text-start"
-          }`}
+          className={`fade-up text-center ${logoHero ? "" : "lg:text-start"}`}
           style={{ animationDelay: "1.35s" }}
         >
           <h2 className="text-3xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-4xl lg:text-5xl">
@@ -155,7 +174,11 @@ export function Hero() {
             <span className="text-gradient">{tr(settings.heroTitle2)}</span>
           </h2>
 
-          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted lg:mx-0">
+          <p
+            className={`mt-5 max-w-xl text-lg leading-relaxed text-muted ${
+              logoHero ? "mx-auto" : "mx-auto lg:mx-0"
+            }`}
+          >
             {tr(settings.subtitle)}
           </p>
 
@@ -200,34 +223,9 @@ export function Hero() {
         </div>
 
         {/* tilt visual */}
-        <div
-          className={`fade-up relative mx-auto w-full ${
-            logoHero ? "max-w-2xl" : "max-w-lg"
-          }`}
-          style={{ animationDelay: "1.45s" }}
-        >
-          {logoHero ? (
-            <div
-              ref={cardRef}
-              className="relative grid aspect-square place-items-center overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-surface to-primary/10 shadow-2xl shadow-primary/15 transition-transform duration-200 will-change-transform"
-            >
-              <span className="absolute h-[92%] w-[92%] rounded-full border border-primary/25 animate-[spin_22s_linear_infinite]" />
-              <span className="absolute h-[78%] w-[78%] rounded-full border border-accent/35 animate-[spin_16s_linear_infinite_reverse]" />
-              <span className="absolute h-[62%] w-[62%] rounded-full border border-primary/20 animate-[spin_12s_linear_infinite]" />
-              <span className="absolute h-3 w-3 rounded-full bg-primary shadow-[0_0_20px_var(--primary)] animate-[pulse_2.2s_ease-in-out_infinite]" />
-              <div className="relative z-10 grid h-64 w-64 place-items-center rounded-full border border-primary/20 bg-white/85 p-8 shadow-xl backdrop-blur">
-                <Image
-                  src={heroLogo!}
-                  alt={tr(settings.doctorName)}
-                  width={240}
-                  height={240}
-                  priority
-                  className="h-full w-full object-contain animate-[pulse_3.8s_ease-in-out_infinite]"
-                />
-              </div>
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_45%,rgba(10,14,18,0.08)_100%)]" />
-            </div>
-          ) : heroImage ? (
+        {!logoHero && (
+          <div className="fade-up relative mx-auto w-full max-w-lg" style={{ animationDelay: "1.45s" }}>
+            {heroImage ? (
             <>
               <div
                 ref={cardRef}
@@ -272,7 +270,7 @@ export function Hero() {
                 <div className="text-xs font-semibold text-accent">★ 4.9 / 5</div>
               </div>
             </>
-          ) : heroVideo.seamless ? (
+            ) : heroVideo.seamless ? (
             <div ref={cardRef} className="hero-seamless relative transition-transform duration-200 will-change-transform">
               <SeamlessVideo
                 src={heroVideo.src}
@@ -307,7 +305,7 @@ export function Hero() {
                 <div className="text-xs font-semibold text-accent">★ 4.9 / 5</div>
               </div>
             </div>
-          ) : (
+            ) : (
             <>
               <div
                 ref={cardRef}
@@ -361,8 +359,9 @@ export function Hero() {
                 <div className="text-xs font-semibold text-accent">★ 4.9 / 5</div>
               </div>
             </>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* scroll cue */}

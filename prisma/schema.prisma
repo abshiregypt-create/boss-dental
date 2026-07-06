@@ -28,6 +28,7 @@ model Patient {
   gender       String? // male | female
   source       String            @default("booking") // booking | manual
   notes        String?
+  medical      Json? // { bloodType, allergies, conditions, medications, notes }
   createdAt    DateTime          @default(now())
   appointments Appointment[]
   treatments   TreatmentRecord[]

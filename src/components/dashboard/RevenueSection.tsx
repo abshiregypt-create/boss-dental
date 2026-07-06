@@ -57,8 +57,6 @@ export function RevenueSection() {
     const [y, m] = key.split("-").map(Number);
     return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-US", { month: "long", year: "numeric" }).format(new Date(y, m - 1, 1));
   };
-  const dName = (d: { nameEn: string; nameAr: string }) => (lang === "ar" ? d.nameAr : d.nameEn) || d.nameEn || d.nameAr;
-  const maxDoc = data ? Math.max(1, ...data.doctors.map((d) => d.amount)) : 1;
 
   return (
     <div className="space-y-5">
@@ -90,27 +88,36 @@ export function RevenueSection() {
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            {/* Per-doctor owed */}
+            {/* Clinic profit breakdown */}
             <div className="rounded-2xl border border-primary/12 bg-surface p-5">
-              <h3 className="text-sm font-bold text-ink">{tr({ en: "Owed to doctors", ar: "المستحق للأطباء" })}</h3>
-              <p className="mt-0.5 text-xs text-muted">{tr({ en: "Commission each doctor earned this month.", ar: "العمولة التي كسبها كل طبيب هذا الشهر." })}</p>
-              <div className="mt-4 space-y-3">
-                {data.doctors.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted">{tr({ en: "No doctor commissions this month.", ar: "لا عمولات أطباء هذا الشهر." })}</p>
-                ) : (
-                  data.doctors.map((d) => (
-                    <div key={d.doctorId}>
-                      <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="font-semibold text-ink">{dName(d)} <span className="text-xs font-normal text-muted">×{d.count}</span></span>
-                        <span className="font-bold text-primary">{formatMoney(d.amount, lang)}</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-primary/10">
-                        <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark" style={{ width: `${(d.amount / maxDoc) * 100}%` }} />
-                      </div>
-                    </div>
-                  ))
-                )}
+              <h3 className="text-sm font-bold text-ink">{tr({ en: "Profit breakdown", ar: "تفصيل الربح" })}</h3>
+              <p className="mt-0.5 text-xs text-muted">{tr({ en: "How this month's billing becomes clinic profit.", ar: "كيف تتحوّل فواتير هذا الشهر إلى ربح للعيادة." })}</p>
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-ink">{tr({ en: "Billed (gross)", ar: "الإجمالي (فواتير)" })}</span>
+                  <span className="font-bold text-ink">{formatMoney(data.clinic.gross, lang)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">− {tr({ en: "Doctor commissions", ar: "عمولات الأطباء" })}</span>
+                  <span className="font-semibold text-violet-600">−{formatMoney(data.clinic.doctorsCommission, lang)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">− {tr({ en: "Materials cost", ar: "تكلفة الخامات" })}</span>
+                  <span className="font-semibold text-rose-600">−{formatMoney(data.clinic.materialsCost, lang)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">− {tr({ en: "Expenses", ar: "المصروفات" })}</span>
+                  <span className="font-semibold text-rose-600">−{formatMoney(data.clinic.expenses, lang)}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between border-t border-primary/10 pt-2">
+                  <span className="font-bold text-primary">= {tr({ en: "Clinic net profit", ar: "صافي ربح العيادة" })}</span>
+                  <span className="text-lg font-extrabold text-primary">{formatMoney(data.clinic.net, lang)}</span>
+                </div>
               </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-primary/10">
+                <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark" style={{ width: `${data.clinic.gross > 0 ? Math.max(0, Math.min(100, (data.clinic.net / data.clinic.gross) * 100)) : 0}%` }} />
+              </div>
+              <p className="mt-2 text-[11px] text-muted">{tr({ en: "Per-doctor commissions & payouts are in the Doctor Earnings tab.", ar: "عمولات ومدفوعات كل طبيب في تبويب أرباح الأطباء." })}</p>
             </div>
 
             {/* Expenses breakdown */}

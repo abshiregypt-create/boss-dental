@@ -164,7 +164,7 @@ export function EarningsDashboard() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-xl font-extrabold tracking-tight text-ink lg:text-2xl">{tr({ en: "Doctor Earnings", ar: "أرباح الأطباء" })}</h2>
-          <p className="mt-0.5 text-sm text-muted">{tr({ en: "Every doctor's operations, earnings, and payment status.", ar: "عمليات كل طبيب وأرباحه وحالة السداد." })}</p>
+          <p className="mt-0.5 text-sm text-muted">{tr({ en: "Doctor payroll — commissions earned, paid and pending, with per-doctor payouts.", ar: "رواتب الأطباء — العمولات المستحقة والمدفوعة والمعلّقة، مع دفعات كل طبيب." })}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs text-muted">

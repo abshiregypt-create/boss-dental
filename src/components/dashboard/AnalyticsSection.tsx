@@ -80,14 +80,12 @@ export function AnalyticsSection() {
     return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-US", { month: "short" }).format(new Date(y, m - 1, 1));
   };
 
-  const maxRevenue = data ? Math.max(1, ...data.monthly.map((m) => m.revenue)) : 1;
-  const maxProc = data ? Math.max(1, ...data.topProcedures.map((p) => p.revenue)) : 1;
+  const maxAppts = data ? Math.max(1, ...data.monthly.map((m) => m.appts)) : 1;
+  const maxProc = data ? Math.max(1, ...data.topProcedures.map((p) => p.count)) : 1;
   const totalMethods = data ? data.methodMix.reduce((s, m) => s + m.amount, 0) : 0;
   const breakdownTotal = data ? BREAKDOWN_META.reduce((s, b) => s + data.apptsBreakdown[b.key], 0) : 0;
   const nvr = data ? data.newVsReturning.new + data.newVsReturning.returning : 0;
-  const doctorEarnings = data?.doctorEarnings ?? [];
   const doctorProcedures = data?.doctorProcedures ?? [];
-  const maxDocEarn = Math.max(1, ...doctorEarnings.map((d) => d.amount));
 
   return (
     <div className="space-y-5">
@@ -97,7 +95,7 @@ export function AnalyticsSection() {
             {tr({ en: "Analytics", ar: "التحليلات" })}
           </h2>
           <p className="mt-0.5 text-sm text-muted">
-            {tr({ en: "Your clinic's performance at a glance.", ar: "أداء عيادتك في لمحة." })}
+            {tr({ en: "Appointments, patients & operations — how your clinic runs.", ar: "المواعيد والمرضى والعمليات — كيف تعمل عيادتك." })}
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -123,28 +121,26 @@ export function AnalyticsSection() {
         </div>
       ) : data ? (
         <>
-          {/* KPI cards */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard label={tr({ en: "Collected", ar: "المحصّل" })} value={formatMoney(data.kpis.collected, lang)} accent="#a87f2b" />
-            <KpiCard label={tr({ en: "Outstanding", ar: "المتبقّي" })} value={formatMoney(data.kpis.outstanding, lang)} accent={data.kpis.outstanding > 0 ? "#e11d48" : "#10b981"} hint={tr({ en: "all-time balance owed", ar: "إجمالي المستحق" })} />
+          {/* KPI cards — operational only (money lives in Revenue) */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <KpiCard label={tr({ en: "Appointments", ar: "المواعيد" })} value={String(data.kpis.totalAppts)} accent="#1c2127" hint={`${data.kpis.completed} ${tr({ en: "completed", ar: "مكتملة" })}`} />
             <KpiCard label={tr({ en: "New patients", ar: "مرضى جدد" })} value={String(data.kpis.newPatients)} accent="#3b82f6" />
-            <KpiCard label={tr({ en: "Billed", ar: "إجمالي الفواتير" })} value={formatMoney(data.kpis.billedInRange, lang)} accent="#a87f2b" />
-            <KpiCard label={tr({ en: "No-show rate", ar: "نسبة عدم الحضور" })} value={`${data.kpis.noShowRate}%`} accent={data.kpis.noShowRate > 20 ? "#e11d48" : "#10b981"} hint={tr({ en: "missed of scheduled", ar: "فائتة من المجدولة" })} />
             <KpiCard label={tr({ en: "New vs returning", ar: "جدد مقابل عائدين" })} value={`${data.newVsReturning.new} / ${data.newVsReturning.returning}`} accent="#8b5cf6" />
-            <KpiCard label={tr({ en: "Collection rate", ar: "نسبة التحصيل" })} value={data.kpis.billedInRange > 0 ? `${Math.round((data.kpis.collected / data.kpis.billedInRange) * 100)}%` : "—"} accent="#10b981" />
+            <KpiCard label={tr({ en: "No-show rate", ar: "نسبة عدم الحضور" })} value={`${data.kpis.noShowRate}%`} accent={data.kpis.noShowRate > 20 ? "#e11d48" : "#10b981"} hint={tr({ en: "missed of scheduled", ar: "فائتة من المجدولة" })} />
+            <KpiCard label={tr({ en: "Collection rate", ar: "نسبة التحصيل" })} value={data.kpis.billedInRange > 0 ? `${Math.round((data.kpis.collected / data.kpis.billedInRange) * 100)}%` : "—"} accent="#10b981" hint={tr({ en: "paid of billed", ar: "مدفوع من المُفوتر" })} />
+            <KpiCard label={tr({ en: "Outstanding", ar: "المتبقّي" })} value={formatMoney(data.kpis.outstanding, lang)} accent={data.kpis.outstanding > 0 ? "#e11d48" : "#10b981"} hint={tr({ en: "unpaid balances", ar: "أرصدة غير مدفوعة" })} />
           </div>
 
-          {/* Monthly revenue chart */}
+          {/* Monthly appointments chart (operational volume; revenue trend lives in Earnings) */}
           <div className="rounded-2xl border border-primary/12 bg-surface p-5">
-            <h3 className="text-sm font-bold text-ink">{tr({ en: "Revenue — last 12 months", ar: "الإيرادات — آخر ١٢ شهر" })}</h3>
+            <h3 className="text-sm font-bold text-ink">{tr({ en: "Appointments — last 12 months", ar: "المواعيد — آخر ١٢ شهر" })}</h3>
             <div className="mt-4 flex h-44 items-stretch gap-2">
               {data.monthly.map((m) => (
-                <div key={m.key} className="flex h-full flex-1 flex-col items-center gap-1.5" title={formatMoney(m.revenue, lang)}>
+                <div key={m.key} className="flex h-full flex-1 flex-col items-center gap-1.5" title={`${m.appts} ${tr({ en: "appointments", ar: "موعد" })}`}>
                   <div className="flex w-full flex-1 items-end">
                     <div
                       className="w-full rounded-t-md bg-gradient-to-t from-primary/40 to-primary transition-all"
-                      style={{ height: `${m.revenue > 0 ? Math.max(3, (m.revenue / maxRevenue) * 100) : 0}%` }}
+                      style={{ height: `${m.appts > 0 ? Math.max(3, (m.appts / maxAppts) * 100) : 0}%` }}
                     />
                   </div>
                   <span className="text-[10px] font-medium text-muted">{monthLabel(m.key)}</span>
@@ -154,9 +150,9 @@ export function AnalyticsSection() {
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            {/* Top procedures */}
+            {/* Top procedures by volume */}
             <div className="rounded-2xl border border-primary/12 bg-surface p-5">
-              <h3 className="text-sm font-bold text-ink">{tr({ en: "Top procedures by revenue", ar: "أكثر العمليات إيرادًا" })}</h3>
+              <h3 className="text-sm font-bold text-ink">{tr({ en: "Most performed procedures", ar: "أكثر العمليات إجراءً" })}</h3>
               <div className="mt-4 space-y-3">
                 {data.topProcedures.length === 0 ? (
                   <p className="py-6 text-center text-sm text-muted">{tr({ en: "No treatments yet.", ar: "لا توجد علاجات بعد." })}</p>
@@ -164,11 +160,11 @@ export function AnalyticsSection() {
                   data.topProcedures.map((p) => (
                     <div key={p.name}>
                       <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="font-semibold text-ink">{p.name} <span className="text-xs font-normal text-muted">×{p.count}</span></span>
-                        <span className="font-bold text-primary">{formatMoney(p.revenue, lang)}</span>
+                        <span className="font-semibold text-ink">{p.name}</span>
+                        <span className="font-bold text-primary">×{p.count}</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-primary/10">
-                        <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark" style={{ width: `${(p.revenue / maxProc) * 100}%` }} />
+                        <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark" style={{ width: `${(p.count / maxProc) * 100}%` }} />
                       </div>
                     </div>
                   ))
@@ -218,51 +214,31 @@ export function AnalyticsSection() {
             </div>
           </div>
 
-          {/* Doctors: earnings + who did which operation most */}
-          {doctorEarnings.length > 0 && (
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div className="rounded-2xl border border-primary/12 bg-surface p-5">
-                <h3 className="text-sm font-bold text-ink">{tr({ en: "Doctor earnings", ar: "أرباح الأطباء" })}</h3>
-                <p className="mt-0.5 text-xs text-muted">{tr({ en: "Commission each doctor earned in this range.", ar: "العمولة التي كسبها كل طبيب في هذه الفترة." })}</p>
-                <div className="mt-4 space-y-3">
-                  {doctorEarnings.map((d) => (
+          {/* Operations by doctor — who performs which operation most (operational) */}
+          {doctorProcedures.length > 0 && (
+            <div className="rounded-2xl border border-primary/12 bg-surface p-5">
+              <h3 className="text-sm font-bold text-ink">{tr({ en: "Operations by doctor", ar: "العمليات حسب الطبيب" })}</h3>
+              <p className="mt-0.5 text-xs text-muted">{tr({ en: "Which operation each doctor performed most. Earnings live in the Doctor Earnings tab.", ar: "أكثر عملية أجراها كل طبيب. الأرباح في تبويب أرباح الأطباء." })}</p>
+              <div className="mt-4 grid gap-x-8 gap-y-4 lg:grid-cols-2">
+                {doctorProcedures.map((d) => {
+                  const maxCount = Math.max(1, ...d.items.map((i) => i.count));
+                  return (
                     <div key={d.doctorId}>
-                      <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="font-semibold text-ink">{(lang === "ar" ? d.nameAr : d.nameEn) || "—"} <span className="text-xs font-normal text-muted">×{d.count}</span></span>
-                        <span className="font-bold text-primary">{formatMoney(d.amount, lang)}</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-primary/10">
-                        <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark" style={{ width: `${(d.amount / maxDocEarn) * 100}%` }} />
+                      <p className="mb-1.5 text-sm font-bold text-ink">{(lang === "ar" ? d.nameAr : d.nameEn) || "—"}</p>
+                      <div className="space-y-1.5">
+                        {d.items.map((i) => (
+                          <div key={i.name} className="flex items-center gap-2">
+                            <span className="w-28 shrink-0 truncate text-xs text-muted" title={i.name}>{i.name}</span>
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-primary/10">
+                              <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${(i.count / maxCount) * 100}%` }} />
+                            </div>
+                            <span className="w-6 shrink-0 text-right text-xs font-bold text-ink">{i.count}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-primary/12 bg-surface p-5">
-                <h3 className="text-sm font-bold text-ink">{tr({ en: "Operations by doctor", ar: "العمليات حسب الطبيب" })}</h3>
-                <p className="mt-0.5 text-xs text-muted">{tr({ en: "Which operation each doctor performed most.", ar: "أكثر عملية أجراها كل طبيب." })}</p>
-                <div className="mt-4 space-y-4">
-                  {doctorProcedures.map((d) => {
-                    const maxCount = Math.max(1, ...d.items.map((i) => i.count));
-                    return (
-                      <div key={d.doctorId}>
-                        <p className="mb-1.5 text-sm font-bold text-ink">{(lang === "ar" ? d.nameAr : d.nameEn) || "—"}</p>
-                        <div className="space-y-1.5">
-                          {d.items.map((i) => (
-                            <div key={i.name} className="flex items-center gap-2">
-                              <span className="w-28 shrink-0 truncate text-xs text-muted" title={i.name}>{i.name}</span>
-                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-primary/10">
-                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${(i.count / maxCount) * 100}%` }} />
-                              </div>
-                              <span className="w-6 shrink-0 text-right text-xs font-bold text-ink">{i.count}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                  );
+                })}
               </div>
             </div>
           )}

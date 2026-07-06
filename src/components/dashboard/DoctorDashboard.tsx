@@ -40,7 +40,6 @@ import {
 } from "@/lib/dashboard";
 import {
   type Patient,
-  seedPatients,
   newPatient,
 } from "@/lib/patients";
 import { useSite, type Lead } from "@/lib/siteStore";
@@ -111,7 +110,7 @@ export function DoctorDashboard() {
   } = useSite();
   const base = useMemo(() => new Date(), []);
   const [requests, setRequests] = useState<BookingRequest[]>(seedRequests);
-  const [patients, setPatients] = useState<Patient[]>(seedPatients);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [activeNav, setActiveNav] = useState("overview");
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -132,33 +131,75 @@ export function DoctorDashboard() {
     });
   }, []);
 
-  // Persist clients so manual additions / edits survive refresh.
-  useEffect(() => {
+  // Clients live in the database (Patient table). Load them from the server and
+  // refresh after every change so the list stays authoritative across devices.
+  const reloadPatients = useCallback(async () => {
     try {
-      const raw = window.localStorage.getItem("dash_patients");
-      if (raw) setPatients(JSON.parse(raw) as Patient[]);
+      const res = await fetch("/api/admin/patients", { cache: "no-store" });
+      if (!res.ok) return;
+      const j = await res.json();
+      setPatients((j.patients ?? []) as Patient[]);
     } catch {
       /* ignore */
     }
   }, []);
+  // One-time cleanup of the legacy browser-only client cache (pre-DB demo data).
   useEffect(() => {
     try {
-      window.localStorage.setItem("dash_patients", JSON.stringify(patients));
+      window.localStorage.removeItem("dash_patients");
     } catch {
       /* ignore */
     }
-  }, [patients]);
+  }, []);
 
-  const savePatient = (p: Patient) => {
-    setPatients((prev) =>
-      prev.some((x) => x.id === p.id)
-        ? prev.map((x) => (x.id === p.id ? p : x))
-        : [p, ...prev]
-    );
-  };
-  const deletePatient = (id: string) => {
-    setPatients((prev) => prev.filter((x) => x.id !== id));
-  };
+  // Create or update a client in the database, then refresh from the server.
+  const savePatient = useCallback(
+    async (p: Patient) => {
+      const existing = patients.some((x) => x.id === p.id);
+      try {
+        const res = await fetch("/api/admin/patients", {
+          method: existing ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: existing ? p.id : undefined,
+            name: p.name,
+            phone: p.phone,
+            email: p.email ?? "",
+            gender: p.gender ?? "",
+            notes: p.notes ?? "",
+            medical: p.medical ?? null,
+          }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+          window.alert(j.message || j.error || "Could not save the client.");
+          return;
+        }
+        await reloadPatients();
+      } catch {
+        window.alert("Could not save the client.");
+      }
+    },
+    [patients, reloadPatients]
+  );
+
+  const deletePatient = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/admin/patients?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+          window.alert(j.message || j.error || "Could not delete the client.");
+          return;
+        }
+        setPatients((prev) => prev.filter((x) => x.id !== id));
+        await reloadPatients();
+      } catch {
+        window.alert("Could not delete the client.");
+      }
+    },
+    [reloadPatients]
+  );
 
   // Online bookings (website + WhatsApp) live in the database. Pull them once
   // (polling) and derive both the schedule blocks and the review requests below.
@@ -304,41 +345,20 @@ export function DoctorDashboard() {
   }, [appointments, onlineAppts]);
 
 
-  // Client accounts auto-created from bookings (website + WhatsApp) live in the
-  // database. Pull them so each WhatsApp booker shows up in the Clients tab with
-  // their real number, merged with the locally-managed clients.
-  const [onlinePatients, setOnlinePatients] = useState<Patient[]>([]);
+  // Refresh the client list periodically so new website/WhatsApp bookings and
+  // edits made elsewhere surface without a manual reload.
   useEffect(() => {
     let alive = true;
-    const load = async () => {
-      try {
-        const res = await fetch("/api/admin/patients", { cache: "no-store" });
-        if (!res.ok) return;
-        const j = await res.json();
-        if (alive) setOnlinePatients((j.patients ?? []) as Patient[]);
-      } catch {
-        /* ignore */
-      }
+    const tick = () => {
+      if (alive) reloadPatients();
     };
-    load();
-    const id = setInterval(load, 20000);
+    tick();
+    const id = setInterval(tick, 20000);
     return () => {
       alive = false;
       clearInterval(id);
     };
-  }, []);
-
-  // Show DB-created clients that aren't already in the local list (dedupe by the
-  // trailing phone digits). New WhatsApp clients surface at the top.
-  const mergedPatients = useMemo(() => {
-    const tail = (p: string) => p.replace(/\D/g, "").slice(-9);
-    const localTails = new Set(patients.map((p) => tail(p.phone)).filter((d) => d.length >= 8));
-    const extra = onlinePatients.filter((p) => {
-      const d = tail(p.phone);
-      return d.length >= 8 ? !localTails.has(d) : true;
-    });
-    return [...extra, ...patients];
-  }, [patients, onlinePatients]);
+  }, [reloadPatients]);
 
   // Unread WhatsApp client-message count (drives the "Client Messages" nav badge).
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -421,7 +441,9 @@ export function DoctorDashboard() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "confirm" }),
-      }).catch(() => {});
+      })
+        .then(() => reloadPatients())
+        .catch(() => {});
       setHandledCodes((prev) => new Set(prev).add(lead.trackCode!));
     }
 
@@ -933,7 +955,7 @@ export function DoctorDashboard() {
 
           {activeNav === "patients" && (
             <PatientsSection
-              patients={mergedPatients}
+              patients={patients}
               base={base}
               onSavePatient={savePatient}
               onDeletePatient={deletePatient}

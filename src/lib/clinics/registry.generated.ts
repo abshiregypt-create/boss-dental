@@ -2,9 +2,11 @@
 // Maps each clinic slug to its config. Regenerated whenever a clinic is added.
 import type { ClinicConfig } from "./types";
 import { badawi } from "./badawi";
+import { dce } from "./dce";
 import { ibrahim } from "./ibrahim";
 
 export const clinics: Record<string, ClinicConfig> = {
   badawi,
+  dce,
   ibrahim,
 };

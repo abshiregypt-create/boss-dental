@@ -10,6 +10,7 @@ async function main() {
   const DEFAULTS = {
     badawi: { email: "doctor@bdic.clinic", name: "Dr. Badawi", username: "badawi" },
     ibrahim: { email: "doctor@theboss.clinic", name: "Dr. Ibrahim Salah", username: "boss" },
+    dce: { email: "doctor@dentalcenterofegypt.com", name: "Dr. Medhat Basseem", username: "dental" },
   };
   const d = DEFAULTS[slug] || { email: `doctor@${slug}.clinic`, name: "Doctor", username: slug };
 

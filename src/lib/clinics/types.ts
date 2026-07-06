@@ -94,6 +94,10 @@ export type ClinicConfig = {
     lineupLabel?: Bi;
     /** Small hint line shown beneath the hero figure(s). */
     tagline?: Bi;
+    /** Optional hero KPI stats (value + bilingual label). Overrides the shared
+     *  defaults so a clinic can lead with its own numbers (e.g. years, clinics,
+     *  patients). Provide up to three; falls back to the generic set when omitted. */
+    stats?: { value: string; label: Bi }[];
     /** For a solo figure, the label under the photo (e.g. the lead doctor when
      *  the clinic brand/`doctorName` is the clinic itself, not a person). */
     figureName?: Bi;

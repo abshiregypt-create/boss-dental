@@ -11,11 +11,16 @@ import { TeamHero } from "./TeamHero";
 import { CountUp } from "./CountUp";
 import { SeamlessVideo } from "./SeamlessVideo";
 
-const stats = [
-  { value: "15+", key: "stat1" as const },
-  { value: "5K+", key: "stat2" as const },
-  { value: "3K+", key: "stat3" as const },
-];
+// Hero KPI stats: a clinic can override with its own numbers (e.g. years,
+// clinics, patients); otherwise fall back to the generic set + shared labels.
+const heroStats: { value: string; label: { en: string; ar: string } }[] =
+  activeClinic().hero.stats?.length
+    ? activeClinic().hero.stats!
+    : [
+        { value: "15+", label: t.hero.stat1 },
+        { value: "5K+", label: t.hero.stat2 },
+        { value: "3K+", label: t.hero.stat3 },
+      ];
 
 const heroVideo = activeClinic().hero.video ?? {
   src: "/clinic/videos/case-video-1.mp4",
@@ -141,13 +146,13 @@ export function Hero() {
           </div>
 
           <div className="mt-12 grid max-w-md grid-cols-3 gap-4 lg:mx-0">
-            {stats.map((s) => (
-              <div key={s.key} className="text-center lg:text-start">
+            {heroStats.map((s, i) => (
+              <div key={i} className="text-center lg:text-start">
                 <div className="text-3xl font-extrabold text-primary">
                   <CountUp value={s.value} />
                 </div>
                 <div className="mt-1 text-xs font-medium text-muted">
-                  {tr(t.hero[s.key])}
+                  {tr(s.label)}
                 </div>
               </div>
             ))}

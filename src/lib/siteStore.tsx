@@ -40,6 +40,7 @@ export type Theme = {
   background: string;
   surface: string;
   surface2: string;
+  onPrimary?: string;
 };
 
 export type SiteSettings = {
@@ -101,7 +102,7 @@ export const defaultSettings: SiteSettings = {
         ar: "تجميل كامل للابتسامة بعدسات بريميوم بسعر خاص.",
       },
       badge: { en: "25% OFF", ar: "خصم ٢٥٪" },
-      color: "#c9a24b",
+      color: clinic.theme.primary,
       icon: "sparkle",
       active: true,
     },
@@ -125,7 +126,7 @@ export const defaultSettings: SiteSettings = {
         ar: "اجعل ابتسامتك أكثر إشراقًا بعدة درجات مع جلسة التبييض بالليزر.",
       },
       badge: { en: "30% OFF", ar: "خصم ٣٠٪" },
-      color: "#0ea5b7",
+      color: clinic.theme.accent,
       icon: "star",
       active: true,
     },

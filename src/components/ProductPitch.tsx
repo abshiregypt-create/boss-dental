@@ -164,7 +164,7 @@ export function ProductPitch() {
               href={waLink(demoMsg)}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-dark px-5 py-2 text-sm font-semibold text-[#0a0e12] shadow-lg shadow-primary/25 transition hover:-translate-y-0.5 sm:inline-flex"
+              className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-dark px-5 py-2 text-sm font-semibold text-[color:var(--on-primary)] shadow-lg shadow-primary/25 transition hover:-translate-y-0.5 sm:inline-flex"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" /></svg>
               {tr({ en: "Book a demo", ar: "احجز عرضًا" })}
@@ -201,7 +201,7 @@ export function ProductPitch() {
                 href={waLink(demoMsg)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3.5 text-base font-semibold text-[#0a0e12] shadow-xl shadow-primary/25 transition hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3.5 text-base font-semibold text-[color:var(--on-primary)] shadow-xl shadow-primary/25 transition hover:-translate-y-0.5"
               >
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" /></svg>
                 {tr({ en: "Message us on WhatsApp", ar: "راسلنا على واتساب" })}
@@ -354,7 +354,7 @@ export function ProductPitch() {
               href={waLink(demoMsg)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-dark px-8 py-4 text-base font-semibold text-[#0a0e12] shadow-xl shadow-primary/25 transition hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-dark px-8 py-4 text-base font-semibold text-[color:var(--on-primary)] shadow-xl shadow-primary/25 transition hover:-translate-y-0.5"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Z" /></svg>
               {tr({ en: "Message us on WhatsApp", ar: "راسلنا على واتساب" })}

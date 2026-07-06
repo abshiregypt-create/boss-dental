@@ -88,7 +88,7 @@ export function ResultsGallery() {
                       loading="lazy"
                       className="block w-full h-auto transition duration-700 group-hover:scale-[1.03]"
                     />
-                    <span className="absolute top-3 start-3 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-[#0a0e12] shadow">
+                    <span className="absolute top-3 start-3 rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold text-[color:var(--on-primary)] shadow">
                       {tr(c.tag)}
                     </span>
                     <span className="absolute top-3 end-3 grid h-8 w-8 place-items-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
@@ -153,7 +153,7 @@ export function ResultsGallery() {
               className="max-h-[82vh] w-auto rounded-2xl border border-white/10 object-contain"
             />
             <figcaption className="mt-3 text-center">
-              <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#0a0e12]">{tr(cases[active].tag)}</span>
+              <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-[color:var(--on-primary)]">{tr(cases[active].tag)}</span>
               <p className="mt-2 text-sm font-semibold text-white">{tr(cases[active].title)}</p>
             </figcaption>
           </figure>

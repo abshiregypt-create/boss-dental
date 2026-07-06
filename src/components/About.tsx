@@ -153,7 +153,7 @@ export function About() {
 
           <a
             href="#contact"
-            className="mt-8 inline-block rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3 font-semibold text-[#0a0e12] shadow-lg shadow-primary/25 transition hover:-translate-y-0.5"
+            className="mt-8 inline-block rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3 font-semibold text-[color:var(--on-primary)] shadow-lg shadow-primary/25 transition hover:-translate-y-0.5"
           >
             {tr(t.nav.book)}
           </a>

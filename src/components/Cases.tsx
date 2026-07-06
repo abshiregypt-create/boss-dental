@@ -36,7 +36,7 @@ export function Cases() {
                 className="object-cover transition duration-700 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#04070a] via-[#04070a]/30 to-transparent" />
-              <span className="absolute top-4 start-4 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#0a0e12]">
+              <span className="absolute top-4 start-4 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[color:var(--on-primary)]">
                 {tr(c.tag)}
               </span>
               <h3 className="absolute bottom-4 start-4 end-4 text-lg font-bold text-white">

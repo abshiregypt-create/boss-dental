@@ -80,7 +80,7 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={s.name}
-                className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white transition hover:bg-primary hover:text-[#0a0e12]"
+                className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white transition hover:bg-primary hover:text-[color:var(--on-primary)]"
               >
                 <SocialIcon name={s.name} />
               </a>

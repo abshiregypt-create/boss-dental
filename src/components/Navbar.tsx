@@ -63,7 +63,7 @@ export function Navbar() {
           <LanguageToggle />
           <a
             href="#contact"
-            className="hidden rounded-full bg-gradient-to-r from-primary to-primary-dark px-5 py-2 text-sm font-semibold text-[#0a0e12] shadow-lg shadow-primary/25 transition hover:shadow-xl hover:shadow-primary/40 sm:inline-block"
+            className="hidden rounded-full bg-gradient-to-r from-primary to-primary-dark px-5 py-2 text-sm font-semibold text-[color:var(--on-primary)] shadow-lg shadow-primary/25 transition hover:shadow-xl hover:shadow-primary/40 sm:inline-block"
           >
             {tr(t.nav.book)}
           </a>
@@ -97,7 +97,7 @@ export function Navbar() {
               <a
                 href="#contact"
                 onClick={() => setOpen(false)}
-                className="mt-1 block rounded-full bg-gradient-to-r from-primary to-primary-dark px-4 py-2.5 text-center text-sm font-semibold text-[#0a0e12]"
+                className="mt-1 block rounded-full bg-gradient-to-r from-primary to-primary-dark px-4 py-2.5 text-center text-sm font-semibold text-[color:var(--on-primary)]"
               >
                 {tr(t.nav.book)}
               </a>

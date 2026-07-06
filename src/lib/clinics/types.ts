@@ -17,6 +17,11 @@ export type ClinicTheme = {
   background: string;
   surface: string;
   surface2: string;
+  /** Text/icon colour that sits on top of a primary/accent fill (buttons,
+   *  pills, gradient panels). Defaults to near-black `#0a0e12` (good on the
+   *  default gold). Set to `#ffffff` for dark/saturated brand colours (e.g. a
+   *  royal-blue center) so on-primary text stays legible. */
+  onPrimary?: string;
 };
 
 export type ClinicTeamMember = {
@@ -106,6 +111,14 @@ export type ClinicConfig = {
      *  borderless with faded edges so it blends into the page (no LIVE badge,
      *  no frame) — reads as part of the site, not an embedded video box. */
     video?: { src: string; poster?: string; seamless?: boolean };
+    /** Optional branded still for the hero's side "tilt" card. When set it is
+     *  shown instead of the video — ideal for an institution/brand key visual
+     *  (e.g. a heritage poster) rather than a talking-head clip. */
+    image?: string;
+    /** Institution/center clinics can hide the person-cutout stage at the top of
+     *  the hero and lead with the brand (big animated name + side key visual)
+     *  instead of doctor cutouts. */
+    hideStage?: boolean;
   };
 
   about: {

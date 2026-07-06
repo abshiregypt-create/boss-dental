@@ -79,7 +79,7 @@ export function BeforeAfter({
     >
       {/* AFTER (base, full) */}
       <Pic src={after} label={afterLabel} alt={alt} />
-      <span className="pointer-events-none absolute bottom-3 end-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#0a0e12]">
+      <span className="pointer-events-none absolute bottom-3 end-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[color:var(--on-primary)]">
         {afterLabel}
       </span>
 

@@ -129,7 +129,7 @@ export function Tracker({ code }: { code: string }) {
             <p className="mt-2 text-sm text-muted">
               {tr({ en: "Check the link in your WhatsApp message, or contact the clinic.", ar: "تأكد من الرابط في رسالة الواتساب، أو تواصل مع العيادة." })}
             </p>
-            <a href={`https://wa.me/${CLINIC_WA}`} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary-dark px-4 py-2.5 text-sm font-semibold text-[#0a0e12]">
+            <a href={`https://wa.me/${CLINIC_WA}`} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary-dark px-4 py-2.5 text-sm font-semibold text-[color:var(--on-primary)]">
               {tr({ en: "Contact clinic", ar: "تواصل مع العيادة" })}
             </a>
           </div>

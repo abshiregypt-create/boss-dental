@@ -28,6 +28,23 @@ const heroVideo = activeClinic().hero.video ?? {
   seamless: false,
 };
 
+// Optional branded still shown in the side card instead of a video.
+const heroImage = activeClinic().hero.image;
+// Whether to hide the doctor-cutout stage and lead with the brand.
+const hideStage = activeClinic().hero.hideStage ?? false;
+
+// Small avatar stack on the floating rating badge - use this clinic's own
+// before/after thumbnails rather than shared stock, so it always looks on-brand.
+const heroAvatars: string[] = (() => {
+  const fromGallery = activeClinic()
+    .gallery.cases.map((c) => c.src ?? c.after ?? c.before)
+    .filter((s): s is string => Boolean(s))
+    .slice(0, 3);
+  return fromGallery.length
+    ? fromGallery
+    : ["/clinic/smile-1.jpg", "/clinic/smile-2.jpg", "/clinic/case-gap.jpg"];
+})();
+
 export function Hero() {
   const { tr, lang } = useLang();
   const { settings } = useSite();
@@ -79,9 +96,11 @@ export function Hero() {
 
       {/* Interactive team line-up at the very top */}
       <div className="mx-auto max-w-[95rem] px-5 text-center">
-        <div className="fade-up" style={{ animationDelay: "0.05s" }}>
-          <TeamHero />
-        </div>
+        {!hideStage && (
+          <div className="fade-up" style={{ animationDelay: "0.05s" }}>
+            <TeamHero />
+          </div>
+        )}
 
         {/* Animated clinic name under the team */}
         <h1
@@ -133,7 +152,7 @@ export function Hero() {
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
             <a
               href="#contact"
-              className="w-full rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3.5 text-center font-semibold text-[#0a0e12] shadow-xl shadow-primary/30 transition hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/40 sm:w-auto"
+              className="w-full rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3.5 text-center font-semibold text-[color:var(--on-primary)] shadow-xl shadow-primary/30 transition hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/40 sm:w-auto"
             >
               {tr(t.hero.ctaPrimary)}
             </a>
@@ -161,7 +180,52 @@ export function Hero() {
 
         {/* tilt visual */}
         <div className="fade-up relative mx-auto w-full max-w-lg" style={{ animationDelay: "1.45s" }}>
-          {heroVideo.seamless ? (
+          {heroImage ? (
+            <>
+              <div
+                ref={cardRef}
+                className="hero-video-card relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-primary/20 shadow-2xl shadow-primary/10 transition-transform duration-200 will-change-transform"
+              >
+                <Image
+                  src={heroImage}
+                  alt={tr(settings.doctorName)}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 32rem"
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0e12]/25 via-transparent to-transparent" />
+              </div>
+
+              <div className="glass absolute -bottom-5 start-[-1rem] flex items-center gap-3 rounded-2xl p-3.5 shadow-xl">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-ink">100%</div>
+                  <div className="text-xs text-muted">Painless Care</div>
+                </div>
+              </div>
+
+              <div className="glass absolute -top-4 end-[-1rem] flex items-center gap-2 rounded-2xl px-4 py-3 shadow-xl">
+                <div className="flex -space-x-2 rtl:space-x-reverse">
+                  {heroAvatars.map((src, idx) => (
+                    <Image
+                      key={idx}
+                      src={src}
+                      alt="patient"
+                      width={28}
+                      height={28}
+                      className="h-7 w-7 rounded-full border-2 border-surface object-cover"
+                    />
+                  ))}
+                </div>
+                <div className="text-xs font-semibold text-accent">★ 4.9 / 5</div>
+              </div>
+            </>
+          ) : heroVideo.seamless ? (
             <div ref={cardRef} className="hero-seamless relative transition-transform duration-200 will-change-transform">
               <SeamlessVideo
                 src={heroVideo.src}
@@ -182,7 +246,7 @@ export function Hero() {
 
               <div className="glass absolute -top-4 end-[-1rem] flex items-center gap-2 rounded-2xl px-4 py-3 shadow-xl">
                 <div className="flex -space-x-2 rtl:space-x-reverse">
-                  {["/clinic/smile-1.jpg", "/clinic/smile-2.jpg", "/clinic/case-gap.jpg"].map((src, idx) => (
+                  {heroAvatars.map((src, idx) => (
                     <Image
                       key={idx}
                       src={src}
@@ -236,7 +300,7 @@ export function Hero() {
 
               <div className="glass absolute -top-4 end-[-1rem] flex items-center gap-2 rounded-2xl px-4 py-3 shadow-xl">
                 <div className="flex -space-x-2 rtl:space-x-reverse">
-                  {["/clinic/smile-1.jpg", "/clinic/smile-2.jpg", "/clinic/case-gap.jpg"].map((src, idx) => (
+                  {heroAvatars.map((src, idx) => (
                     <Image
                       key={idx}
                       src={src}

@@ -12,6 +12,7 @@
   --ink: #1c2127;
   --muted: #6b7280;
   --border: rgba(168, 127, 43, 0.22);
+  --on-primary: #0a0e12;      /* text/icons that sit on a primary/accent fill */
 }
 
 @theme inline {

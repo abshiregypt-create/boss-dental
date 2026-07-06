@@ -161,11 +161,11 @@ export function BookingSection() {
           <div className="grid lg:grid-cols-[330px_1fr]">
             {/* ---------- left rail ---------- */}
             <div className="relative overflow-hidden bg-gradient-to-br from-accent to-primary-dark p-7 lg:p-9">
-              <div className="pointer-events-none absolute -bottom-16 -end-16 h-64 w-64 rounded-full bg-[#0a0e12]/10 blur-2xl" />
-              <h3 className="text-xl font-extrabold text-[#0a0e12]">
+              <div className="pointer-events-none absolute -bottom-16 -end-16 h-64 w-64 rounded-full bg-[color:var(--on-primary)]/10 blur-2xl" />
+              <h3 className="text-xl font-extrabold text-[color:var(--on-primary)]">
                 {tr({ en: "Quick Booking", ar: "حجز سريع" })}
               </h3>
-              <p className="mt-1 text-sm text-[#0a0e12]/70">
+              <p className="mt-1 text-sm text-[color:var(--on-primary)]/70">
                 {tr({ en: "Three simple steps", ar: "ثلاث خطوات بسيطة" })}
               </p>
 
@@ -179,10 +179,10 @@ export function BookingSection() {
                       <span
                         className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 text-sm font-bold transition ${
                           active
-                            ? "border-[#0a0e12] bg-[#0a0e12] text-accent"
+                            ? "border-[color:var(--on-primary)] bg-[color:var(--on-primary)] text-primary"
                             : complete
-                            ? "border-[#0a0e12] bg-[#0a0e12]/80 text-accent"
-                            : "border-[#0a0e12]/40 text-[#0a0e12]/60"
+                            ? "border-[color:var(--on-primary)] bg-[color:var(--on-primary)]/80 text-primary"
+                            : "border-[color:var(--on-primary)]/40 text-[color:var(--on-primary)]/60"
                         }`}
                       >
                         {complete ? (
@@ -191,7 +191,7 @@ export function BookingSection() {
                           s.n
                         )}
                       </span>
-                      <span className={`text-sm font-bold ${active || complete ? "text-[#0a0e12]" : "text-[#0a0e12]/55"}`}>
+                      <span className={`text-sm font-bold ${active || complete ? "text-[color:var(--on-primary)]" : "text-[color:var(--on-primary)]/55"}`}>
                         {tr(s.label)}
                       </span>
                     </li>
@@ -200,17 +200,17 @@ export function BookingSection() {
               </ol>
 
               {/* contact info */}
-              <div className="mt-9 space-y-3 border-t border-[#0a0e12]/15 pt-6 text-sm text-[#0a0e12]/80">
+              <div className="mt-9 space-y-3 border-t border-[color:var(--on-primary)]/15 pt-6 text-sm text-[color:var(--on-primary)]/80">
                 <a
                   href={mapUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 transition hover:text-[#0a0e12]"
+                  className="inline-flex items-center gap-2 transition hover:text-[color:var(--on-primary)]"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-5.7-7-11a7 7 0 0 1 14 0c0 5.3-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>
                   {tr(t.contact.address)}
                 </a>
-                <a href={`tel:${site.phone}`} dir="ltr" className="flex items-center gap-2 transition hover:text-[#0a0e12]">
+                <a href={`tel:${site.phone}`} dir="ltr" className="flex items-center gap-2 transition hover:text-[color:var(--on-primary)]">
                   <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h3l1.5 5-2 1.5a12 12 0 0 0 5 5l1.5-2 5 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" /></svg>
                   {tr(t.contact.phoneValue)}
                 </a>
@@ -395,7 +395,7 @@ export function BookingSection() {
                           <label className="mb-1.5 block text-sm font-semibold text-ink">{tr({ en: "Notes / symptoms (optional)", ar: "ملاحظات / الأعراض (اختياري)" })}</label>
                           <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full resize-none rounded-xl border border-primary/15 bg-surface-2 px-4 py-3 text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
                         </div>
-                        <button type="submit" className="w-full rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3.5 font-semibold text-[#0a0e12] shadow-lg shadow-primary/25 transition hover:-translate-y-0.5 hover:shadow-xl">
+                        <button type="submit" className="w-full rounded-full bg-gradient-to-r from-primary to-primary-dark px-7 py-3.5 font-semibold text-[color:var(--on-primary)] shadow-lg shadow-primary/25 transition hover:-translate-y-0.5 hover:shadow-xl">
                           {tr({ en: "Confirm Booking", ar: "تأكيد الحجز" })}
                         </button>
                       </div>
@@ -456,7 +456,7 @@ function SuccessView({ base, snap, onAgain }: { base: Date; snap: Snapshot; onAg
         <>
           <a
             href={`/track/${snap.trackCode}`}
-            className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-dark px-6 py-3 text-sm font-semibold text-[#0a0e12] shadow-lg shadow-primary/25 transition hover:-translate-y-0.5"
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary-dark px-6 py-3 text-sm font-semibold text-[color:var(--on-primary)] shadow-lg shadow-primary/25 transition hover:-translate-y-0.5"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
             {tr({ en: "Track your appointment live", ar: "تابع موعدك مباشرة" })}

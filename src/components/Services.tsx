@@ -28,7 +28,7 @@ export function Services() {
               delay={(i % 4) * 80}
               className="group card-hover rounded-2xl border border-primary/15 bg-surface p-6 shadow-sm hover:border-primary/40 hover:bg-surface-2 hover:shadow-xl hover:shadow-primary/10"
             >
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary/15 to-accent/10 text-primary transition group-hover:from-primary group-hover:to-primary-dark group-hover:text-[#0a0e12]">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary/15 to-accent/10 text-primary transition group-hover:from-primary group-hover:to-primary-dark group-hover:text-[color:var(--on-primary)]">
                 <ServiceIcon name={s.icon} className="h-7 w-7" />
               </div>
               <h3 className="mt-5 text-lg font-bold text-ink">{tr(s.title)}</h3>

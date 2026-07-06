@@ -122,7 +122,7 @@ export function VideoShowcase() {
                 {/* overlays */}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/15" />
 
-                <span className="absolute top-4 start-4 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[#0a0e12] shadow">
+                <span className="absolute top-4 start-4 rounded-full bg-primary px-3 py-1 text-xs font-bold text-[color:var(--on-primary)] shadow">
                   {tr(c.tag)}
                 </span>
                 <span className="absolute top-4 end-4 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur">
@@ -135,7 +135,7 @@ export function VideoShowcase() {
                     type="button"
                     onClick={() => toggleMute(i)}
                     aria-label={muted[i] ? "Unmute" : "Mute"}
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-primary hover:text-[#0a0e12]"
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-primary hover:text-[color:var(--on-primary)]"
                   >
                     {muted[i] ? (
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

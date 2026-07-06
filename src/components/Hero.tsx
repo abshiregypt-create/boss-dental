@@ -106,18 +106,15 @@ export function Hero() {
 
         {logoHero && (
           <div className="fade-up mx-auto mt-4 mb-5 w-fit" style={{ animationDelay: "0.2s" }}>
-            <div className="relative grid h-60 w-60 place-items-center sm:h-72 sm:w-72">
-              <span className="absolute h-full w-full rounded-full border border-primary/25 border-dashed animate-[spin_18s_linear_infinite]" />
-              <span className="absolute h-[78%] w-[78%] rounded-full border border-accent/35 border-dashed animate-[spin_14s_linear_infinite_reverse]" />
-              <span className="absolute start-1/2 top-[6%] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-primary/80 shadow-[0_0_14px_var(--primary)] animate-[bounce_2.8s_ease-in-out_infinite]" />
+            <div className="relative grid h-72 w-72 place-items-center sm:h-96 sm:w-96">
               <Image
                 src={heroLogo!}
                 alt={tr(settings.doctorName)}
-                width={512}
-                height={512}
+                width={768}
+                height={768}
                 priority
-                sizes="(max-width: 640px) 11rem, 16rem"
-                className="h-44 w-44 object-contain mix-blend-multiply drop-shadow-[0_14px_28px_rgba(27,95,214,0.3)] sm:h-64 sm:w-64 animate-[pulse_3.2s_ease-in-out_infinite]"
+                sizes="(max-width: 640px) 18rem, 24rem"
+                className="h-64 w-64 object-contain drop-shadow-[0_16px_30px_rgba(27,95,214,0.35)] sm:h-80 sm:w-80 animate-[bounce_1.8s_ease-in-out_infinite]"
               />
             </div>
           </div>

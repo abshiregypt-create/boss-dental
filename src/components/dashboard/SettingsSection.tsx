@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLang } from "@/lib/language";
+import { ClinicExpensesCard } from "./ClinicExpensesCard";
 
 type Config = { enabled: boolean; delaySeconds: number };
 type Unit = "seconds" | "minutes" | "hours" | "days";
@@ -222,6 +223,8 @@ export function SettingsSection() {
           </div>
         </div>
       </div>
+
+      <ClinicExpensesCard />
     </div>
   );
 }

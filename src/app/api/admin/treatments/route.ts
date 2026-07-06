@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/server/guard";
 import { normalizePhone } from "@/lib/server/phone";
 import { ensurePatient } from "@/lib/server/appointments";
 import { computeTotals, normalizeMethod } from "@/lib/server/operations";
+import { clampPct, computeShares, type DoctorAssignmentInput } from "@/lib/server/doctors";
 
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
@@ -35,6 +36,11 @@ export async function GET(req: Request) {
     prisma.treatmentRecord.findMany({
       where: { patientId: { in: patientIds } },
       orderBy: { performedAt: "desc" },
+      include: {
+        doctors: {
+          include: { doctor: { select: { nameEn: true, nameAr: true } } },
+        },
+      },
     }),
     prisma.payment.findMany({
       where: { patientId: { in: patientIds } },
@@ -59,9 +65,17 @@ export async function GET(req: Request) {
       basePrice: t.basePrice,
       discountPct: t.discountPct,
       price: t.price,
+      cost: t.cost,
       paid: paidByTreatment.get(t.id) ?? 0,
       notes: t.notes,
       performedAt: t.performedAt.toISOString(),
+      doctors: t.doctors.map((d) => ({
+        doctorId: d.doctorId,
+        nameEn: d.doctor?.nameEn ?? "",
+        nameAr: d.doctor?.nameAr ?? "",
+        commissionPct: d.commissionPct,
+        amount: d.amount,
+      })),
     })),
     payments: payments.map((p) => ({
       id: p.id,
@@ -94,6 +108,8 @@ export async function POST(req: Request) {
     nameAr?: string;
     price?: number;
     discountPct?: number;
+    cost?: number | null;
+    doctors?: { doctorId?: string; commissionPct?: number }[];
     notes?: string;
     paidNow?: number;
     method?: string;
@@ -120,16 +136,54 @@ export async function POST(req: Request) {
   let nameEn = String(body.nameEn ?? "").trim();
   let nameAr = String(body.nameAr ?? "").trim();
   let procedureId = body.procedureId ? String(body.procedureId) : null;
+  let procCost: number | null = null;
   if (procedureId) {
     const proc = await prisma.procedure.findUnique({ where: { id: procedureId } });
     if (proc) {
       nameEn = nameEn || proc.nameEn;
       nameAr = nameAr || proc.nameAr;
+      procCost = proc.cost ?? null;
     } else {
       procedureId = null; // stale id → treat as custom
     }
   }
   if (!nameEn && !nameAr) return NextResponse.json({ error: "name_required" }, { status: 400 });
+
+  // Net cost (materials/lab) snapshot: explicit value wins, else fall back to the
+  // catalog cost. null/blank clears it. Used for clinic-profit precision only.
+  let cost: number | null = procCost;
+  if ("cost" in body) {
+    if (body.cost == null || body.cost === ("" as unknown)) cost = null;
+    else if (Number.isFinite(Number(body.cost)) && Number(body.cost) >= 0) cost = Number(body.cost);
+  }
+
+  // Doctor assignments: validate the doctors exist, dedupe by id, and snapshot
+  // each doctor's % + earned amount (of the net charged price) on the join row.
+  // A missing/invalid per-op % falls back to the doctor's profile default.
+  let shares: { doctorId: string; commissionPct: number; amount: number }[] = [];
+  if (Array.isArray(body.doctors) && body.doctors.length > 0) {
+    const byId = new Map<string, DoctorAssignmentInput>();
+    for (const d of body.doctors) {
+      const doctorId = d?.doctorId ? String(d.doctorId) : "";
+      if (!doctorId) continue;
+      byId.set(doctorId, { doctorId, commissionPct: Number(d?.commissionPct) });
+    }
+    const ids = [...byId.keys()];
+    if (ids.length > 0) {
+      const docs = await prisma.doctor.findMany({ where: { id: { in: ids } } });
+      const known = new Map(docs.map((x) => [x.id, x]));
+      const assignments: DoctorAssignmentInput[] = [];
+      for (const [id, a] of byId) {
+        const doc = known.get(id);
+        if (!doc) continue; // silently drop unknown ids
+        const pct = Number.isFinite(a.commissionPct) && a.commissionPct > 0 ? clampPct(a.commissionPct) : doc.commissionPct;
+        assignments.push({ doctorId: id, commissionPct: pct });
+      }
+      const computed = computeShares(netPrice, assignments);
+      if (computed.doctorsTotalPct > 100) return NextResponse.json({ error: "commission_over_100" }, { status: 400 });
+      shares = computed.shares;
+    }
+  }
 
   const to = normalizePhone(phoneRaw).digits || phoneRaw.replace(/\D/g, "");
   const patientId = await ensurePatient(String(body.name ?? "").trim() || nameAr || nameEn, to);
@@ -146,8 +200,12 @@ export async function POST(req: Request) {
       basePrice,
       discountPct,
       price: netPrice,
+      cost,
       notes: body.notes ? String(body.notes).trim() : null,
       performedAt: isNaN(performedAt.getTime()) ? new Date() : performedAt,
+      doctors: shares.length
+        ? { create: shares.map((s) => ({ doctorId: s.doctorId, commissionPct: s.commissionPct, amount: s.amount })) }
+        : undefined,
     },
   });
 

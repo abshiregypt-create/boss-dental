@@ -17,6 +17,8 @@ import { ClientMessages } from "./ClientMessages";
 import { SettingsSection } from "./SettingsSection";
 import { OperationsManager } from "./OperationsManager";
 import { AnalyticsSection } from "./AnalyticsSection";
+import { DoctorsManager } from "./DoctorsManager";
+import { RevenueSection } from "./RevenueSection";
 import { RemindersSection } from "./RemindersSection";
 import {
   type BookingRequest,
@@ -92,6 +94,7 @@ function ComingSoon({ label }: { label: string }) {
 const navItems = [
   { id: "overview", label: { en: "Overview", ar: "الرئيسية" }, icon: "M3 12 12 4l9 8M5 10v9h5v-6h4v6h5v-9" },
   { id: "analytics", label: { en: "Analytics", ar: "التحليلات" }, icon: "M4 20V10M10 20V4M16 20v-7M20 20H3" },
+  { id: "revenue", label: { en: "Revenue", ar: "الإيرادات" }, icon: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" },
   { id: "bookings", label: { en: "Bookings", ar: "الحجوزات" }, icon: "M4 5h16v10H7l-3 3V5Z" },
   { id: "whatsapp", label: { en: "WhatsApp", ar: "واتساب" }, icon: "M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Z" },
   { id: "messages", label: { en: "Client Messages", ar: "رسائل العملاء" }, icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" },
@@ -99,6 +102,7 @@ const navItems = [
   { id: "calendar", label: { en: "Calendar", ar: "التقويم" }, icon: "M3 9h18M7 3v4m10-4v4M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" },
   { id: "patients", label: { en: "Clients", ar: "العملاء" }, icon: "M16 19a4 4 0 0 0-8 0M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" },
   { id: "operations", label: { en: "Operations", ar: "العمليات" }, icon: "M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M12 11v6M9 14h6" },
+  { id: "doctors", label: { en: "Doctors", ar: "الأطباء" }, icon: "M6 3v5a4 4 0 0 0 8 0V3M10 12v2a5 5 0 0 0 10 0v-1M20 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" },
   { id: "offers", label: { en: "Offers", ar: "العروض" }, icon: "M20 12v8H4v-8M2 7h20v5H2zM12 7v13M12 7S10.5 3 8 3a2 2 0 0 0 0 4M12 7s1.5-4 4-4a2 2 0 0 1 0 4" },
   { id: "editor", label: { en: "Site Editor", ar: "محرر الموقع" }, icon: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" },
   { id: "settings", label: { en: "Settings", ar: "الإعدادات" }, icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-3a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.3 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 2.5h5l.3-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6c.07-.33.1-.66.1-1Z" },
@@ -851,7 +855,11 @@ export function DoctorDashboard() {
 
           {activeNav === "operations" && <OperationsManager />}
 
+          {activeNav === "doctors" && <DoctorsManager />}
+
           {activeNav === "analytics" && <AnalyticsSection />}
+
+          {activeNav === "revenue" && <RevenueSection />}
 
           {activeNav === "reminders" && <RemindersSection />}
 

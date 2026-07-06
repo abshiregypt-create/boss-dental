@@ -20,6 +20,8 @@ type Analytics = {
   monthly: { key: string; revenue: number; appts: number }[];
   methodMix: { method: string; amount: number }[];
   newVsReturning: { new: number; returning: number };
+  doctorEarnings: { doctorId: string; nameEn: string; nameAr: string; amount: number; count: number }[];
+  doctorProcedures: { doctorId: string; nameEn: string; nameAr: string; items: { name: string; count: number }[] }[];
 };
 
 const RANGES = [
@@ -83,6 +85,9 @@ export function AnalyticsSection() {
   const totalMethods = data ? data.methodMix.reduce((s, m) => s + m.amount, 0) : 0;
   const breakdownTotal = data ? BREAKDOWN_META.reduce((s, b) => s + data.apptsBreakdown[b.key], 0) : 0;
   const nvr = data ? data.newVsReturning.new + data.newVsReturning.returning : 0;
+  const doctorEarnings = data?.doctorEarnings ?? [];
+  const doctorProcedures = data?.doctorProcedures ?? [];
+  const maxDocEarn = Math.max(1, ...doctorEarnings.map((d) => d.amount));
 
   return (
     <div className="space-y-5">
@@ -212,6 +217,55 @@ export function AnalyticsSection() {
               </div>
             </div>
           </div>
+
+          {/* Doctors: earnings + who did which operation most */}
+          {doctorEarnings.length > 0 && (
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="rounded-2xl border border-primary/12 bg-surface p-5">
+                <h3 className="text-sm font-bold text-ink">{tr({ en: "Doctor earnings", ar: "أرباح الأطباء" })}</h3>
+                <p className="mt-0.5 text-xs text-muted">{tr({ en: "Commission each doctor earned in this range.", ar: "العمولة التي كسبها كل طبيب في هذه الفترة." })}</p>
+                <div className="mt-4 space-y-3">
+                  {doctorEarnings.map((d) => (
+                    <div key={d.doctorId}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="font-semibold text-ink">{(lang === "ar" ? d.nameAr : d.nameEn) || "—"} <span className="text-xs font-normal text-muted">×{d.count}</span></span>
+                        <span className="font-bold text-primary">{formatMoney(d.amount, lang)}</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-primary/10">
+                        <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark" style={{ width: `${(d.amount / maxDocEarn) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-primary/12 bg-surface p-5">
+                <h3 className="text-sm font-bold text-ink">{tr({ en: "Operations by doctor", ar: "العمليات حسب الطبيب" })}</h3>
+                <p className="mt-0.5 text-xs text-muted">{tr({ en: "Which operation each doctor performed most.", ar: "أكثر عملية أجراها كل طبيب." })}</p>
+                <div className="mt-4 space-y-4">
+                  {doctorProcedures.map((d) => {
+                    const maxCount = Math.max(1, ...d.items.map((i) => i.count));
+                    return (
+                      <div key={d.doctorId}>
+                        <p className="mb-1.5 text-sm font-bold text-ink">{(lang === "ar" ? d.nameAr : d.nameEn) || "—"}</p>
+                        <div className="space-y-1.5">
+                          {d.items.map((i) => (
+                            <div key={i.name} className="flex items-center gap-2">
+                              <span className="w-28 shrink-0 truncate text-xs text-muted" title={i.name}>{i.name}</span>
+                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-primary/10">
+                                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" style={{ width: `${(i.count / maxCount) * 100}%` }} />
+                              </div>
+                              <span className="w-6 shrink-0 text-right text-xs font-bold text-ink">{i.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {nvr === 0 && (
             <p className="text-center text-xs text-muted">{tr({ en: "Tip: numbers grow as bookings, treatments and payments are recorded.", ar: "ملاحظة: الأرقام تكبر مع تسجيل الحجوزات والعلاجات والمدفوعات." })}</p>

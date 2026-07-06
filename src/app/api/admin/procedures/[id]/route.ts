@@ -8,18 +8,23 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (error) return error;
   const { id } = await ctx.params;
 
-  let body: { nameEn?: string; nameAr?: string; price?: number; active?: boolean };
+  let body: { nameEn?: string; nameAr?: string; price?: number; cost?: number | null; active?: boolean };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "bad_json" }, { status: 400 });
   }
 
-  const data: { nameEn?: string; nameAr?: string; price?: number; active?: boolean } = {};
+  const data: { nameEn?: string; nameAr?: string; price?: number; cost?: number | null; active?: boolean } = {};
   if (typeof body.nameEn === "string" && body.nameEn.trim()) data.nameEn = body.nameEn.trim();
   if (typeof body.nameAr === "string" && body.nameAr.trim()) data.nameAr = body.nameAr.trim();
   if (body.price != null && Number.isFinite(Number(body.price)) && Number(body.price) >= 0) {
     data.price = Number(body.price);
+  }
+  // cost: null or "" clears it; a valid number ≥ 0 sets it; anything else is ignored.
+  if ("cost" in body) {
+    if (body.cost == null || body.cost === ("" as unknown)) data.cost = null;
+    else if (Number.isFinite(Number(body.cost)) && Number(body.cost) >= 0) data.cost = Number(body.cost);
   }
   if (typeof body.active === "boolean") data.active = body.active;
 

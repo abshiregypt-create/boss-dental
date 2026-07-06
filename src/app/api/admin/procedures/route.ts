@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  let body: { nameEn?: string; nameAr?: string; price?: number };
+  let body: { nameEn?: string; nameAr?: string; price?: number; cost?: number | null };
   try {
     body = await req.json();
   } catch {
@@ -32,12 +32,20 @@ export async function POST(req: Request) {
   if (!nameEn && !nameAr) return NextResponse.json({ error: "name_required" }, { status: 400 });
   if (!Number.isFinite(price) || price < 0) return NextResponse.json({ error: "bad_price" }, { status: 400 });
 
+  // Optional net cost (materials/lab), for clinic-profit precision. null/blank = unset.
+  let cost: number | null = null;
+  if (body.cost != null && body.cost !== ("" as unknown)) {
+    const c = Number(body.cost);
+    if (Number.isFinite(c) && c >= 0) cost = c;
+  }
+
   const max = await prisma.procedure.aggregate({ _max: { sortOrder: true } });
   const procedure = await prisma.procedure.create({
     data: {
       nameEn: nameEn || nameAr,
       nameAr: nameAr || nameEn,
       price,
+      cost,
       active: true,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
     },

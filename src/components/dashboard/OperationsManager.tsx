@@ -9,10 +9,11 @@ type Procedure = {
   nameEn: string;
   nameAr: string;
   price: number;
+  cost: number | null;
   active: boolean;
 };
 
-type Draft = { id?: string; nameEn: string; nameAr: string; price: string };
+type Draft = { id?: string; nameEn: string; nameAr: string; price: string; cost: string };
 
 export function OperationsManager() {
   const { tr, lang } = useLang();
@@ -37,17 +38,20 @@ export function OperationsManager() {
     load();
   }, [load]);
 
-  const startAdd = () => setEditing({ nameEn: "", nameAr: "", price: "" });
+  const startAdd = () => setEditing({ nameEn: "", nameAr: "", price: "", cost: "" });
   const startEdit = (p: Procedure) =>
-    setEditing({ id: p.id, nameEn: p.nameEn, nameAr: p.nameAr, price: String(p.price) });
+    setEditing({ id: p.id, nameEn: p.nameEn, nameAr: p.nameAr, price: String(p.price), cost: p.cost == null ? "" : String(p.cost) });
 
   const save = async () => {
     if (!editing) return;
     const price = Number(editing.price);
     if ((!editing.nameEn.trim() && !editing.nameAr.trim()) || !Number.isFinite(price) || price < 0) return;
+    const costTrim = editing.cost.trim();
+    const cost = costTrim === "" ? null : Number(costTrim);
+    if (cost != null && (!Number.isFinite(cost) || cost < 0)) return;
     setSaving(true);
     try {
-      const payload = { nameEn: editing.nameEn.trim(), nameAr: editing.nameAr.trim(), price };
+      const payload = { nameEn: editing.nameEn.trim(), nameAr: editing.nameAr.trim(), price, cost };
       if (editing.id) {
         await fetch(`/api/admin/procedures/${editing.id}`, {
           method: "PATCH",
@@ -105,7 +109,7 @@ export function OperationsManager() {
 
       {editing && (
         <div className="rounded-2xl border border-primary/20 bg-surface p-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm">
               <span className="mb-1 block font-semibold text-ink">{tr({ en: "Name (Arabic)", ar: "الاسم بالعربي" })}</span>
               <input
@@ -126,7 +130,7 @@ export function OperationsManager() {
               />
             </label>
             <label className="text-sm">
-              <span className="mb-1 block font-semibold text-ink">{tr({ en: "Price (EGP)", ar: "السعر (ج.م)" })}</span>
+              <span className="mb-1 block font-semibold text-ink">{tr({ en: "Patient price (EGP)", ar: "سعر المريض (ج.م)" })}</span>
               <input
                 type="number"
                 min={0}
@@ -135,6 +139,26 @@ export function OperationsManager() {
                 onChange={(e) => setEditing({ ...editing, price: e.target.value })}
                 dir="ltr"
               />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block font-semibold text-ink">
+                {tr({ en: "Net cost (optional)", ar: "التكلفة الصافية (اختياري)" })}
+              </span>
+              <input
+                type="number"
+                min={0}
+                className="w-full rounded-lg border border-primary/15 bg-background px-3 py-2 text-ink outline-none focus:border-primary"
+                value={editing.cost}
+                onChange={(e) => setEditing({ ...editing, cost: e.target.value })}
+                placeholder={tr({ en: "materials/lab", ar: "خامات/معمل" })}
+                dir="ltr"
+              />
+              <span className="mt-1 block text-[11px] text-muted">
+                {tr({
+                  en: "Cost before profit (materials, lab). Used to show your exact net profit — leave blank if unknown.",
+                  ar: "التكلفة قبل الربح (خامات، معمل). تُستخدم لحساب صافي ربحك بدقة — اتركها فارغة إن لم تُعرف.",
+                })}
+              </span>
             </label>
           </div>
           <div className="mt-3 flex items-center gap-2">
@@ -174,9 +198,16 @@ export function OperationsManager() {
                 <p className="truncate font-bold text-ink">{lang === "ar" ? p.nameAr : p.nameEn}</p>
                 <p className="truncate text-xs text-muted" dir={lang === "ar" ? "ltr" : "rtl"}>{lang === "ar" ? p.nameEn : p.nameAr}</p>
               </div>
-              <span className="shrink-0 rounded-lg bg-primary/10 px-3 py-1 text-sm font-extrabold text-primary">
-                {formatMoney(p.price, lang)}
-              </span>
+              <div className="shrink-0 text-right">
+                <span className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm font-extrabold text-primary">
+                  {formatMoney(p.price, lang)}
+                </span>
+                {p.cost != null && (
+                  <span className="mt-0.5 block text-[11px] font-semibold text-emerald-600">
+                    {tr({ en: "profit", ar: "ربح" })} {formatMoney(Math.max(0, p.price - p.cost), lang)}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => toggleActive(p)}
                 title={p.active ? tr({ en: "Active", ar: "مفعّلة" }) : tr({ en: "Hidden", ar: "مخفية" })}

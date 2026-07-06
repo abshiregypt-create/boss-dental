@@ -130,6 +130,42 @@ export async function GET(req: Request) {
     else returningInRange++;
   }
 
+  // ---- Per-doctor earnings + operation mix (in range) ----
+  const doctorLinks = await prisma.treatmentDoctor.findMany({
+    where: since ? { treatmentRecord: { performedAt: { gte: since } } } : {},
+    include: {
+      treatmentRecord: { select: { nameEn: true, nameAr: true } },
+      doctor: { select: { nameEn: true, nameAr: true } },
+    },
+  });
+  const docEarn = new Map<string, { doctorId: string; nameEn: string; nameAr: string; amount: number; count: number }>();
+  const docProc = new Map<string, Map<string, { name: string; count: number }>>();
+  for (const l of doctorLinks) {
+    const de =
+      docEarn.get(l.doctorId) ??
+      { doctorId: l.doctorId, nameEn: l.doctor?.nameEn ?? "", nameAr: l.doctor?.nameAr ?? "", amount: 0, count: 0 };
+    de.amount += l.amount || 0;
+    de.count += 1;
+    docEarn.set(l.doctorId, de);
+
+    const pm = docProc.get(l.doctorId) ?? new Map<string, { name: string; count: number }>();
+    const pname = (l.treatmentRecord?.nameEn || l.treatmentRecord?.nameAr || "—").trim();
+    const pk = pname.toLowerCase();
+    const pe = pm.get(pk) ?? { name: pname, count: 0 };
+    pe.count += 1;
+    pm.set(pk, pe);
+    docProc.set(l.doctorId, pm);
+  }
+  const doctorEarnings = [...docEarn.values()]
+    .map((d) => ({ ...d, amount: Math.round(d.amount * 100) / 100 }))
+    .sort((a, b) => b.amount - a.amount);
+  const doctorProcedures = doctorEarnings.map((d) => ({
+    doctorId: d.doctorId,
+    nameEn: d.nameEn,
+    nameAr: d.nameAr,
+    items: [...(docProc.get(d.doctorId)?.values() ?? [])].sort((a, b) => b.count - a.count).slice(0, 6),
+  }));
+
   return NextResponse.json({
     range,
     kpis: {
@@ -146,5 +182,7 @@ export async function GET(req: Request) {
     monthly: months,
     methodMix,
     newVsReturning: { new: newInRange, returning: returningInRange },
+    doctorEarnings,
+    doctorProcedures,
   });
 }

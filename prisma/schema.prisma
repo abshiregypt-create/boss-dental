@@ -43,7 +43,8 @@ model Procedure {
   id        String   @id @default(cuid())
   nameEn    String
   nameAr    String
-  price     Float    @default(0) // default price in EGP
+  price     Float    @default(0) // patient/charged price in EGP (net + profit)
+  cost      Float? // optional net cost (صافي): materials/lab, before profit — for clinic-profit precision
   active    Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
@@ -66,13 +67,15 @@ model TreatmentRecord {
   nameAr        String
   basePrice     Float?    // list/catalog price before any discount (for display)
   discountPct   Float     @default(0) // percentage discount applied (0–100)
-  price         Float     @default(0) // net amount charged after discount (EGP)
+  price         Float     @default(0) // net amount charged after discount (EGP) — the doctor commission base
+  cost          Float?    // snapshot net cost (materials/lab) at time of operation, for clinic-profit precision
   notes         String?
   performedAt   DateTime  @default(now())
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   payments Payment[]
+  doctors  TreatmentDoctor[]
 
   @@index([patientId, performedAt])
 }
@@ -219,4 +222,78 @@ model ChatMessage {
 
   @@index([phone, createdAt])
   @@index([direction, readAt])
+}
+
+/// A doctor/practitioner at the clinic who can be assigned to operations. Managed
+/// by the owner (separate from the login `User`). `commissionPct` is the default
+/// percentage of the patient/charged price this doctor earns per operation; the
+/// clinic keeps the remainder. Editable per-operation at record time.
+model Doctor {
+  id            String   @id @default(cuid())
+  nameEn        String
+  nameAr        String
+  phone         String?
+  email         String?
+  specialtyEn   String?
+  specialtyAr   String?
+  photoUrl      String? // /uploads path or data URL for the profile picture
+  commissionPct Float    @default(0) // default % of the charged price (0–100)
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  treatments TreatmentDoctor[]
+
+  @@index([active, sortOrder])
+}
+
+/// Join row: a doctor assigned to a treatment/operation, with the commission
+/// percentage and earned amount SNAPSHOT at the time it was recorded (so later
+/// profile edits don't rewrite history). More than one doctor can share one
+/// operation; the clinic's share = price − Σ(amount).
+model TreatmentDoctor {
+  id                String          @id @default(cuid())
+  treatmentRecordId String
+  treatmentRecord   TreatmentRecord @relation(fields: [treatmentRecordId], references: [id], onDelete: Cascade)
+  doctorId          String
+  doctor            Doctor          @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  commissionPct     Float           @default(0) // snapshot % of the charged price for this operation
+  amount            Float           @default(0) // snapshot earned amount (pct% × price), EGP
+  createdAt         DateTime        @default(now())
+
+  @@unique([treatmentRecordId, doctorId])
+  @@index([doctorId])
+}
+
+/// A recurring monthly clinic expense (rent, electricity, or a custom type) that
+/// reduces the clinic's net profit on the Revenue page. `amount` is the default
+/// monthly value; a specific month can be overridden via ClinicExpenseOverride.
+model ClinicExpense {
+  id        String   @id @default(cuid())
+  labelEn   String
+  labelAr   String
+  kind      String   @default("custom") // rent | electricity | custom
+  amount    Float    @default(0) // default recurring monthly amount (EGP)
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  overrides ClinicExpenseOverride[]
+}
+
+/// Overrides the amount of a recurring ClinicExpense for one specific month
+/// (monthKey = "YYYY-MM"). Absent months fall back to ClinicExpense.amount.
+model ClinicExpenseOverride {
+  id        String        @id @default(cuid())
+  expenseId String
+  expense   ClinicExpense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  monthKey  String // "YYYY-MM"
+  amount    Float         @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([expenseId, monthKey])
 }

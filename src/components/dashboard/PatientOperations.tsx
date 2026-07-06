@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLang } from "@/lib/language";
 import { formatMoney } from "@/lib/patients";
 
-type Procedure = { id: string; nameEn: string; nameAr: string; price: number; active: boolean };
+type Procedure = { id: string; nameEn: string; nameAr: string; price: number; cost: number | null; active: boolean };
+type DoctorLite = { id: string; nameEn: string; nameAr: string; commissionPct: number; active: boolean };
+type TreatmentDoctor = { doctorId: string; nameEn: string; nameAr: string; commissionPct: number; amount: number };
 type Treatment = {
   id: string;
   procedureId: string | null;
@@ -13,9 +15,11 @@ type Treatment = {
   basePrice: number | null;
   discountPct: number;
   price: number;
+  cost: number | null;
   paid: number;
   notes: string | null;
   performedAt: string;
+  doctors: TreatmentDoctor[];
 };
 type Payment = {
   id: string;
@@ -41,6 +45,7 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
   const [payments, setPayments] = useState<Payment[]>([]);
   const [totals, setTotals] = useState<Totals>({ billed: 0, paid: 0, balance: 0 });
   const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [doctors, setDoctors] = useState<DoctorLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<null | "operation" | "payment">(null);
 
@@ -74,6 +79,10 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
     fetch("/api/admin/procedures", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { procedures: [] }))
       .then((j) => setProcedures((j.procedures ?? []).filter((p: Procedure) => p.active)))
+      .catch(() => {});
+    fetch("/api/admin/doctors", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { doctors: [] }))
+      .then((j) => setDoctors((j.doctors ?? []).filter((d: DoctorLite) => d.active)))
       .catch(() => {});
   }, []);
 
@@ -183,6 +192,16 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
                         </span>
                       )}
                     </div>
+                    {t.doctors.length > 0 && (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-primary/8 pt-2 text-[11px]">
+                        <span className="font-semibold text-muted">{tr({ en: "Doctors", ar: "الأطباء" })}:</span>
+                        {t.doctors.map((d) => (
+                          <span key={d.doctorId} className="inline-flex items-center gap-1 rounded-full bg-primary/8 px-2 py-0.5 font-semibold text-primary">
+                            {lang === "ar" ? d.nameAr : d.nameEn} · {d.commissionPct}% · {formatMoney(d.amount, lang)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -221,6 +240,7 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
           phone={phone}
           name={name}
           procedures={procedures}
+          doctors={doctors}
           onClose={() => setModal(null)}
           onSaved={() => {
             setModal(null);
@@ -275,12 +295,14 @@ function OperationModal({
   phone,
   name,
   procedures,
+  doctors,
   onClose,
   onSaved,
 }: {
   phone: string;
   name: string;
   procedures: Procedure[];
+  doctors: DoctorLite[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -288,7 +310,9 @@ function OperationModal({
   const [procId, setProcId] = useState<string>(procedures[0]?.id ?? "custom");
   const [customName, setCustomName] = useState("");
   const [price, setPrice] = useState<string>(procedures[0] ? String(procedures[0].price) : "");
+  const [cost, setCost] = useState<string>(procedures[0]?.cost != null ? String(procedures[0].cost) : "");
   const [discount, setDiscount] = useState("");
+  const [assigned, setAssigned] = useState<{ doctorId: string; pct: string }[]>([]);
   const [payChoice, setPayChoice] = useState<"none" | "full" | "partial">("none");
   const [partial, setPartial] = useState("");
   const [method, setMethod] = useState<string>("cash");
@@ -304,6 +328,35 @@ function OperationModal({
     [priceNum, discountPct]
   );
 
+  // Commission preview: each assigned doctor takes pct% of the net price; the
+  // clinic keeps the remainder. Σ doctor % must stay ≤ 100.
+  const docName = (id: string) => {
+    const d = doctors.find((x) => x.id === id);
+    return d ? (lang === "ar" ? d.nameAr : d.nameEn) : "";
+  };
+  const preview = useMemo(() => {
+    let totalPct = 0;
+    const rows = assigned.map((a) => {
+      const pct = Math.min(100, Math.max(0, Number(a.pct) || 0));
+      totalPct += pct;
+      return { doctorId: a.doctorId, pct, amount: Math.round(netPrice * (pct / 100) * 100) / 100 };
+    });
+    const docAmount = Math.round(rows.reduce((s, r) => s + r.amount, 0) * 100) / 100;
+    const clinicShare = Math.round((netPrice - docAmount) * 100) / 100;
+    return { rows, totalPct: Math.round(totalPct * 100) / 100, docAmount, clinicShare };
+  }, [assigned, netPrice]);
+  const overCommission = preview.totalPct > 100;
+
+  const availableDoctors = doctors.filter((d) => !assigned.some((a) => a.doctorId === d.id));
+  const addDoctor = (id: string) => {
+    const d = doctors.find((x) => x.id === id);
+    if (!d) return;
+    setAssigned((prev) => [...prev, { doctorId: id, pct: String(d.commissionPct || 0) }]);
+  };
+  const removeDoctor = (id: string) => setAssigned((prev) => prev.filter((a) => a.doctorId !== id));
+  const setDoctorPct = (id: string, pct: string) =>
+    setAssigned((prev) => prev.map((a) => (a.doctorId === id ? { ...a, pct } : a)));
+
   const paidNow = useMemo(() => {
     if (payChoice === "full") return netPrice;
     if (payChoice === "partial") return Number(partial) || 0;
@@ -313,12 +366,19 @@ function OperationModal({
   const onPickProc = (id: string) => {
     setProcId(id);
     const p = procedures.find((x) => x.id === id);
-    if (p) setPrice(String(p.price));
+    if (p) {
+      setPrice(String(p.price));
+      setCost(p.cost != null ? String(p.cost) : "");
+    }
   };
 
   const save = async () => {
     if (!Number.isFinite(priceNum) || priceNum < 0) return;
     if (isCustom && !customName.trim()) return;
+    if (overCommission) return;
+    const costTrim = cost.trim();
+    const costNum = costTrim === "" ? null : Number(costTrim);
+    if (costNum != null && (!Number.isFinite(costNum) || costNum < 0)) return;
     setSaving(true);
     try {
       const proc = procedures.find((x) => x.id === procId);
@@ -330,6 +390,10 @@ function OperationModal({
         nameAr: isCustom ? customName.trim() : proc?.nameAr ?? customName.trim(),
         price: priceNum, // list price (backend applies the discount)
         discountPct,
+        cost: costNum,
+        doctors: assigned
+          .filter((a) => (Number(a.pct) || 0) > 0)
+          .map((a) => ({ doctorId: a.doctorId, commissionPct: Number(a.pct) || 0 })),
         notes: notes.trim() || undefined,
         paidNow: paidNow > 0 ? Math.min(paidNow, netPrice) : undefined,
         method,
@@ -377,6 +441,70 @@ function OperationModal({
             <input type="number" min={0} max={100} dir="ltr" className={inputCls} value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" />
           </label>
         </div>
+
+        <label className="block text-sm">
+          <span className="mb-1 block font-semibold text-ink">{tr({ en: "Net cost (optional)", ar: "التكلفة الصافية (اختياري)" })}</span>
+          <input type="number" min={0} dir="ltr" className={inputCls} value={cost} onChange={(e) => setCost(e.target.value)} placeholder={tr({ en: "materials/lab — for profit tracking", ar: "خامات/معمل — لحساب الربح" })} />
+        </label>
+
+        {doctors.length > 0 && (
+          <div className="rounded-xl border border-primary/12 bg-surface-2 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-sm font-bold text-ink">{tr({ en: "Doctors", ar: "الأطباء" })}</span>
+              {availableDoctors.length > 0 && (
+                <select
+                  className="rounded-lg border border-primary/15 bg-surface px-2 py-1 text-xs text-ink outline-none focus:border-primary"
+                  value=""
+                  onChange={(e) => e.target.value && addDoctor(e.target.value)}
+                >
+                  <option value="">{tr({ en: "+ Add doctor", ar: "+ إضافة طبيب" })}</option>
+                  {availableDoctors.map((d) => (
+                    <option key={d.id} value={d.id}>{lang === "ar" ? d.nameAr : d.nameEn}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {assigned.length === 0 ? (
+              <p className="py-1 text-xs text-muted">{tr({ en: "No doctor assigned. Add who performed this operation to track commission.", ar: "لم يُسند طبيب. أضف من أجرى هذه العملية لحساب العمولة." })}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {preview.rows.map((r) => (
+                  <div key={r.doctorId} className="flex items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{docName(r.doctorId)}</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        dir="ltr"
+                        className="w-16 rounded-lg border border-primary/15 bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-primary"
+                        value={assigned.find((a) => a.doctorId === r.doctorId)?.pct ?? ""}
+                        onChange={(e) => setDoctorPct(r.doctorId, e.target.value)}
+                      />
+                      <span className="text-xs text-muted">%</span>
+                    </div>
+                    <span className="w-20 shrink-0 text-right text-xs font-bold text-primary">{formatMoney(r.amount, lang)}</span>
+                    <button onClick={() => removeDoctor(r.doctorId)} title={tr({ en: "Remove", ar: "إزالة" })} className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted transition hover:bg-rose-500/10 hover:text-rose-600">
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                ))}
+                <div className="mt-1 flex items-center justify-between border-t border-primary/10 pt-1.5 text-xs">
+                  <span className={`font-semibold ${overCommission ? "text-rose-600" : "text-muted"}`}>
+                    {tr({ en: "Doctors", ar: "الأطباء" })}: {preview.totalPct}% · {formatMoney(preview.docAmount, lang)}
+                  </span>
+                  <span className="font-bold text-emerald-700">
+                    {tr({ en: "Clinic", ar: "العيادة" })}: {formatMoney(preview.clinicShare, lang)}
+                  </span>
+                </div>
+                {overCommission && (
+                  <p className="text-[11px] font-semibold text-rose-600">{tr({ en: "Total commission can't exceed 100%.", ar: "لا يمكن أن يتجاوز إجمالي العمولة 100٪." })}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {discountPct > 0 && priceNum > 0 && (
           <p className="rounded-lg border border-amber-300/40 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -437,7 +565,7 @@ function OperationModal({
         <div className="flex gap-2 pt-1">
           <button
             onClick={save}
-            disabled={saving}
+            disabled={saving || overCommission}
             className="flex-1 rounded-lg bg-gradient-to-r from-primary to-primary-dark px-4 py-2 text-sm font-semibold text-[#0a0e12] transition hover:-translate-y-0.5 disabled:opacity-60"
           >
             {saving ? tr({ en: "Saving…", ar: "جارٍ الحفظ…" }) : tr({ en: "Save operation", ar: "حفظ العملية" })}

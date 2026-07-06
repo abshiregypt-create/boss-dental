@@ -21,6 +21,7 @@ import { DoctorsManager } from "./DoctorsManager";
 import { RevenueSection } from "./RevenueSection";
 import { EarningsDashboard } from "./EarningsDashboard";
 import { RemindersSection } from "./RemindersSection";
+import { CalendarSection } from "./CalendarSection";
 import { AddAppointmentModal, QuickOperationModal } from "./QuickActions";
 import type { Procedure, DoctorLite } from "./PatientOperations";
 import {
@@ -75,21 +76,6 @@ function StatCard({
         </div>
       </div>
       {caption && <p className="mt-2 truncate text-xs text-muted">{caption}</p>}
-    </div>
-  );
-}
-
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="grid min-h-[24rem] place-items-center rounded-2xl border border-dashed border-primary/15 bg-surface text-center">
-      <div className="text-muted">
-        <svg viewBox="0 0 24 24" className="mx-auto h-12 w-12 opacity-40" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 8v4l3 2" />
-        </svg>
-        <p className="mt-3 font-bold text-ink">{label}</p>
-        <p className="text-sm">Coming soon</p>
-      </div>
     </div>
   );
 }
@@ -980,9 +966,7 @@ export function DoctorDashboard() {
 
           {activeNav === "settings" && <SettingsSection />}
 
-          {activeNav === "calendar" && (
-            <ComingSoon label={tr(navItems.find((n) => n.id === activeNav)!.label)} />
-          )}
+          {activeNav === "calendar" && <CalendarSection />}
         </main>
       </div>
 

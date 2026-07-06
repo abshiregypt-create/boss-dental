@@ -53,21 +53,7 @@ export type Appointment = {
   doctorName?: string; // assigned doctor (DB appointments booked from the dashboard)
 };
 
-export const seedAppointments: Appointment[] = [
-  // ---- Today ----
-  { id: "a1", patient: { en: "Ahmed Kamal", ar: "أحمد كمال" }, typeId: "checkup", dayOffset: 0, start: "10:00", status: "confirmed", phone: "+20 100 221 8841" },
-  { id: "a2", patient: { en: "Mona Saleh", ar: "منى صالح" }, typeId: "whitening", dayOffset: 0, start: "11:00", status: "confirmed", phone: "+20 101 553 2290" },
-  { id: "a3", patient: { en: "Youssef Adel", ar: "يوسف عادل" }, typeId: "hard_filling", dayOffset: 0, start: "12:30", status: "confirmed", phone: "+20 122 980 7741" },
-  { id: "a4", patient: { en: "Salma Hany", ar: "سلمى هاني" }, typeId: "cleaning", dayOffset: 0, start: "15:00", status: "confirmed", phone: "+20 111 442 6610" },
-  { id: "a5", patient: { en: "Tarek Nabil", ar: "طارق نبيل" }, typeId: "root_canal", dayOffset: 0, start: "18:00", status: "confirmed", phone: "+20 128 330 9912" },
-  // ---- Tomorrow ----
-  { id: "a6", patient: { en: "Hana Fathy", ar: "هنا فتحي" }, typeId: "filling", dayOffset: 1, start: "10:30", status: "confirmed", phone: "+20 100 776 1188" },
-  { id: "a7", patient: { en: "Omar Sherif", ar: "عمر شريف" }, typeId: "implant", dayOffset: 1, start: "13:00", status: "confirmed", phone: "+20 106 219 4453" },
-  { id: "a8", patient: { en: "Lila Mostafa", ar: "ليلى مصطفى" }, typeId: "crown", dayOffset: 1, start: "16:30", status: "confirmed", phone: "+20 109 884 2200" },
-  // ---- In 2 days ----
-  { id: "a9", patient: { en: "Khaled Anwar", ar: "خالد أنور" }, typeId: "extraction", dayOffset: 2, start: "11:00", status: "confirmed", phone: "+20 127 540 1129" },
-  { id: "a10", patient: { en: "Rana Wael", ar: "رنا وائل" }, typeId: "whitening", dayOffset: 2, start: "14:00", status: "confirmed", phone: "+20 102 668 3370" },
-];
+export const seedAppointments: Appointment[] = [];
 
 /* ---------------- Booking requests (حجوزات جديدة) ---------------- */
 export type RequestStatus = "new" | "confirmed" | "declined";
@@ -84,78 +70,7 @@ export type BookingRequest = {
   status: RequestStatus;
 };
 
-export const seedRequests: BookingRequest[] = [
-  {
-    id: "r1",
-    patient: { en: "Nourhan Adel", ar: "نورهان عادل" },
-    phone: "+20 100 982 4471",
-    complaint: {
-      en: "Sharp pain in a lower back tooth when eating sweets.",
-      ar: "ألم حاد في ضرس سفلي خلفي عند تناول الحلويات.",
-    },
-    typeId: "hard_filling",
-    dayOffset: 0,
-    start: "16:00",
-    createdAgoMin: 8,
-    status: "new",
-  },
-  {
-    id: "r2",
-    patient: { en: "Mostafa Lotfy", ar: "مصطفى لطفي" },
-    phone: "+20 122 117 6650",
-    complaint: {
-      en: "Wants to whiten teeth before his wedding next month.",
-      ar: "يريد تبييض الأسنان قبل زفافه الشهر القادم.",
-    },
-    typeId: "whitening",
-    dayOffset: 1,
-    start: "17:00",
-    createdAgoMin: 35,
-    status: "new",
-  },
-  {
-    id: "r3",
-    patient: { en: "Dina Magdy", ar: "دينا مجدي" },
-    phone: "+20 111 304 9928",
-    complaint: {
-      en: "Bleeding gums and bad breath for two weeks.",
-      ar: "نزيف باللثة ورائحة فم منذ أسبوعين.",
-    },
-    typeId: "cleaning",
-    dayOffset: 0,
-    start: "19:30",
-    createdAgoMin: 52,
-    status: "new",
-  },
-  {
-    id: "r4",
-    patient: { en: "Hassan Gamal", ar: "حسن جمال" },
-    phone: "+20 128 776 3310",
-    complaint: {
-      en: "Broken front tooth from a fall, needs urgent fix.",
-      ar: "كسر في سن أمامي بعد سقوط، يحتاج إصلاح عاجل.",
-    },
-    typeId: "crown",
-    dayOffset: 2,
-    start: "12:00",
-    createdAgoMin: 96,
-    status: "new",
-  },
-  {
-    id: "r5",
-    patient: { en: "Aya Ramadan", ar: "آية رمضان" },
-    phone: "+20 106 552 8801",
-    complaint: {
-      en: "Routine check-up and cleaning, no pain.",
-      ar: "كشف دوري وتنظيف، لا يوجد ألم.",
-    },
-    typeId: "checkup",
-    dayOffset: 3,
-    start: "11:30",
-    createdAgoMin: 140,
-    status: "new",
-  },
-];
+export const seedRequests: BookingRequest[] = [];
 
 /* ---------------- Time helpers ---------------- */
 export function hhmmToMin(hhmm: string): number {

@@ -1,2 +1,2 @@
-﻿-- AlterTable
-ALTER TABLE "Patient" ADD COLUMN     "medical" JSONB;
+-- AlterTable
+ALTER TABLE "Patient" ADD COLUMN "medical" JSONB;

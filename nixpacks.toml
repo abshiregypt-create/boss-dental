@@ -13,12 +13,6 @@
 # devDependencies are force-included because Railway builds with
 # NODE_ENV=production (npm would otherwise omit tailwind + typescript).
 #
-# NEXT_PUBLIC_CLINIC is inlined into the client bundle at build time. Turbopack's
-# incremental cache (.next/cache, a Railway build-cache mount) can reuse the old
-# compiled modules when only that env var changes, so a redeploy would keep the
-# previous clinic's branding. We wipe .next/cache before building so every deploy
-# recompiles with the CURRENT clinic value. Correctness > a few seconds of cache.
-#
 # The start command + healthcheck live in railway.json.
 
 [variables]
@@ -31,4 +25,4 @@ cmds = ["npm ci --include=dev"]
 
 [phases.build]
 dependsOn = ["install"]
-cmds = ["npx prisma generate", "rm -rf .next/cache && npm run build"]
+cmds = ["npx prisma generate", "npm run build"]

@@ -16,6 +16,10 @@
 # The start command + healthcheck live in railway.json.
 
 [variables]
+# Clinic timezone. Appointment slot/day math reads the process TZ; pin it so a
+# UTC host doesn't drift from the Cairo-formatted times shown to patients.
+# (instrumentation.ts also defaults this at runtime if unset.)
+TZ = "Africa/Cairo"
 PUPPETEER_SKIP_DOWNLOAD = "true"
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
 NEXT_TELEMETRY_DISABLED = "1"

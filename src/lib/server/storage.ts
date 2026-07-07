@@ -13,9 +13,25 @@ export async function ensureUploadsDir(): Promise<string> {
   return dir;
 }
 
-/** Absolute path for a stored file's relative storagePath. */
+/**
+ * Absolute path for a stored file's relative storagePath.
+ * Uses path.resolve to collapse any `..` components, then verifies the result is
+ * still strictly inside the uploads directory. This is a traversal-proof
+ * containment check: even a malicious storagePath written directly to the DB
+ * cannot escape the uploads root.
+ */
 export function resolveStored(storagePath: string): string {
-  return path.join(uploadsDir(), storagePath);
+  const base = uploadsDir();
+  const resolved = path.resolve(base, storagePath);
+  const allowedPrefix = base.endsWith(path.sep) ? base : base + path.sep;
+  if (!resolved.startsWith(allowedPrefix)) {
+    console.error(
+      `[storage] Path traversal detected: storagePath=${JSON.stringify(storagePath)} ` +
+        `resolved=${JSON.stringify(resolved)} base=${JSON.stringify(base)}`,
+    );
+    throw new Error("storage_path_traversal");
+  }
+  return resolved;
 }
 
 const SAFE = /[^a-zA-Z0-9._-]/g;
@@ -37,8 +53,9 @@ export const ALLOWED_MIME = new Set([
 export const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 export async function writeFileBuffer(relName: string, buf: Buffer): Promise<void> {
+  const dest = resolveStored(relName); // throws on traversal before any I/O
   await ensureUploadsDir();
-  await fs.writeFile(resolveStored(relName), buf);
+  await fs.writeFile(dest, buf);
 }
 
 export async function deleteStored(storagePath: string): Promise<void> {

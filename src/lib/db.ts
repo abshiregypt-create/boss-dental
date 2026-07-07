@@ -9,4 +9,9 @@ export const prisma =
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// Cache the client on the global in EVERY environment. Cliniva runs as a
+// long-lived server (Railway `next start`) and as an Electron desktop process —
+// never per-request serverless — so skipping the cache in production would open a
+// fresh connection pool on each cold module load and exhaust Postgres'
+// max_connections under load. (Reviewed: backend blueprint Issue 9.)
+globalForPrisma.prisma = prisma;

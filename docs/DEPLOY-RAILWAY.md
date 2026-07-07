@@ -48,6 +48,7 @@ and fill in the real values. The essential ones:
 | `SEED_DOCTOR_NAME` | `Dr. Ibrahim Salah` |
 | `WHATSAPP_PROVIDER` | `mock` |
 | `SCHEDULER_ENABLED` | `0` |
+| `TZ` | `Africa/Cairo` (clinic timezone — see note below) |
 
 Generate `AUTH_SECRET`:
 ```
@@ -57,6 +58,12 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 > `NEXT_PUBLIC_CLINIC` **must** be present before the build — it is compiled
 > into the site's branding. Railway applies variables at build + runtime, so
 > setting it here is enough; just trigger a fresh deploy after saving.
+
+> **`TZ=Africa/Cairo`** — appointment slot/day math reads the process timezone.
+> Railway runs in UTC, which would drift ~2–3h from the Cairo times patients
+> see. `instrumentation.ts` defaults `TZ` to `Africa/Cairo` at boot if unset, so
+> this variable is a belt-and-suspenders (it also makes container logs/cron use
+> Cairo). No data is migrated — stored instants are UTC and unchanged.
 
 ## 4. Deploy
 - Service → **Deploy** (or push a new commit). Railway will:
@@ -118,6 +125,12 @@ which of the above it is.
 ---
 
 ## Notes & gotchas
+- **Money migration deploy order (recovery sprint).** The `20260709000002_money_decimal`
+  migration converts all monetary columns from float to `NUMERIC(12,2)` in place
+  via `ALTER COLUMN ... USING round(col, 2)`. It runs automatically as part of
+  `prisma migrate deploy` on start (before `next start`), preserves existing
+  values, and needs no app downtime. If you run migrations manually, apply it
+  **before** deploying the new app build (the code expects Decimal columns).
 - **Single instance still recommended.** The uploads Volume at `/data` is a
   single disk, and the in-process reminder scheduler assumes one instance, so
   keep the web service at one replica. (Postgres itself handles concurrency

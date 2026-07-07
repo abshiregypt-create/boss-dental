@@ -63,6 +63,39 @@ response, plus `Strict-Transport-Security` on hosted HTTPS builds. A full
 Content-Security-Policy (needs per-request nonces for Next's inline runtime) is
 tracked as a follow-up.
 
+## Controls implemented (Sprint 2 — Access Control & Financial Integrity)
+
+### 10. Role-based access control (SEC-02)
+`requireRole()` in `src/lib/server/guard.ts` enforces coarse roles on admin
+routes; `OWNER_ROLES` gates owner-only financial and destructive operations.
+Roles are read from the authenticated session, not from client input.
+
+### 11. Session revocation via `tokenVersion` (SEC-12)
+Each user row carries a `tokenVersion`; the JWT embeds it as `ver`. `guard.ts`
+rejects any token whose `ver` no longer matches the database, so logout and
+forced sign-out revoke **already-issued** tokens (DB-backed revocation rather
+than stateless-until-expiry). Login/logout bump the version.
+
+### 12. IDOR scoping on record reads (SEC-05)
+`[id]` routes that return patient files resolve the record **scoped to its
+owner** and reject cross-patient ids instead of trusting the path parameter,
+closing insecure direct object references.
+
+### 13. Audit trail (SEC-12)
+An `AuditLog` table records actor, action, entity, and metadata for destructive
+and financial operations (deletes, payouts, expense/price changes) via a shared
+helper, giving a tamper-evident history for investigations.
+
+### 14. Seed without default credentials (SEC-03)
+`prisma/seed.mjs` refuses to create the first user with a baked-in password: in
+production `SEED_DOCTOR_PASSWORD` is mandatory, so a fresh deployment can never
+ship with a guessable default login.
+
+### 15. Money stored as exact Decimal (DB-01)
+All monetary columns are SQL `NUMERIC` (Prisma `Decimal`), not float, so
+balances, commissions, and revenue cannot drift through binary rounding. See
+`docs/DATA-MODEL.md` and `docs/DEPLOY-RAILWAY.md` (migration deploy order).
+
 ## Testing
 
 Pure security logic is covered by `node --test` unit tests:
@@ -71,12 +104,17 @@ Pure security logic is covered by `node --test` unit tests:
 - `tests/unit/auth-secret.test.mjs` — secret validation
 - `tests/unit/magic-byte.test.mjs` — upload signature checks
 - `tests/unit/rate-limit.test.mjs` — throttling window/reset
+- `tests/unit/rbac.test.mjs` — role/owner gating
+- `tests/unit/seed-password.test.mjs` — no default credentials
+- `tests/unit/money.test.mjs` — exact Decimal money conversion
+- `tests/unit/timezone.test.mjs` — Cairo timezone slot consistency
+- `tests/unit/appointment-code.test.mjs` — unique-code allocation race
 
 Run: `npm run test:unit`
 
 ## Deferred / follow-up (require Product Owner approval — see roadmap)
 
-- **RBAC / role enforcement (SEC-02)** — changes *permissions* behavior.
-- **Session revocation via `tokenVersion` (SEC-12)** — schema migration.
 - **Content-Security-Policy** — needs nonce integration with the app shell.
-- **IDOR scoping (SEC-05)** — changes access behavior on `[id]` routes.
+- **Timezone rewrite for multi-region** — the current fix pins the process to
+  `Africa/Cairo` (see `docs/DEPLOY-RAILWAY.md`); true per-clinic timezones are a
+  future enhancement.

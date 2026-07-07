@@ -4,6 +4,46 @@ All notable changes to the BDIC site. Format loosely follows [Keep a Changelog](
 
 ## [Unreleased]
 
+### Recovery / Production-Readiness sprints (branch `recovery/production-readiness`)
+
+Hardening pass from the 10-expert production-readiness audit. No existing feature
+removed; business rules (financial calc, commissions, payments, appointment and
+inventory workflows, permissions, taxes) preserved. Every task ships with tests
+and docs. Backward compatible.
+
+#### Sprint 2 — Access Control & Financial Integrity
+- **RBAC (SEC-02)** — `requireRole()` + `OWNER_ROLES` in `src/lib/server/guard.ts`
+  gate admin/owner routes from the authenticated session (not client input).
+- **Session revocation (SEC-12)** — `User.tokenVersion` embedded in the JWT (`ver`);
+  `guard.ts` rejects stale tokens so logout/forced sign-out revoke issued tokens.
+- **Audit trail (SEC-12)** — new `AuditLog` table + shared helper records actor,
+  action, entity, and metadata on destructive and financial operations.
+- **IDOR scoping (SEC-05)** — patient-file `[id]` reads resolve records scoped to
+  their owner and reject cross-patient ids.
+- **No default credentials (SEC-03)** — `prisma/seed.mjs` requires
+  `SEED_DOCTOR_PASSWORD` in production; no baked-in first-user password.
+- **Exact money (DB-01)** — all 13 monetary columns migrated float → `Decimal`
+  (`NUMERIC(12,2)`, percentages `NUMERIC(5,2)`). New `src/lib/server/money.ts`
+  converts Decimal↔number at the API boundary so JSON stays numeric and the
+  frontend is unchanged. Migration `20260709000002_money_decimal` preserves values.
+- **Reliability** — atomic treatment+payment write (`prisma.$transaction`),
+  appointment unique-code allocation retry on P2002, and idempotent
+  claim-then-send scheduling for reminders/follow-ups (exactly-once on success).
+- **Timezone (s2-tz)** — process timezone pinned to `Africa/Cairo` (via
+  `instrumentation.ts` default + `TZ` env in deploy templates) so appointment
+  slot/day math agrees with the Cairo times patients see. Non-destructive; no
+  stored instants changed. (Commits `6e933cd`, `aaf0e07`, `c003d5c`, `62107b6`.)
+
+#### Sprint 1 — Security & Reliability Hardening
+- **Route middleware (SEC-01)** — `src/middleware.ts` (replacing the dead
+  `src/proxy.ts` Next never ran) protects `/dashboard*`.
+- **AUTH_SECRET strength (SEC-07)**, **WhatsApp webhook fail-closed (SEC-06)**,
+  **simulate-endpoint gating (SEC-06)**, **path-traversal containment (SEC-08)**,
+  **upload content/magic-byte validation + safe downloads (SEC-11)**,
+  **login rate limiting (SEC-04)**, **baseline security headers (SEC-09)**.
+  Full detail in `docs/SECURITY.md`. (Commits `529fce2`, `39c27b8`.)
+
+
 ### Added — WhatsApp "Confirm on WhatsApp" free-trick flow
 - Website booking success now shows a **"Confirm on WhatsApp"** button that opens a chat with a
   prefilled message **from the customer to the clinic** (`confirmOnWhatsAppLink()` in `site.ts`).

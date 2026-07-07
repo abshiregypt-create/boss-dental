@@ -136,6 +136,14 @@ that's the "N patients ahead of you" number.
 | `20260620215010_init` | User, Patient, Appointment, Message, Setting |
 | `20260621052309_patient_files` | PatientFile |
 | `20260627112143_wa_conversation` | WaConversation |
+| `20260709000001_audit_and_token_version` | `AuditLog` table + `User.tokenVersion` (session revocation + audit trail) |
+| `20260709000002_money_decimal` | Converts all monetary columns from float to `NUMERIC(12,2)` / percentages to `NUMERIC(5,2)` (exact money) |
+
+**Money is stored as exact `Decimal`** (SQL `NUMERIC`), never float, so balances,
+commissions, and revenue cannot drift through binary rounding. The API converts
+Decimal↔number at the server boundary (`src/lib/server/money.ts`), so JSON stays
+numeric and the frontend is unaffected. See `docs/DEPLOY-RAILWAY.md` for the
+money migration deploy order.
 
 **Rules**
 - Schema changes go through `npm run db:migrate` (dev) → commit the generated migration.

@@ -5,447 +5,318 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>دليل استخدام نظام إدارة العيادة</title>
 <style>
-:root{
-  --bg:#0f172a;--card:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;
-  --blue:#3b82f6;--teal:#0d9488;--green:#16a34a;
-}
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;--blue:#3b82f6;--teal:#0d9488;--green:#22c55e;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,Arial,sans-serif;height:100vh;overflow:hidden;direction:rtl;}
-
-/* ── Layout ── */
 #app{display:flex;flex-direction:column;height:100vh;}
-#top-bar{height:4px;background:var(--border);flex-shrink:0;position:relative;}
-#top-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .4s ease;width:0%;}
-
+#top-bar{height:4px;background:var(--border);flex-shrink:0;}
+#top-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .4s ease;width:0%;}
 #main{flex:1;display:flex;overflow:hidden;}
 
-/* ── Sidebar ── */
-#sidebar{width:260px;flex-shrink:0;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
-#sidebar-header{padding:20px 18px 12px;border-bottom:1px solid var(--border);}
-#sidebar-header h2{font-size:14px;font-weight:800;line-height:1.4;}
-#sidebar-header p{font-size:11px;color:var(--muted);margin-top:3px;}
-#nav-list{padding:10px 10px;display:flex;flex-direction:column;gap:2px;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);transition:all .2s;border:none;background:none;width:100%;text-align:right;}
-.nav-item:hover{background:rgba(59,130,246,.08);color:var(--text);}
-.nav-item.active{background:rgba(59,130,246,.15);color:var(--blue);font-weight:700;}
-.nav-num{width:20px;height:20px;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
-.nav-item.active .nav-num{background:var(--blue);color:#fff;}
+/* Sidebar */
+#sidebar{width:240px;flex-shrink:0;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;}
+#sb-head{padding:16px 14px 10px;border-bottom:1px solid var(--border);}
+#sb-head h2{font-size:13px;font-weight:800;}
+#sb-head p{font-size:10px;color:var(--muted);margin-top:2px;}
+#nav-list{flex:1;overflow-y:auto;padding:6px;}
+.nav-btn{display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;border-radius:7px;border:none;background:none;color:var(--muted);font-size:11px;cursor:pointer;text-align:right;transition:all .15s;}
+.nav-btn:hover{background:rgba(59,130,246,.08);color:var(--text);}
+.nav-btn.active{background:rgba(59,130,246,.15);color:var(--blue);font-weight:700;}
+.nav-btn.step-btn{padding-right:20px;font-size:10px;}
+.nav-btn.step-btn.active{background:rgba(34,197,94,.1);color:var(--green);}
+.nav-sep{font-size:9px;color:var(--muted);padding:8px 8px 3px;letter-spacing:1px;text-transform:uppercase;}
+.nb-num{width:18px;height:18px;border-radius:5px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.nav-btn.active .nb-num{background:var(--blue);color:#fff;}
+.nav-btn.step-btn.active .nb-num{background:var(--green);color:#fff;}
 
-/* ── Content area ── */
+/* Content */
 #content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 #slide-area{flex:1;position:relative;overflow:hidden;}
-.slide{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .4s ease;}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .35s;}
 .slide.active{opacity:1;pointer-events:all;}
 
-/* ── Slide header ── */
-.slide-header{padding:16px 24px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.slide-tag{font-size:10px;color:var(--blue);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
-.slide-title{font-size:22px;font-weight:900;}
-.slide-desc{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;}
+/* Slide header */
+.sh{padding:14px 20px 10px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:12px;}
+.sh-badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(59,130,246,.15);color:var(--blue);}
+.sh-badge.step{background:rgba(34,197,94,.15);color:var(--green);}
+.sh-title{font-size:18px;font-weight:900;}
+.sh-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5;}
 
-/* ── Screenshot area ── */
-.screenshot-wrap{flex:1;padding:16px 24px;display:flex;gap:16px;overflow:hidden;min-height:0;}
-.screenshot-img{flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#000;display:flex;align-items:center;justify-content:center;min-width:0;}
-.screenshot-img img{width:100%;height:100%;object-fit:contain;object-position:top center;}
+/* Main content */
+.sc-wrap{flex:1;display:flex;gap:12px;padding:12px 16px;overflow:hidden;min-height:0;}
+.sc-img{flex:1;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#000;min-width:0;position:relative;}
+.sc-img img{width:100%;height:100%;object-fit:contain;object-position:top;}
 
-/* ── Feature panel ── */
-.feat-panel{width:220px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;}
-.feat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
-.feat-title{font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:6px;}
+/* step annotation overlay */
+.annotation{position:absolute;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;pointer-events:none;white-space:nowrap;}
+.ann-blue{background:var(--blue);color:#fff;}
+.ann-green{background:var(--green);color:#000;}
+.ann-arrow{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;animation:pulse-ann 1.5s ease-in-out infinite;}
+@keyframes pulse-ann{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
+
+/* Right panel */
+.rp{width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.feat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 10px;}
+.feat-title{font-size:11px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:6px;}
 .feat-body{font-size:11px;color:var(--muted);line-height:1.6;}
+.step-card{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:9px 10px;}
+.step-num{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--green);color:#000;font-size:10px;font-weight:800;text-align:center;line-height:20px;margin-left:6px;}
 
-/* ── Controls ── */
-#controls{height:64px;background:var(--card);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0;}
-#audio-row{flex:1;display:flex;align-items:center;gap:12px;}
-.ctrl-btn{background:var(--border);border:none;color:var(--text);padding:7px 18px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;transition:background .15s;}
-.ctrl-btn:hover{background:#475569;}
-.ctrl-btn.primary{background:var(--blue);}
-.ctrl-btn.primary:hover{background:#2563eb;}
-#audio-track{flex:1;height:5px;background:var(--border);border-radius:3px;cursor:pointer;position:relative;}
-#audio-played{height:100%;border-radius:3px;background:var(--blue);width:0%;transition:width .1s linear;}
-#counter{font-size:11px;color:var(--muted);white-space:nowrap;min-width:48px;text-align:center;}
+/* Intro */
+.intro-body{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:32px;text-align:center;}
+.intro-icon{width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:40px;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.intro-pills{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:520px;}
+.pill{padding:4px 12px;border-radius:20px;font-size:11px;background:var(--card);border:1px solid var(--border);color:var(--muted);}
+.pill.step-pill{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3);color:var(--green);}
 
-/* ── Intro slide ── */
-.intro-body{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;padding:40px;text-align:center;}
-.intro-icon{width:90px;height:90px;border-radius:22px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:44px;animation:float 3s ease-in-out infinite;}
-@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
-.intro-title{font-size:30px;font-weight:900;}
-.intro-sub{color:var(--muted);font-size:14px;max-width:440px;line-height:1.7;}
-.intro-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:500px;}
-.pill{padding:5px 14px;border-radius:20px;font-size:12px;background:var(--card);border:1px solid var(--border);color:var(--muted);}
+/* Controls */
+#controls{height:60px;background:var(--card);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;}
+.cb{background:var(--border);border:none;color:var(--text);padding:6px 16px;border-radius:7px;cursor:pointer;font-family:inherit;font-size:12px;transition:background .15s;}
+.cb:hover{background:#475569;}
+.cb.primary{background:var(--blue);}
+.cb.primary:hover{background:#2563eb;}
+#aud-row{flex:1;display:flex;align-items:center;gap:10px;}
+#aud-track{flex:1;height:4px;background:var(--border);border-radius:2px;cursor:pointer;}
+#aud-fill{height:100%;border-radius:2px;background:var(--blue);width:0%;transition:width .1s linear;}
+#slide-ct{font-size:11px;color:var(--muted);white-space:nowrap;}
 
-/* ── Overlay ── */
-#overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:99;cursor:pointer;flex-direction:column;gap:14px;}
+/* Overlay */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:99;cursor:pointer;flex-direction:column;gap:12px;}
 #overlay.gone{display:none;}
-.play-ring{width:78px;height:78px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:28px;animation:pulse-ring 2s ease-in-out infinite;}
-@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.4);}70%{box-shadow:0 0 0 16px rgba(59,130,246,0);}}
+.play-ring{width:72px;height:72px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:26px;animation:pr 2s ease-in-out infinite;}
+@keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(59,130,246,.5);}70%{box-shadow:0 0 0 14px rgba(59,130,246,0);}}
 </style>
 </head>
 <body>
 <div id="overlay">
   <div class="play-ring">▶</div>
-  <p style="color:var(--muted);font-size:13px">اضغط لبدء الشرح</p>
+  <p style="color:var(--muted);font-size:12px">اضغط لبدء الشرح</p>
 </div>
-
 <div id="app">
   <div id="top-bar"><div id="top-fill"></div></div>
   <div id="main">
-
-    <!-- Sidebar nav -->
     <div id="sidebar">
-      <div id="sidebar-header">
-        <h2>دليل استخدام النظام 🦷</h2>
-        <p>١٥ قسم — اضغط أي قسم للانتقال</p>
-      </div>
+      <div id="sb-head"><h2>🦷 دليل استخدام النظام</h2><p>اضغط أي قسم للانتقال إليه</p></div>
       <div id="nav-list"></div>
     </div>
-
-    <!-- Content -->
     <div id="content">
       <div id="slide-area">
 
-        <!-- SLIDE 0: INTRO -->
+        <!-- INTRO -->
         <div class="slide active" data-audio="00_intro.mp3">
           <div class="intro-body">
             <div class="intro-icon">🦷</div>
-            <div class="intro-title">دليل استخدام نظام إدارة العيادة</div>
-            <div class="intro-sub">شرح كامل لكل أقسام لوحة التحكم — المواعيد، المرضى، الإيرادات، الأطباء، وأكثر</div>
+            <div style="font-size:26px;font-weight:900">دليل استخدام نظام إدارة العيادة</div>
+            <div style="color:var(--muted);font-size:13px;max-width:460px;line-height:1.7">شرح كامل بالصوت لكل أقسام لوحة التحكم — مع خطوات عملية مباشرة من الموقع</div>
             <div class="intro-pills">
-              <span class="pill">الصفحة الرئيسية</span><span class="pill">التحليلات</span><span class="pill">الإيرادات</span>
+              <span class="pill">الرئيسية</span><span class="pill">التحليلات</span><span class="pill">الإيرادات</span>
               <span class="pill">الأرباح</span><span class="pill">الحجوزات</span><span class="pill">واتساب</span>
               <span class="pill">الرسائل</span><span class="pill">التذكيرات</span><span class="pill">التقويم</span>
               <span class="pill">العملاء</span><span class="pill">العمليات</span><span class="pill">الأطباء</span>
               <span class="pill">العروض</span><span class="pill">محرر الموقع</span><span class="pill">الإعدادات</span>
             </div>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <span class="pill step-pill">➕ إضافة مريض — خطوة بخطوة</span>
+              <span class="pill step-pill">🔄 قبول حجز — خطوة بخطوة</span>
+              <span class="pill step-pill">🦷 إضافة عملية — خطوة بخطوة</span>
+            </div>
           </div>
         </div>
-
-        <!-- SLIDES 1–15 generated by JS -->
 
       </div>
     </div>
   </div>
-
-  <!-- Controls -->
   <div id="controls">
-    <button class="ctrl-btn" id="btn-prev">◀ السابق</button>
-    <div id="audio-row">
-      <span id="btn-pp" style="font-size:22px;cursor:pointer;user-select:none;">⏸</span>
-      <div id="audio-track" onclick="seekAudio(event)"><div id="audio-played"></div></div>
-      <span id="counter">١/١٦</span>
+    <button class="cb" id="btn-prev">◀ السابق</button>
+    <div id="aud-row">
+      <span id="btn-pp" style="font-size:20px;cursor:pointer;user-select:none">⏸</span>
+      <div id="aud-track" onclick="seekAudio(event)"><div id="aud-fill"></div></div>
+      <span id="slide-ct">١/٢٠</span>
     </div>
-    <button class="ctrl-btn primary" id="btn-next">التالي ▶</button>
+    <button class="cb primary" id="btn-next">التالي ▶</button>
   </div>
 </div>
-
 <audio id="player" preload="auto"></audio>
-
 <script>
-const SLIDES_DATA = [
-  {
-    audio: "01_overview.mp3",
-    tag: "القسم ١ من ١٥",
-    title: "الصفحة الرئيسية",
-    desc: "نظرة شاملة على أداء العيادة في الوقت الفعلي — المرضى والمواعيد والإيرادات.",
-    img: "screenshots/01_overview.png",
-    features: [
-      { icon: "📊", title: "بطاقات الإحصاء", body: "إجمالي المرضى، مواعيد اليوم، الإيرادات، والعمليات — تتحدث تلقائياً." },
-      { icon: "📅", title: "جدول اليوم", body: "يظهر مباشرة بكل المواعيد وحالتها. اضغط على موعد لعرض تفاصيله." },
-      { icon: "⚡", title: "إضافة موعد سريع", body: "زر + في الأعلى يفتح نموذج إضافة موعد جديد بدون الانتقال لأي قسم." },
-      { icon: "🔔", title: "التنبيهات", body: "أيقونة الجرس تعرض الحجوزات الجديدة وتنبيهات المتابعة فور وصولها." },
-    ]
-  },
-  {
-    audio: "02_analytics.mp3",
-    tag: "القسم ٢ من ١٥",
-    title: "التحليلات",
-    desc: "رسوم بيانية وإحصاءات مفصلة لمتابعة أداء العيادة واتخاذ قرارات ذكية.",
-    img: "screenshots/02_analytics.png",
-    features: [
-      { icon: "📈", title: "نمو المرضى", body: "رسم بياني يوضح عدد المرضى الجدد مقابل العائدين شهرياً." },
-      { icon: "🏆", title: "أعلى الخدمات", body: "ترتيب الخدمات حسب الطلب والإيراد لمعرفة أكثرها ربحية." },
-      { icon: "📆", title: "فلترة الفترة", body: "اختر أسبوع أو شهر أو سنة للتحليل بزر واحد في الأعلى." },
-      { icon: "📉", title: "مقارنة الفترات", body: "مقارنة الأداء الحالي بالفترة السابقة لمعرفة نسبة النمو." },
-    ]
-  },
-  {
-    audio: "03_revenue.mp3",
-    tag: "القسم ٣ من ١٥",
-    title: "الإيرادات",
-    desc: "متابعة كاملة لكل المدفوعات والتحصيلات ومصادر الدخل.",
-    img: "screenshots/03_revenue.png",
-    features: [
-      { icon: "💰", title: "إيرادات اليوم/الشهر/السنة", body: "أرقام محدّثة لحظياً لإجمالي المدفوعات في كل فترة." },
-      { icon: "📋", title: "تفصيل حسب الخدمة", body: "كم جنيهاً أدرّ تقويم الأسنان؟ وكم أدرّ التبييض؟ كل خدمة بشكل منفصل." },
-      { icon: "🧾", title: "المصروفات", body: "سجّل مصروفات العيادة لحساب صافي الربح بدقة." },
-      { icon: "📤", title: "تصدير التقرير", body: "تصدير التقرير المالي بالضغط على زر التصدير في الأعلى." },
-    ]
-  },
-  {
-    audio: "04_earnings.mp3",
-    tag: "القسم ٤ من ١٥",
-    title: "الأرباح",
-    desc: "توزيع الأرباح والعمولات على الأطباء بشكل شفاف وتفصيلي.",
-    img: "screenshots/04_earnings.png",
-    features: [
-      { icon: "👨‍⚕️", title: "حصة كل طبيب", body: "إجمالي ما يستحقه كل طبيب بناءً على العمليات المنجزة ونسبة العمولة." },
-      { icon: "📊", title: "مقارنة الأداء", body: "مقارنة الإنتاجية بين الأطباء خلال أي فترة زمنية." },
-      { icon: "✅", title: "تسوية الأرباح", body: "يمكنك تسجيل صرف أرباح الطبيب وتتبع المدفوع والمتبقي." },
-      { icon: "📅", title: "فلترة الفترة", body: "اعرض أرباح شهر أو فترة محددة لكل طبيب على حدة." },
-    ]
-  },
-  {
-    audio: "05_bookings.mp3",
-    tag: "القسم ٥ من ١٥",
-    title: "الحجوزات الأونلاين",
-    desc: "كل طلبات الحجز القادمة من الموقع تظهر هنا للمراجعة والتأكيد.",
-    img: "screenshots/05_bookings.png",
-    features: [
-      { icon: "🌐", title: "حجوزات الموقع", body: "عند حجز أي عميل من الموقع يصل الطلب فوراً لهذا القسم." },
-      { icon: "✅", title: "القبول والرفض", body: "اضغط قبول لتحويل الحجز لموعد مؤكد، أو رفض مع إشعار العميل." },
-      { icon: "📱", title: "بيانات كاملة", body: "اسم العميل، رقم هاتفه، الخدمة المطلوبة، والتاريخ المفضّل." },
-      { icon: "🔄", title: "تحويل لموعد", body: "بعد القبول يُضاف الموعد في الجدول تلقائياً بدون إدخال يدوي." },
-    ]
-  },
-  {
-    audio: "06_whatsapp.mp3",
-    tag: "القسم ٦ من ١٥",
-    title: "واتساب البوت",
-    desc: "ربط واتساب ببوت ذكي يرد تلقائياً على العملاء ويحجز المواعيد.",
-    img: "screenshots/06_whatsapp.png",
-    features: [
-      { icon: "🔌", title: "ربط الرقم", body: "امسح رمز QR مرة واحدة وسيبقى البوت متصلاً باستمرار." },
-      { icon: "🤖", title: "رد تلقائي", body: "البوت يرد على الاستفسارات الشائعة ويحجز مواعيد دون تدخل منك." },
-      { icon: "💬", title: "تأكيدات وتذكيرات", body: "يبعث للمريض تأكيد الموعد وتذكير قبله بيوم تلقائياً." },
-      { icon: "📊", title: "حالة الاتصال", body: "إضاءة خضراء = متصل. إضاءة حمراء = انقطع، اضغط إعادة ربط." },
-    ]
-  },
-  {
-    audio: "07_messages.mp3",
-    tag: "القسم ٧ من ١٥",
-    title: "رسائل العملاء",
-    desc: "كل الرسائل الواردة من نموذج التواصل في الموقع الإلكتروني.",
-    img: "screenshots/07_messages.png",
-    features: [
-      { icon: "📥", title: "استقبال فوري", body: "كل رسالة ترسل من الموقع تظهر هنا لحظياً مع بيانات المرسل." },
-      { icon: "👤", title: "بيانات العميل", body: "اسم العميل، رقم هاتفه، بريده الإلكتروني، ونص الرسالة." },
-      { icon: "↩️", title: "الرد المباشر", body: "رد على الرسالة من داخل لوحة التحكم دون فتح تطبيق خارجي." },
-      { icon: "🔄", title: "تحويل لحجز", body: "اضغط «تحويل لموعد» لإنشاء حجز مباشر من الرسالة." },
-    ]
-  },
-  {
-    audio: "08_reminders.mp3",
-    tag: "القسم ٨ من ١٥",
-    title: "التذكيرات",
-    desc: "نظام تذكيرات ذكي للمتابعة مع المرضى وإدارة المهام اليومية.",
-    img: "screenshots/08_reminders.png",
-    features: [
-      { icon: "⏰", title: "إضافة تذكير", body: "اضغط + واكتب التذكير وحدد التاريخ والوقت المطلوب." },
-      { icon: "🔔", title: "تنبيهات داخلية", body: "عند حلول موعد التذكير يظهر إشعار في لوحة التحكم." },
-      { icon: "✅", title: "تحديد كمنجز", body: "بعد تنفيذ التذكير اضغط عليه لتحديده كمنجز ويختفي من القائمة." },
-      { icon: "📋", title: "أنواع التذكيرات", body: "متابعة ما بعد عملية، اتصال بعميل، دفع، أو أي مهمة مخصصة." },
-    ]
-  },
-  {
-    audio: "09_calendar.mp3",
-    tag: "القسم ٩ من ١٥",
-    title: "التقويم",
-    desc: "عرض جميع المواعيد على شكل تقويم شهري وأسبوعي لرؤية شاملة.",
-    img: "screenshots/09_calendar.png",
-    features: [
-      { icon: "📆", title: "عرض شهري/أسبوعي", body: "بدّل بين عرض الشهر الكامل أو أسبوع مفصل بزر في الأعلى." },
-      { icon: "➕", title: "إضافة موعد بالضغط", body: "اضغط على أي يوم أو خانة وقت لفتح نموذج إضافة موعد جديد مباشرة." },
-      { icon: "🎨", title: "ألوان الخدمات", body: "كل نوع خدمة له لون مميز في التقويم للتمييز السريع." },
-      { icon: "👁️", title: "رؤية الأيام المشغولة", body: "الأيام الممتلئة تظهر بلون داكن تلقائياً لتجنب التعارض." },
-    ]
-  },
-  {
-    audio: "10_patients.mp3",
-    tag: "القسم ١٠ من ١٥",
-    title: "إدارة العملاء",
-    desc: "سجل شامل لكل مرضى العيادة مع تاريخهم الطبي الكامل.",
-    img: "screenshots/10_patients.png",
-    features: [
-      { icon: "➕", title: "إضافة مريض جديد", body: "اضغط «مريض جديد» وأدخل الاسم والهاتف والعمر وأي ملاحظات طبية." },
-      { icon: "🔍", title: "البحث السريع", body: "ابحث بالاسم أو رقم الهاتف لإيجاد أي مريض في ثانية." },
-      { icon: "📋", title: "ملف المريض الكامل", body: "كل عملياته ومواعيده وصور أشعته ومستنداته في صفحة واحدة." },
-      { icon: "📸", title: "رفع الصور والملفات", body: "ارفع صور الأشعة والوثائق مباشرة لملف المريض." },
-    ]
-  },
-  {
-    audio: "11_operations.mp3",
-    tag: "القسم ١١ من ١٥",
-    title: "إدارة العمليات",
-    desc: "تسجيل ومتابعة كل الإجراءات الطبية والفواتير.",
-    img: "screenshots/11_operations.png",
-    features: [
-      { icon: "➕", title: "إضافة عملية جديدة", body: "اختر المريض والخدمة والطبيب المسؤول وسعر العملية." },
-      { icon: "💳", title: "حالة الدفع", body: "سجّل المدفوع والمتبقي لكل عملية وتابع الديون المستحقة." },
-      { icon: "🧾", title: "الفاتورة التلقائية", body: "النظام يحسب الفاتورة تلقائياً ويمكنك طباعتها أو إرسالها." },
-      { icon: "📎", title: "ربط بملف المريض", body: "العملية تُضاف تلقائياً لتاريخ المريض بدون إدخال مكرر." },
-    ]
-  },
-  {
-    audio: "12_doctors.mp3",
-    tag: "القسم ١٢ من ١٥",
-    title: "إدارة الأطباء",
-    desc: "إدارة فريق العيادة بالكامل — جداول العمل والعمولات والأداء.",
-    img: "screenshots/12_doctors.png",
-    features: [
-      { icon: "➕", title: "إضافة طبيب جديد", body: "أدخل الاسم والتخصص والبريد وكلمة المرور وسيحصل على صلاحياته." },
-      { icon: "🕐", title: "ساعات العمل", body: "حدد الأيام والساعات لكل طبيب وستظهر في جدول الحجوزات تلقائياً." },
-      { icon: "💰", title: "نسبة العمولة", body: "عيّن نسبة عمولة مخصصة لكل طبيب وستُحسب تلقائياً في قسم الأرباح." },
-      { icon: "📊", title: "إحصاءات الأداء", body: "عدد العمليات والإيرادات وتقييم الأداء لكل طبيب على حدة." },
-    ]
-  },
-  {
-    audio: "13_offers.mp3",
-    tag: "القسم ١٣ من ١٥",
-    title: "إدارة العروض",
-    desc: "إنشاء وإدارة العروض الترويجية والخصومات على خدمات العيادة.",
-    img: "screenshots/13_offers.png",
-    features: [
-      { icon: "➕", title: "إنشاء عرض جديد", body: "حدد الخدمة ونسبة الخصم وتاريخ بداية ونهاية العرض." },
-      { icon: "🌐", title: "نشر تلقائي على الموقع", body: "العرض يظهر على الموقع فوراً ويختفي تلقائياً عند انتهاء مدته." },
-      { icon: "✏️", title: "تعديل أو إيقاف", body: "عدّل أي عرض أو أوقفه مؤقتاً من زر الإعدادات بجانبه." },
-      { icon: "📊", title: "إحصاءات العروض", body: "كم مريض حجز بسبب كل عرض لقياس فعاليته التسويقية." },
-    ]
-  },
-  {
-    audio: "14_editor.mp3",
-    tag: "القسم ١٤ من ١٥",
-    title: "محرر الموقع",
-    desc: "تعديل محتوى الموقع الإلكتروني بالكامل بدون أي خبرة تقنية.",
-    img: "screenshots/14_editor.png",
-    features: [
-      { icon: "✏️", title: "النصوص والعناوين", body: "عدّل اسم العيادة، الوصف، العنوان، وأي نص على الموقع مباشرة." },
-      { icon: "🖼️", title: "الصور والشعار", body: "ارفع شعاراً جديداً أو صور قبل وبعد أو أي صورة في الموقع." },
-      { icon: "⚙️", title: "الخدمات والأسعار", body: "أضف خدمة جديدة أو عدّل سعرها أو احذفها وستتحدث على الموقع فوراً." },
-      { icon: "⚡", title: "التحديث الفوري", body: "كل ما تحفظه يظهر على الموقع في ثوانٍ دون أي خطوات تقنية." },
-    ]
-  },
-  {
-    audio: "15_settings.mp3",
-    tag: "القسم ١٥ من ١٥",
-    title: "الإعدادات",
-    desc: "ضبط إعدادات العيادة وساعات العمل وبيانات الحساب.",
-    img: "screenshots/15_settings.png",
-    features: [
-      { icon: "🕐", title: "ساعات وأيام العمل", body: "حدد وقت الفتح والإغلاق وأيام الإجازات وستُطبَّق على جدول الحجوزات." },
-      { icon: "📞", title: "معلومات التواصل", body: "عدّل رقم الهاتف والبريد والعنوان وستتحدث على الموقع تلقائياً." },
-      { icon: "🔐", title: "كلمة المرور", body: "غيّر كلمة مرور حسابك من هنا في أي وقت." },
-      { icon: "🏥", title: "إعدادات العيادة", body: "مدة الموعد الافتراضية وعدد المرضى اليومي والإعدادات المتقدمة." },
-    ]
-  },
+const NAV = [
+  { label:"مقدمة", audio:"00_intro.mp3", badge:"مقدمة" },
+  // Dashboard sections
+  { label:"الرئيسية",    audio:"01_overview.mp3",   img:"screenshots/01_overview.png",   badge:"القسم ١",  title:"الصفحة الرئيسية",     desc:"نظرة شاملة على العيادة في الوقت الفعلي — المرضى والمواعيد والإيرادات.",
+    feats:[{i:"📊",t:"بطاقات الإحصاء",b:"المرضى، مواعيد اليوم، الإيرادات — تتحدث تلقائياً."},{i:"📅",t:"جدول اليوم",b:"يظهر مباشرة بكل المواعيد وحالتها."},{i:"⚡",t:"موعد سريع",b:"الزر في الأعلى يضيف موعد جديد فوراً."},{i:"🔔",t:"تنبيهات",b:"الجرس يعرض الحجوزات الجديدة لحظياً."}]},
+  { label:"التحليلات",   audio:"02_analytics.mp3",  img:"screenshots/02_analytics.png",  badge:"القسم ٢",  title:"التحليلات",             desc:"رسوم بيانية وإحصاءات لمتابعة أداء العيادة.",
+    feats:[{i:"📈",t:"نمو المرضى",b:"الجدد مقابل العائدين شهرياً."},{i:"🏆",t:"أعلى الخدمات",b:"أكثرها طلباً وأعلاها إيراداً."},{i:"📆",t:"فلترة الفترة",b:"أسبوع أو شهر أو سنة بزر واحد."},{i:"📉",t:"مقارنة الفترات",b:"الأداء الحالي مقارنةً بالسابق."}]},
+  { label:"الإيرادات",   audio:"03_revenue.mp3",    img:"screenshots/03_revenue.png",    badge:"القسم ٣",  title:"الإيرادات",             desc:"متابعة كاملة للمدفوعات ومصادر الدخل.",
+    feats:[{i:"💰",t:"الإيرادات الكاملة",b:"اليوم والشهر والسنة لحظياً."},{i:"📋",t:"تفصيل الخدمات",b:"كل خدمة بإيراد منفصل."},{i:"🧾",t:"المصروفات",b:"سجّل المصروفات لحساب صافي الربح."},{i:"📤",t:"تصدير",b:"تصدير التقرير المالي بضغطة."}]},
+  { label:"الأرباح",     audio:"04_earnings.mp3",   img:"screenshots/04_earnings.png",   badge:"القسم ٤",  title:"الأرباح",               desc:"توزيع الأرباح والعمولات على الأطباء.",
+    feats:[{i:"👨‍⚕️",t:"حصة كل طبيب",b:"الأرباح بناءً على العمليات والعمولة."},{i:"📊",t:"مقارنة الأداء",b:"مين الأكتر إنتاجية؟"},{i:"✅",t:"تسوية الأرباح",b:"سجّل المدفوع والمتبقي."},{i:"📅",t:"فلترة الفترة",b:"أرباح أي شهر أو فترة."}]},
+  { label:"الحجوزات",    audio:"05_bookings.mp3",   img:"screenshots/05_bookings.png",   badge:"القسم ٥",  title:"الحجوزات الأونلاين",    desc:"طلبات الحجز من الموقع تصل هنا للمراجعة.",
+    feats:[{i:"🌐",t:"حجوزات الموقع",b:"كل طلب يصل فوراً للوحة."},{i:"✅",t:"قبول ورفض",b:"بزرار واحد يُضاف للجدول."},{i:"📱",t:"بيانات كاملة",b:"الاسم والهاتف والخدمة والتاريخ."},{i:"🔄",t:"تحويل تلقائي",b:"الموعد يُضاف دون إدخال يدوي."}]},
+  { label:"واتساب",      audio:"06_whatsapp.mp3",   img:"screenshots/06_whatsapp.png",   badge:"القسم ٦",  title:"واتساب البوت",           desc:"ربط واتساب ببوت ذكي يحجز ويرد تلقائياً.",
+    feats:[{i:"🔌",t:"ربط الرقم",b:"مسح QR مرة واحدة يبقى متصلاً دائماً."},{i:"🤖",t:"رد تلقائي",b:"يرد على الاستفسارات ويحجز المواعيد."},{i:"💬",t:"تأكيدات",b:"يبعت للمريض تأكيد وتذكير تلقائياً."},{i:"📊",t:"حالة الاتصال",b:"أخضر = متصل | أحمر = انقطع."}]},
+  { label:"الرسائل",     audio:"07_messages.mp3",   img:"screenshots/07_messages.png",   badge:"القسم ٧",  title:"رسائل العملاء",          desc:"كل الرسائل من نموذج التواصل في الموقع.",
+    feats:[{i:"📥",t:"استقبال فوري",b:"كل رسالة من الموقع تصل هنا."},{i:"👤",t:"بيانات العميل",b:"الاسم والهاتف والرسالة."},{i:"↩️",t:"الرد المباشر",b:"رد من لوحة التحكم بدون برنامج خارجي."},{i:"🔄",t:"تحويل لحجز",b:"اضغط «موعد» لتحويل الرسالة لحجز."}]},
+  { label:"التذكيرات",   audio:"08_reminders.mp3",  img:"screenshots/08_reminders.png",  badge:"القسم ٨",  title:"التذكيرات",              desc:"تذكيرات ذكية للمتابعة مع المرضى والمهام.",
+    feats:[{i:"⏰",t:"إضافة تذكير",b:"اضغط + واكتب المهمة وحدد التاريخ."},{i:"🔔",t:"تنبيهات",b:"إشعار يظهر عند حلول وقت التذكير."},{i:"✅",t:"تحديد كمنجز",b:"اضغط عليه بعد التنفيذ ليختفي."},{i:"📋",t:"أنواع متعددة",b:"متابعة، اتصال، دفع، أو مخصص."}]},
+  { label:"التقويم",     audio:"09_calendar.mp3",   img:"screenshots/09_calendar.png",   badge:"القسم ٩",  title:"التقويم",                desc:"كل المواعيد شهرياً وأسبوعياً في لحظة.",
+    feats:[{i:"📆",t:"عرض شهري/أسبوعي",b:"بدّل بين العرضين بزر."},{i:"➕",t:"إضافة بالضغط",b:"اضغط أي يوم لفتح نموذج الموعد."},{i:"🎨",t:"ألوان الخدمات",b:"لون مميز لكل نوع خدمة."},{i:"👁️",t:"الأيام المشغولة",b:"تظهر داكنة تلقائياً لتجنب التعارض."}]},
+  { label:"العملاء",     audio:"10_patients.mp3",   img:"screenshots/10_patients.png",   badge:"القسم ١٠", title:"إدارة العملاء",           desc:"سجل شامل لكل المرضى مع تاريخهم الطبي.",
+    feats:[{i:"➕",t:"مريض جديد",b:"الاسم والهاتف والعمر والملاحظات."},{i:"🔍",t:"بحث سريع",b:"بالاسم أو الهاتف في ثانية."},{i:"📋",t:"الملف الكامل",b:"كل العمليات والمواعيد والأشعة."},{i:"📸",t:"رفع الصور",b:"أشعة ومستندات مباشرة لملف المريض."}]},
+  { label:"العمليات",    audio:"11_operations.mp3", img:"screenshots/11_operations.png", badge:"القسم ١١", title:"إدارة العمليات",          desc:"تسجيل ومتابعة الإجراءات الطبية والفواتير.",
+    feats:[{i:"➕",t:"عملية جديدة",b:"المريض والخدمة والطبيب والسعر."},{i:"💳",t:"حالة الدفع",b:"المدفوع والمتبقي لكل عملية."},{i:"🧾",t:"فاتورة تلقائية",b:"تُحسب وتُرسل فوراً."},{i:"📎",t:"ربط بالملف",b:"تُضاف لتاريخ المريض تلقائياً."}]},
+  { label:"الأطباء",     audio:"12_doctors.mp3",    img:"screenshots/12_doctors.png",    badge:"القسم ١٢", title:"إدارة الأطباء",           desc:"إدارة الفريق وجداولهم وعمولاتهم.",
+    feats:[{i:"➕",t:"طبيب جديد",b:"الاسم والتخصص والبريد وكلمة المرور."},{i:"🕐",t:"ساعات العمل",b:"الأيام والساعات تؤثر في الجدول."},{i:"💰",t:"نسبة العمولة",b:"تُحسب تلقائياً في قسم الأرباح."},{i:"📊",t:"إحصاءات",b:"عمليات وإيرادات وتقييم لكل طبيب."}]},
+  { label:"العروض",      audio:"13_offers.mp3",     img:"screenshots/13_offers.png",     badge:"القسم ١٣", title:"إدارة العروض",            desc:"إنشاء وإدارة الخصومات والعروض الترويجية.",
+    feats:[{i:"➕",t:"عرض جديد",b:"الخدمة والخصم وتاريخ الانتهاء."},{i:"🌐",t:"نشر تلقائي",b:"يظهر ويختفي من الموقع تلقائياً."},{i:"✏️",t:"تعديل أو إيقاف",b:"من زر الإعدادات بجانب العرض."},{i:"📊",t:"إحصاءات",b:"عدد الحجوزات من كل عرض."}]},
+  { label:"محرر الموقع", audio:"14_editor.mp3",     img:"screenshots/14_editor.png",     badge:"القسم ١٤", title:"محرر الموقع",             desc:"تعديل محتوى الموقع بدون أي خبرة تقنية.",
+    feats:[{i:"✏️",t:"النصوص",b:"الاسم والوصف وكل نص على الموقع."},{i:"🖼️",t:"الصور والشعار",b:"ارفع صورة جديدة أو شعاراً."},{i:"⚙️",t:"الخدمات والأسعار",b:"أضف أو عدّل أو احذف أي خدمة."},{i:"⚡",t:"تحديث فوري",b:"كل ما تحفظه يظهر في ثواني."}]},
+  { label:"الإعدادات",   audio:"15_settings.mp3",   img:"screenshots/15_settings.png",   badge:"القسم ١٥", title:"الإعدادات",               desc:"ضبط ساعات العمل وبيانات الحساب.",
+    feats:[{i:"🕐",t:"ساعات وأيام العمل",b:"تُطبَّق على جدول الحجوزات."},{i:"📞",t:"معلومات التواصل",b:"تتحدث على الموقع تلقائياً."},{i:"🔐",t:"كلمة المرور",b:"غيّرها من هنا في أي وقت."},{i:"🏥",t:"إعدادات متقدمة",b:"مدة الموعد وأقصى عدد يومي."}]},
+
+  // Step-by-step slides
+  { label:"➕ إضافة مريض: عرض القائمة", isStep:true, audio:"10_patients.mp3", img:"screenshots/steps_patient_01_list.png", badge:"خطوة ١/٤", title:"إضافة مريض جديد — الخطوة ١", desc:"افتح قسم العملاء وشاهد قايمة كل المرضى الحاليين.",
+    steps:["اضغط على <b>العملاء</b> من القائمة الجانبية","شاهد كل المرضى المسجلين في العيادة","لإضافة مريض جديد اضغط الزر الأزرق","أو ابحث بالاسم أو الموبايل مباشرة"]},
+  { label:"➕ إضافة مريض: فتح النموذج",  isStep:true, audio:"10_patients.mp3", img:"screenshots/steps_patient_02_form_open.png", badge:"خطوة ٢/٤", title:"إضافة مريض جديد — الخطوة ٢", desc:"بعد الضغط على زر إضافة، بيفتح نموذج بيانات المريض.",
+    steps:["اضغط زر <b>إضافة / عميل جديد</b>","هيفتح النموذج ده على الشاشة","ادخل اسم المريض بالكامل","ادخل رقم الموبايل بتاعه"]},
+  { label:"➕ إضافة مريض: كتابة الاسم",  isStep:true, audio:"10_patients.mp3", img:"screenshots/steps_patient_03_name.png", badge:"خطوة ٣/٤", title:"إضافة مريض جديد — الخطوة ٣", desc:"اكتب اسم المريض في خانة الاسم.",
+    steps:["اضغط على خانة <b>الاسم</b>","اكتب الاسم كامل","ادخل السن إن وجد","في الملاحظات اكتب أي معلومات طبية مهمة"]},
+  { label:"➕ إضافة مريض: كتابة الهاتف", isStep:true, audio:"10_patients.mp3", img:"screenshots/steps_patient_04_phone.png", badge:"خطوة ٤/٤", title:"إضافة مريض جديد — الخطوة ٤", desc:"ادخل رقم الهاتف واضغط حفظ.",
+    steps:["ادخل رقم الموبايل","اضغط زر <b>حفظ</b>","المريض هيتضاف فوراً للقايمة","تقدر تفتح ملفه وتضيف عملياته من هنا"]},
+
+  { label:"🦷 إضافة عملية: عرض القائمة",  isStep:true, audio:"11_operations.mp3", img:"screenshots/steps_op_01_list.png", badge:"خطوة ١/٢", title:"إضافة عملية جديدة — الخطوة ١", desc:"افتح قسم العمليات لشاهد كل الإجراءات المسجلة.",
+    steps:["اضغط <b>العمليات</b> من القائمة الجانبية","شاهد كل العمليات المسجلة","لإضافة عملية جديدة اضغط الزر الأزرق","تقدر تبحث عن مريض معين أيضاً"]},
+  { label:"🦷 إضافة عملية: النموذج",       isStep:true, audio:"11_operations.mp3", img:"screenshots/steps_op_02_form.png", badge:"خطوة ٢/٢", title:"إضافة عملية جديدة — الخطوة ٢", desc:"اختار المريض والخدمة والطبيب وسجّل السعر.",
+    steps:["اختار <b>اسم المريض</b> من القايمة","اختار نوع <b>الخدمة</b>","اختار <b>الطبيب</b> المسؤول","ادخل <b>السعر</b> واضغط حفظ"]},
+
+  { label:"🔄 قبول حجز: القائمة",          isStep:true, audio:"05_bookings.mp3", img:"screenshots/steps_booking_01.png", badge:"خطوة ١/٢", title:"قبول حجز من الموقع — الخطوة ١", desc:"افتح قسم الحجوزات لشاهد الطلبات الجديدة.",
+    steps:["اضغط <b>الحجوزات</b> من القائمة الجانبية","شاهد الطلبات الجديدة القادمة من الموقع","بتشوف اسم العميل وموبايله والخدمة المطلوبة","اضغط زر القبول لتأكيد الحجز"]},
 ];
 
-const NAV_LABELS = ["مقدمة","الرئيسية","التحليلات","الإيرادات","الأرباح","الحجوزات","واتساب","الرسائل","التذكيرات","التقويم","العملاء","العمليات","الأطباء","العروض","محرر الموقع","الإعدادات"];
-
+const TOTAL = NAV.length;
 let current = 0;
-let autoPlaying = false;
-const TOTAL = SLIDES_DATA.length + 1; // +1 for intro
+let autoPlay = false;
 
 const slideArea = document.getElementById('slide-area');
 const navList = document.getElementById('nav-list');
 const player = document.getElementById('player');
-const audioFill = document.getElementById('audio-played');
+const audFill = document.getElementById('aud-fill');
 const topFill = document.getElementById('top-fill');
-const counter = document.getElementById('counter');
+const ct = document.getElementById('slide-ct');
 const btnPP = document.getElementById('btn-pp');
 
-function toArabicNum(n) {
-  return String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-}
+function toAr(n){ return String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]); }
 
-// Build slides 1-15
-SLIDES_DATA.forEach((s, i) => {
+// Build slides
+NAV.slice(1).forEach((s, i) => {
   const slide = document.createElement('div');
   slide.className = 'slide';
   slide.dataset.audio = s.audio;
 
-  const featsHtml = s.features.map(f => `
-    <div class="feat-card">
-      <div class="feat-title"><span>${f.icon}</span>${f.title}</div>
-      <div class="feat-body">${f.body}</div>
-    </div>`).join('');
-
-  slide.innerHTML = `
-    <div class="slide-header">
-      <div class="slide-tag">${s.tag}</div>
-      <div class="slide-title">${s.title}</div>
-      <div class="slide-desc">${s.desc}</div>
-    </div>
-    <div class="screenshot-wrap">
-      <div class="screenshot-img"><img src="${s.img}" alt="${s.title}" loading="lazy"/></div>
-      <div class="feat-panel">${featsHtml}</div>
-    </div>`;
+  if (s.isStep) {
+    const stepsHtml = (s.steps||[]).map((st,si)=>`
+      <div class="step-card">
+        <div class="feat-title"><span class="step-num">${toAr(si+1)}</span>${st}</div>
+      </div>`).join('');
+    slide.innerHTML = `
+      <div class="sh">
+        <span class="sh-badge step">${s.badge}</span>
+        <div><div class="sh-title">${s.title}</div><div class="sh-desc">${s.desc}</div></div>
+      </div>
+      <div class="sc-wrap">
+        <div class="sc-img"><img src="${s.img}" alt="${s.title}" loading="lazy"/></div>
+        <div class="rp">${stepsHtml}</div>
+      </div>`;
+  } else {
+    const featsHtml = (s.feats||[]).map(f=>`
+      <div class="feat-card">
+        <div class="feat-title"><span>${f.i}</span>${f.t}</div>
+        <div class="feat-body">${f.b}</div>
+      </div>`).join('');
+    slide.innerHTML = `
+      <div class="sh">
+        <span class="sh-badge">${s.badge}</span>
+        <div><div class="sh-title">${s.title}</div><div class="sh-desc">${s.desc}</div></div>
+      </div>
+      <div class="sc-wrap">
+        <div class="sc-img"><img src="${s.img}" alt="${s.title}" loading="lazy"/></div>
+        <div class="rp">${featsHtml}</div>
+      </div>`;
+  }
   slideArea.appendChild(slide);
 });
 
 // Build nav
-NAV_LABELS.forEach((label, i) => {
+let lastWasStep = false;
+NAV.forEach((s, i) => {
+  if (i === 0) {
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn active';
+    btn.innerHTML = `<span class="nb-num">٠</span>مقدمة`;
+    btn.onclick = () => goTo(0);
+    navList.appendChild(btn);
+    const sep = document.createElement('div');
+    sep.className = 'nav-sep';
+    sep.textContent = 'أقسام لوحة التحكم';
+    navList.appendChild(sep);
+    return;
+  }
+  if (s.isStep && !lastWasStep) {
+    const sep = document.createElement('div');
+    sep.className = 'nav-sep';
+    sep.textContent = 'خطوات عملية';
+    navList.appendChild(sep);
+  }
+  lastWasStep = !!s.isStep;
   const btn = document.createElement('button');
-  btn.className = 'nav-item' + (i === 0 ? ' active' : '');
-  btn.innerHTML = `<span class="nav-num">${toArabicNum(i)}</span>${label}`;
+  btn.className = `nav-btn${s.isStep ? ' step-btn' : ''}`;
+  btn.innerHTML = `<span class="nb-num">${toAr(i)}</span>${s.label}`;
   btn.onclick = () => goTo(i);
   navList.appendChild(btn);
 });
 
 function goTo(idx) {
   const slides = document.querySelectorAll('.slide');
+  const navBtns = document.querySelectorAll('.nav-btn');
   slides[current].classList.remove('active');
-  document.querySelectorAll('.nav-item')[current].classList.remove('active');
-  current = Math.max(0, Math.min(idx, TOTAL - 1));
+  navBtns[current].classList.remove('active');
+  current = Math.max(0, Math.min(idx, TOTAL-1));
   slides[current].classList.add('active');
-  document.querySelectorAll('.nav-item')[current].classList.add('active');
-
-  topFill.style.width = ((current / (TOTAL - 1)) * 100) + '%';
-  counter.textContent = toArabicNum(current + 1) + '/' + toArabicNum(TOTAL);
-
+  navBtns[current].classList.add('active');
+  navBtns[current].scrollIntoView({ block:'nearest', behavior:'smooth' });
+  topFill.style.width = ((current/(TOTAL-1))*100) + '%';
+  ct.textContent = toAr(current+1)+'/'+toAr(TOTAL);
   const audio = slides[current].dataset.audio;
   if (audio) {
-    player.src = '/tutorial/' + audio;
+    player.src = '/tutorial/'+audio;
     player.load();
-    if (autoPlaying) player.play().catch(() => {});
-  } else {
-    player.pause();
-    player.src = '';
+    if (autoPlay) player.play().catch(()=>{});
   }
-  audioFill.style.width = '0%';
-
-  // Scroll nav item into view
-  document.querySelectorAll('.nav-item')[current].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  audFill.style.width='0%';
 }
 
 player.addEventListener('timeupdate', () => {
-  if (player.duration) audioFill.style.width = (player.currentTime / player.duration * 100) + '%';
+  if (player.duration) audFill.style.width=(player.currentTime/player.duration*100)+'%';
 });
-player.addEventListener('ended', () => {
-  setTimeout(() => { if (current < TOTAL - 1) goTo(current + 1); }, 600);
-});
-player.addEventListener('play', () => { autoPlaying = true; btnPP.textContent = '⏸'; });
-player.addEventListener('pause', () => { btnPP.textContent = '▶'; });
+player.addEventListener('ended', () => { setTimeout(()=>{ if(current<TOTAL-1) goTo(current+1); }, 500); });
+player.addEventListener('play', () => { autoPlay=true; btnPP.textContent='⏸'; });
+player.addEventListener('pause', () => { btnPP.textContent='▶'; });
 
-document.getElementById('btn-next').onclick = () => goTo(current + 1);
-document.getElementById('btn-prev').onclick = () => goTo(current - 1);
-btnPP.onclick = () => { if (player.paused) { autoPlaying = true; player.play(); } else { autoPlaying = false; player.pause(); } };
-window.seekAudio = e => {
-  const r = document.getElementById('audio-track').getBoundingClientRect();
-  if (player.duration) player.currentTime = ((e.clientX - r.left) / r.width) * player.duration;
-};
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowLeft') goTo(current + 1);
-  if (e.key === 'ArrowRight') goTo(current - 1);
-  if (e.key === ' ') { e.preventDefault(); btnPP.click(); }
+document.getElementById('btn-next').onclick = ()=>goTo(current+1);
+document.getElementById('btn-prev').onclick = ()=>goTo(current-1);
+btnPP.onclick = ()=>{ if(player.paused){autoPlay=true;player.play();}else{autoPlay=false;player.pause();} };
+window.seekAudio = e=>{ const r=document.getElementById('aud-track').getBoundingClientRect(); if(player.duration) player.currentTime=((e.clientX-r.left)/r.width)*player.duration; };
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowLeft') goTo(current+1);
+  if(e.key==='ArrowRight') goTo(current-1);
+  if(e.key===' '){ e.preventDefault(); btnPP.click(); }
 });
 
-document.getElementById('overlay').addEventListener('click', () => {
+document.getElementById('overlay').addEventListener('click', ()=>{
   document.getElementById('overlay').classList.add('gone');
-  autoPlaying = true;
+  autoPlay=true;
   goTo(0);
-  player.src = '/tutorial/00_intro.mp3';
-  player.play().catch(() => {});
+  player.src='/tutorial/00_intro.mp3';
+  player.play().catch(()=>{});
 });
 </script>
 </body>

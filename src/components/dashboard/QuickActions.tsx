@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLang } from "@/lib/language";
 import { sessionTypes } from "@/lib/dashboard";
 import { OperationModal, type Procedure, type DoctorLite } from "./PatientOperations";
@@ -228,10 +228,12 @@ function ClientSummary({ client, onChange }: { client: PickedClient | "later"; o
 
 /** Quick-add: book an appointment (client + day/time + doctor + service). */
 export function AddAppointmentModal({
+  procedures,
   doctors,
   onClose,
   onSaved,
 }: {
+  procedures: Procedure[];
   doctors: DoctorLite[];
   onClose: () => void;
   onSaved: () => void;
@@ -243,13 +245,32 @@ export function AddAppointmentModal({
   const pad = (n: number) => String(n).padStart(2, "0");
   const [date, setDate] = useState(`${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`);
   const [time, setTime] = useState("10:00");
-  const [serviceId, setServiceId] = useState(sessionTypes[0]?.id ?? "checkup");
+  const serviceOptions = useMemo(() => {
+    const active = procedures.filter((p) => p.active);
+    if (active.length > 0) {
+      return active.map((p) => ({
+        id: p.id,
+        labelEn: p.nameEn,
+        labelAr: p.nameAr,
+        durationMin: 30,
+      }));
+    }
+    return sessionTypes.map((s) => ({
+      id: s.id,
+      labelEn: s.label.en,
+      labelAr: s.label.ar,
+      durationMin: s.durationMin,
+    }));
+  }, [procedures]);
+  const [serviceId, setServiceId] = useState(serviceOptions[0]?.id ?? "checkup");
   const [doctorId, setDoctorId] = useState("");
   const [complaint, setComplaint] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
-
-  const service = sessionTypes.find((s) => s.id === serviceId) ?? sessionTypes[0];
+  const selectedServiceId = serviceOptions.some((s) => s.id === serviceId)
+    ? serviceId
+    : (serviceOptions[0]?.id ?? "checkup");
+  const service = serviceOptions.find((s) => s.id === selectedServiceId) ?? serviceOptions[0];
 
   const save = async () => {
     if (!client) return;
@@ -268,9 +289,9 @@ export function AddAppointmentModal({
         phone: isLater ? "" : client.phone,
         scheduledAt: scheduledAt.toISOString(),
         durationMin: service?.durationMin ?? 30,
-        serviceId,
-        serviceLabelEn: service?.label.en ?? serviceId,
-        serviceLabelAr: service?.label.ar ?? serviceId,
+        serviceId: selectedServiceId,
+        serviceLabelEn: service?.labelEn ?? serviceId,
+        serviceLabelAr: service?.labelAr ?? serviceId,
         doctorId: doctorId || undefined,
         patientId: isLater ? undefined : client.patientId ?? undefined,
         createAccount: !isLater,
@@ -323,9 +344,9 @@ export function AddAppointmentModal({
 
           <label className="block text-sm">
             <span className="mb-1 block font-semibold text-ink">{tr({ en: "Service", ar: "الخدمة" })}</span>
-            <select className={inputCls} value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-              {sessionTypes.map((s) => (
-                <option key={s.id} value={s.id}>{lang === "ar" ? s.label.ar : s.label.en}</option>
+            <select className={inputCls} value={selectedServiceId} onChange={(e) => setServiceId(e.target.value)}>
+              {serviceOptions.map((s) => (
+                <option key={s.id} value={s.id}>{lang === "ar" ? s.labelAr : s.labelEn}</option>
               ))}
             </select>
           </label>

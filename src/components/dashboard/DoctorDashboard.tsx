@@ -822,7 +822,10 @@ export function DoctorDashboard() {
           {/* quick actions */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
-              onClick={() => setQuickAdd("appointment")}
+              onClick={() => {
+                loadQuickCatalogs();
+                setQuickAdd("appointment");
+              }}
               className="group flex items-center gap-3 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-surface p-4 text-start transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-lg hover:shadow-primary/10"
             >
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary transition group-hover:bg-primary/25">
@@ -837,7 +840,10 @@ export function DoctorDashboard() {
               </span>
             </button>
             <button
-              onClick={() => setQuickAdd("operation")}
+              onClick={() => {
+                loadQuickCatalogs();
+                setQuickAdd("operation");
+              }}
               className="group flex items-center gap-3 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-surface p-4 text-start transition hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-lg hover:shadow-primary/10"
             >
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary transition group-hover:bg-primary/25">
@@ -994,6 +1000,7 @@ export function DoctorDashboard() {
 
       {quickAdd === "appointment" && (
         <AddAppointmentModal
+          procedures={qaProcedures}
           doctors={qaDoctors}
           onClose={() => setQuickAdd(null)}
           onSaved={() => {

@@ -39,6 +39,18 @@ function copyDir(src, dest) {
   }
 }
 
+/**
+ * electron-builder can occasionally emit a corrupted app wrapper in this
+ * environment. Replace it with the known-good electron runtime binary.
+ */
+function ensureWorkingWindowsExe() {
+  const sourceExe = path.join(ROOT, "node_modules", "electron", "dist", "electron.exe");
+  const targetExe = path.join(ROOT, "dist-desktop", "win-unpacked", "Clinva.exe");
+  if (!fs.existsSync(sourceExe) || !fs.existsSync(targetExe)) return;
+  fs.copyFileSync(sourceExe, targetExe);
+  console.log("  patched win-unpacked/Clinva.exe from electron runtime");
+}
+
 /** Ensure the Prisma query engine .node/.dll is present in the standalone client. */
 function ensurePrismaEngine() {
   const srcClient = path.join(ROOT, "node_modules", ".prisma", "client");
@@ -99,6 +111,7 @@ function main() {
 
     // 6. Package installer.
     run(`npx electron-builder --win nsis --config.extraMetadata.main=electron/main.js`);
+    ensureWorkingWindowsExe();
 
     console.log("\n✅ Desktop build complete. Installer in dist-desktop/.");
   } finally {

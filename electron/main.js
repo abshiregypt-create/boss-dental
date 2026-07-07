@@ -16,6 +16,10 @@ let serverProcess = null;
 let mainWindow = null;
 let serverPort = 0;
 
+// Prevent renderer/GPU crashes seen on some Windows driver stacks.
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch("disable-gpu");
+
 /** Pick a free TCP port on the loopback interface. */
 function getFreePort() {
   return new Promise((resolve, reject) => {
@@ -156,6 +160,15 @@ function createWindow(url) {
   });
 
   mainWindow.loadURL(url);
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("[clinva] renderer crashed:", details);
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    dialog.showErrorBox(
+      "Clinva",
+      "The display process stopped unexpectedly. Clinva will reload automatically."
+    );
+    mainWindow.reload();
+  });
   mainWindow.on("closed", () => (mainWindow = null));
 }
 
@@ -230,5 +243,11 @@ app.on("quit", () => {
     try {
       serverProcess.kill();
     } catch {}
+  }
+});
+
+app.on("child-process-gone", (_event, details) => {
+  if (details && details.type === "GPU" && details.reason !== "clean-exit") {
+    console.error("[clinva] gpu process exited:", details);
   }
 });

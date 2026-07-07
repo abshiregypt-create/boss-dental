@@ -4,9 +4,11 @@ import type { ClinicConfig } from "./types";
 import { badawi } from "./badawi";
 import { dce } from "./dce";
 import { ibrahim } from "./ibrahim";
+import { clinva } from "./clinva";
 
 export const clinics: Record<string, ClinicConfig> = {
   badawi,
   dce,
   ibrahim,
+  clinva,
 };

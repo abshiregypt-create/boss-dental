@@ -2,6 +2,9 @@
   "name": "dental-site",
   "version": "0.1.0",
   "private": true,
+  "description": "Clinva — modern, Arabic-first dental clinic management desktop app.",
+  "author": "Clinva",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,10 +22,47 @@
     "whatsapp:worker": "node worker/whatsapp-web.mjs",
     "test": "playwright test",
     "test:unit": "node --test tests/unit/*.test.mjs",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "desktop:setup": "npm i --no-save electron@33.4.11 electron-builder@25.1.8 sharp png-to-ico wait-on concurrently",
+    "desktop:icon": "node scripts/make-icon.mjs",
+    "desktop:dev": "concurrently -k -n next,electron \"next dev\" \"wait-on tcp:3000 && electron .\"",
+    "desktop:build": "node scripts/build-desktop.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
+  },
+  "build": {
+    "appId": "app.clinva.desktop",
+    "productName": "Clinva",
+    "copyright": "Copyright © 2026 Clinva",
+    "asar": false,
+    "directories": {
+      "output": "dist-desktop",
+      "buildResources": "electron/assets"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": ".next/standalone", "to": "app" },
+      { "from": "prisma/clinva-seed.db", "to": "clinva-seed.db" }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "electron/assets/icon.ico",
+      "artifactName": "Clinva-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Clinva"
+    }
   },
   "engines": {
     "node": ">=20 <=22"

@@ -87,6 +87,10 @@ wa-worker.log
 # throwaway preview build dirs for non-default clinics
 .next-*
 
+# desktop (electron) build output + temp schema
+/dist-desktop
+/prisma/schema.desktop.prisma
+
 # local clinic preview helper + logs
 /run-ibrahim.cmd
 ibrahim-dev*.log

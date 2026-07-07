@@ -38,7 +38,10 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
 export const sessionCookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  // The desktop app serves over plain http://127.0.0.1, so a Secure cookie would
+  // be dropped and the login would loop. DESKTOP=1 opts out of Secure locally;
+  // hosted deployments (Railway) never set it, so they keep Secure in production.
+  secure: process.env.NODE_ENV === "production" && process.env.DESKTOP !== "1",
   path: "/",
   maxAge: MAX_AGE,
 };

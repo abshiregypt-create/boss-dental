@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>دليل استخدام نظام إدارة العيادة</title>
+<style>
+  :root{--blue:#2563eb;--teal:#0d9488;--green:#16a34a;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;--bg:#0f172a;--card:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#94a3b8;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;direction:rtl;}
+
+  /* ─── Layout ─── */
+  #app{display:flex;flex-direction:column;height:100vh;}
+  #progress-bar{height:4px;background:var(--border);flex-shrink:0;}
+  #progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .4s ease;width:0%;}
+  #slides{flex:1;overflow:hidden;position:relative;}
+  .slide{position:absolute;inset:0;display:flex;gap:0;opacity:0;pointer-events:none;transition:opacity .5s ease;}
+  .slide.active{opacity:1;pointer-events:all;}
+
+  /* ─── Left panel (info) ─── */
+  .info-panel{width:340px;flex-shrink:0;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;padding:32px 28px;overflow-y:auto;}
+  .slide-num{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+  .slide-title{font-size:26px;font-weight:800;margin-bottom:16px;line-height:1.3;}
+  .slide-desc{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:24px;}
+  .feature-list{display:flex;flex-direction:column;gap:10px;}
+  .feature{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#cbd5e1;opacity:0;transform:translateX(16px);transition:all .4s ease;}
+  .feature.show{opacity:1;transform:translateX(0);}
+  .feat-icon{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;margin-top:1px;}
+
+  /* ─── Right panel (mockup) ─── */
+  .mock-panel{flex:1;padding:24px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+
+  /* ─── Bottom controls ─── */
+  #controls{height:72px;background:var(--card);border-top:1px solid var(--border);display:flex;align-items:center;justify-between;padding:0 28px;gap:16px;flex-shrink:0;}
+  #ctrl-left{display:flex;align-items:center;gap:12px;}
+  #ctrl-center{flex:1;display:flex;align-items:center;justify-content:center;gap:16px;}
+  #ctrl-right{display:flex;align-items:center;gap:12px;}
+  .btn{background:var(--border);border:none;color:var(--text);padding:8px 20px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;transition:background .2s;}
+  .btn:hover{background:#475569;}
+  .btn.primary{background:var(--blue);}
+  .btn.primary:hover{background:#1d4ed8;}
+  #audio-bar{display:flex;align-items:center;gap:10px;flex:1;max-width:400px;}
+  #audio-progress{flex:1;height:4px;background:var(--border);border-radius:2px;cursor:pointer;position:relative;}
+  #audio-fill{height:100%;background:var(--blue);border-radius:2px;width:0%;transition:width .1s linear;}
+  #slide-counter{font-size:12px;color:var(--muted);white-space:nowrap;}
+
+  /* ─── Mockup components ─── */
+  .mock{background:var(--card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:680px;max-height:480px;overflow:hidden;}
+  .mock-header{background:#0f172a;padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
+  .mock-dot{width:10px;height:10px;border-radius:50%;}
+  .mock-url{flex:1;background:var(--card);border-radius:4px;height:22px;font-size:11px;color:var(--muted);display:flex;align-items:center;padding:0 10px;}
+  .mock-body{padding:16px;display:flex;flex-direction:column;gap:12px;}
+
+  /* stat cards */
+  .stat-row{display:flex;gap:10px;}
+  .stat-card{flex:1;background:#0f172a;border-radius:8px;padding:12px;border:1px solid var(--border);opacity:0;transform:translateY(12px);transition:all .4s ease;}
+  .stat-card.show{opacity:1;transform:translateY(0);}
+  .stat-label{font-size:10px;color:var(--muted);margin-bottom:4px;}
+  .stat-val{font-size:20px;font-weight:800;}
+
+  /* table */
+  .mock-table{width:100%;border-collapse:collapse;}
+  .mock-table th{font-size:10px;color:var(--muted);text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);}
+  .mock-table td{font-size:12px;padding:7px 8px;border-bottom:1px solid #1e293b;}
+  .mock-row{opacity:0;transform:translateX(8px);transition:all .35s ease;}
+  .mock-row.show{opacity:1;transform:translateX(0);}
+
+  /* badge */
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+
+  /* chart */
+  .chart-bars{display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 8px;}
+  .bar{flex:1;border-radius:4px 4px 0 0;transform-origin:bottom;transform:scaleY(0);transition:transform .6s ease;}
+  .bar.show{transform:scaleY(1);}
+
+  /* line chart */
+  .line-chart{position:relative;height:120px;}
+  .line-chart svg{position:absolute;inset:0;width:100%;height:100%;}
+
+  /* calendar */
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-cell{background:#0f172a;border-radius:4px;padding:4px 0;text-align:center;font-size:11px;opacity:0;transition:opacity .3s ease;}
+  .cal-cell.show{opacity:1;}
+  .cal-cell.has-event{background:#1e3a5f;color:#60a5fa;}
+  .cal-cell.today{background:var(--blue);color:white;font-weight:700;}
+
+  /* chat bubbles */
+  .chat{display:flex;flex-direction:column;gap:8px;}
+  .bubble{max-width:70%;padding:8px 12px;border-radius:12px;font-size:12px;opacity:0;transition:all .4s ease;}
+  .bubble.show{opacity:1;}
+  .bubble.bot{background:#1e3a5f;border-radius:12px 12px 12px 4px;align-self:flex-end;}
+  .bubble.user{background:#064e3b;border-radius:12px 12px 4px 12px;align-self:flex-start;}
+
+  /* form */
+  .mock-form{display:flex;flex-direction:column;gap:8px;}
+  .form-row{display:flex;gap:8px;}
+  .form-field{flex:1;background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--muted);}
+  .form-field.focus{border-color:var(--blue);animation:pulse-border 1s infinite;}
+  @keyframes pulse-border{0%,100%{border-color:var(--blue);}50%{border-color:#60a5fa;}}
+
+  /* doctor cards */
+  .doc-cards{display:flex;gap:10px;flex-wrap:wrap;}
+  .doc-card{background:#0f172a;border:1px solid var(--border);border-radius:10px;padding:12px;width:140px;text-align:center;opacity:0;transform:scale(.9);transition:all .4s ease;}
+  .doc-card.show{opacity:1;transform:scale(1);}
+  .doc-avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:16px;}
+
+  /* offer cards */
+  .offer-card{background:linear-gradient(135deg,#1e3a5f,#0f172a);border:1px solid var(--blue);border-radius:10px;padding:14px;opacity:0;transform:translateY(10px);transition:all .4s ease;}
+  .offer-card.show{opacity:1;transform:translateY(0);}
+  .offer-discount{font-size:28px;font-weight:900;color:var(--blue);}
+
+  /* logo area */
+  .mock-logo{display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#0f172a,#1e293b);}
+
+  /* animate entrance */
+  @keyframes slideIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  .slide.active .info-panel{animation:slideIn .5s ease forwards;}
+
+  /* ─── Intro slide ─── */
+  .intro-slide{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;text-align:center;padding:40px;}
+  .intro-logo{width:100px;height:100px;border-radius:24px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:48px;animation:spin-logo 4s ease-in-out infinite;}
+  @keyframes spin-logo{0%,100%{transform:rotateY(0);}50%{transform:rotateY(360deg);}}
+  .intro-title{font-size:36px;font-weight:900;}
+  .intro-sub{color:var(--muted);font-size:16px;max-width:500px;}
+
+  /* play overlay */
+  #play-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100;cursor:pointer;flex-direction:column;gap:16px;}
+  #play-overlay.hidden{display:none;}
+  .play-circle{width:80px;height:80px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:32px;}
+  .play-hint{color:var(--muted);font-size:14px;}
+</style>
+</head>
+<body>
+
+<div id="play-overlay">
+  <div class="play-circle">▶</div>
+  <div class="play-hint">اضغط لتشغيل الشرح</div>
+</div>
+
+<div id="app">
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="slides">
+
+    <!-- SLIDE 0: INTRO -->
+    <div class="slide active" data-audio="00_intro.mp3">
+      <div class="intro-slide">
+        <div class="intro-logo">🦷</div>
+        <div class="intro-title">دليل استخدام نظام الإدارة</div>
+        <div class="intro-sub">شرح كامل لكل أقسام لوحة التحكم — المواعيد، المرضى، الإيرادات، وأكثر</div>
+      </div>
+    </div>
+
+    <!-- SLIDE 1: OVERVIEW -->
+    <div class="slide" data-audio="01_overview.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div>
+            <div class="mock-dot" style="background:#f59e0b"></div>
+            <div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/overview</div>
+          </div>
+          <div class="mock-body">
+            <div class="stat-row">
+              <div class="stat-card" style="transition-delay:.1s"><div class="stat-label">المرضى</div><div class="stat-val" style="color:#60a5fa">١٢٤</div></div>
+              <div class="stat-card" style="transition-delay:.2s"><div class="stat-label">مواعيد اليوم</div><div class="stat-val" style="color:#34d399">٨</div></div>
+              <div class="stat-card" style="transition-delay:.3s"><div class="stat-label">الإيرادات</div><div class="stat-val" style="color:#fbbf24">٤٥٠٠</div></div>
+              <div class="stat-card" style="transition-delay:.4s"><div class="stat-label">العمليات</div><div class="stat-val" style="color:#a78bfa">٣٢</div></div>
+            </div>
+            <table class="mock-table">
+              <tr><th>المريض</th><th>الوقت</th><th>الخدمة</th><th>الحالة</th></tr>
+              <tr class="mock-row" style="transition-delay:.5s"><td>أحمد محمود</td><td>١٠:٠٠</td><td>تنظيف</td><td><span class="badge" style="background:#064e3b;color:#34d399">مؤكد</span></td></tr>
+              <tr class="mock-row" style="transition-delay:.6s"><td>سارة حسن</td><td>١١:٣٠</td><td>حشو</td><td><span class="badge" style="background:#1e3a5f;color:#60a5fa">قادم</span></td></tr>
+              <tr class="mock-row" style="transition-delay:.7s"><td>محمد علي</td><td>٢:٠٠</td><td>تقويم</td><td><span class="badge" style="background:#064e3b;color:#34d399">مؤكد</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ١ من ١٥</div>
+        <div class="slide-title">الصفحة الرئيسية</div>
+        <div class="slide-desc">نظرة سريعة وشاملة على أداء العيادة في الوقت الفعلي.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">📊</div><span>بطاقات إحصاء سريعة: المرضى والمواعيد والإيرادات</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">📅</div><span>جدول اليوم مباشرة مع حالة كل موعد</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">⚡</div><span>زر إضافة موعد سريع من الصفحة الرئيسية</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">🔔</div><span>تنبيهات فورية بالحجوزات الجديدة</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: ANALYTICS -->
+    <div class="slide" data-audio="02_analytics.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/analytics</div>
+          </div>
+          <div class="mock-body">
+            <div class="stat-row">
+              <div class="stat-card" style="transition-delay:.1s"><div class="stat-label">هذا الشهر</div><div class="stat-val" style="color:#60a5fa">٢٣٨</div></div>
+              <div class="stat-card" style="transition-delay:.2s"><div class="stat-label">نمو المرضى</div><div class="stat-val" style="color:#34d399">+١٢٪</div></div>
+              <div class="stat-card" style="transition-delay:.3s"><div class="stat-label">أعلى خدمة</div><div class="stat-val" style="color:#fbbf24;font-size:14px">تبييض</div></div>
+            </div>
+            <div class="chart-bars" id="chart-bars">
+              <div class="bar show" style="height:60%;background:#3b82f6;transition-delay:.3s"></div>
+              <div class="bar show" style="height:75%;background:#3b82f6;transition-delay:.4s"></div>
+              <div class="bar show" style="height:50%;background:#3b82f6;transition-delay:.5s"></div>
+              <div class="bar show" style="height:85%;background:#60a5fa;transition-delay:.6s"></div>
+              <div class="bar show" style="height:65%;background:#3b82f6;transition-delay:.7s"></div>
+              <div class="bar show" style="height:90%;background:#93c5fd;transition-delay:.8s"></div>
+              <div class="bar show" style="height:70%;background:#3b82f6;transition-delay:.9s"></div>
+            </div>
+            <div style="display:flex;gap:6px;font-size:10px;color:var(--muted);">
+              <span>يناير</span><span style="flex:1;text-align:center">فبراير</span><span style="flex:1;text-align:center">مارس</span><span style="flex:1;text-align:center">أبريل</span><span style="flex:1;text-align:center">مايو</span><span style="flex:1;text-align:center">يونيو</span><span>يوليو</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ٢ من ١٥</div>
+        <div class="slide-title">التحليلات</div>
+        <div class="slide-desc">إحصاءات مفصلة لمتابعة أداء العيادة وتحسين القرارات.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">📈</div><span>رسوم بيانية للمواعيد والإيرادات الشهرية</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">👥</div><span>تتبع نمو المرضى الجدد مقابل العائدين</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">🏆</div><span>أكثر الخدمات طلباً وأعلى الإيرادات</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">📆</div><span>فلترة حسب الأسبوع أو الشهر أو السنة</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: REVENUE -->
+    <div class="slide" data-audio="03_revenue.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/revenue</div>
+          </div>
+          <div class="mock-body">
+            <div class="stat-row">
+              <div class="stat-card" style="transition-delay:.1s"><div class="stat-label">إيرادات اليوم</div><div class="stat-val" style="color:#34d399">٤٥٠٠ ج</div></div>
+              <div class="stat-card" style="transition-delay:.2s"><div class="stat-label">هذا الشهر</div><div class="stat-val" style="color:#fbbf24">٨٢٠٠٠ ج</div></div>
+              <div class="stat-card" style="transition-delay:.3s"><div class="stat-label">صافي الربح</div><div class="stat-val" style="color:#60a5fa">٦١٠٠٠ ج</div></div>
+            </div>
+            <table class="mock-table">
+              <tr><th>الخدمة</th><th>العدد</th><th>الإيراد</th></tr>
+              <tr class="mock-row" style="transition-delay:.4s"><td>تبييض</td><td>١٢</td><td>١٨٠٠٠ ج</td></tr>
+              <tr class="mock-row" style="transition-delay:.5s"><td>تقويم</td><td>٨</td><td>٣٢٠٠٠ ج</td></tr>
+              <tr class="mock-row" style="transition-delay:.6s"><td>حشو</td><td>٢٤</td><td>١٢٠٠٠ ج</td></tr>
+              <tr class="mock-row" style="transition-delay:.7s"><td>تنظيف</td><td>٣٢</td><td>٩٦٠٠ ج</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ٣ من ١٥</div>
+        <div class="slide-title">الإيرادات</div>
+        <div class="slide-desc">تتبع كامل لكل المدفوعات والتحصيلات ومعرفة مصادر الدخل.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">💰</div><span>إيرادات اليوم والشهر والسنة لحظة بلحظة</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">📋</div><span>تفصيل الإيرادات حسب كل خدمة</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">🧾</div><span>تسجيل المصروفات وحساب صافي الربح</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">📤</div><span>تصدير التقارير المالية</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: EARNINGS -->
+    <div class="slide" data-audio="04_earnings.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/earnings</div>
+          </div>
+          <div class="mock-body">
+            <div class="stat-row">
+              <div class="stat-card" style="transition-delay:.1s"><div class="stat-label">إجمالي الأرباح</div><div class="stat-val" style="color:#fbbf24">٦١٠٠٠ ج</div></div>
+              <div class="stat-card" style="transition-delay:.2s"><div class="stat-label">عدد الأطباء</div><div class="stat-val" style="color:#60a5fa">٣</div></div>
+            </div>
+            <table class="mock-table">
+              <tr><th>الطبيب</th><th>العمليات</th><th>العمولة</th><th>الأرباح</th></tr>
+              <tr class="mock-row" style="transition-delay:.3s"><td>د. أحمد</td><td>٤٥</td><td>٣٠٪</td><td style="color:#34d399">٢١٠٠٠ ج</td></tr>
+              <tr class="mock-row" style="transition-delay:.4s"><td>د. سارة</td><td>٣٨</td><td>٣٠٪</td><td style="color:#34d399">١٨٠٠٠ ج</td></tr>
+              <tr class="mock-row" style="transition-delay:.5s"><td>د. محمود</td><td>٢٩</td><td>٢٥٪</td><td style="color:#34d399">١٤٠٠٠ ج</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ٤ من ١٥</div>
+        <div class="slide-title">الأرباح</div>
+        <div class="slide-desc">توزيع الأرباح والعمولات على كل طبيب في العيادة.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">👨‍⚕️</div><span>أرباح وعمولات كل طبيب بشكل منفصل</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">📊</div><span>مقارنة الأداء بين الأطباء</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">✅</div><span>نسب عمولة مخصصة لكل طبيب</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">📅</div><span>فلترة حسب الفترة الزمنية</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: BOOKINGS -->
+    <div class="slide" data-audio="05_bookings.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/bookings</div>
+          </div>
+          <div class="mock-body">
+            <table class="mock-table">
+              <tr><th>الاسم</th><th>الهاتف</th><th>الخدمة</th><th>الإجراء</th></tr>
+              <tr class="mock-row" style="transition-delay:.2s">
+                <td>ريم سالم</td><td>0100xxxxxxx</td><td>تبييض</td>
+                <td><span class="badge" style="background:#064e3b;color:#34d399;cursor:pointer">✓ قبول</span> <span class="badge" style="background:#4c0519;color:#f87171;cursor:pointer">✗ رفض</span></td>
+              </tr>
+              <tr class="mock-row" style="transition-delay:.3s">
+                <td>كريم نادر</td><td>0112xxxxxxx</td><td>تقويم</td>
+                <td><span class="badge" style="background:#064e3b;color:#34d399;cursor:pointer">✓ قبول</span> <span class="badge" style="background:#4c0519;color:#f87171;cursor:pointer">✗ رفض</span></td>
+              </tr>
+              <tr class="mock-row" style="transition-delay:.4s">
+                <td>منى حامد</td><td>0155xxxxxxx</td><td>حشو</td>
+                <td><span class="badge" style="background:#064e3b;color:#34d399;cursor:pointer">✓ قبول</span> <span class="badge" style="background:#4c0519;color:#f87171;cursor:pointer">✗ رفض</span></td>
+              </tr>
+            </table>
+            <div style="background:#1e3a5f;border-radius:8px;padding:10px;font-size:12px;color:#60a5fa;margin-top:4px;">
+              🔔 ٣ حجوزات جديدة تنتظر الموافقة
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ٥ من ١٥</div>
+        <div class="slide-title">الحجوزات الأونلاين</div>
+        <div class="slide-desc">إدارة كل الحجوزات القادمة من الموقع الإلكتروني.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">🌐</div><span>حجوزات الموقع تصل مباشرة للوحة التحكم</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">✅</div><span>قبول أو رفض الحجز بزرار واحد</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">🔄</div><span>تحويل الحجز لموعد في الجدول تلقائياً</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">📱</div><span>بيانات العميل الكاملة مع الطلب</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: WHATSAPP -->
+    <div class="slide" data-audio="06_whatsapp.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/whatsapp</div>
+          </div>
+          <div class="mock-body">
+            <div style="display:flex;align-items:center;gap:10px;background:#0f172a;border-radius:8px;padding:10px;margin-bottom:8px;">
+              <div style="width:12px;height:12px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;"></div>
+              <span style="font-size:12px;color:#34d399">متصل — +20 100 xxx xxxx</span>
+            </div>
+            <div class="chat">
+              <div class="bubble user show">أريد حجز موعد</div>
+              <div class="bubble bot show" style="transition-delay:.3s">أهلاً! متى يناسبك؟ عندنا مواعيد خلال الأسبوع 🦷</div>
+              <div class="bubble user show" style="transition-delay:.6s">غداً الساعة ٣</div>
+              <div class="bubble bot show" style="transition-delay:.9s">تمام ✅ تم تأكيد موعدك غداً الساعة ٣ عصراً</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ٦ من ١٥</div>
+        <div class="slide-title">واتساب البوت</div>
+        <div class="slide-desc">ربط واتساب لحجز المواعيد والرد التلقائي على العملاء.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">🤖</div><span>رد تلقائي ذكي على استفسارات العملاء</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">📅</div><span>حجز المواعيد مباشرة عبر واتساب</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">💬</div><span>إرسال تأكيدات وتذكيرات للمرضى</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">🔌</div><span>ربط وقطع الاتصال من لوحة التحكم</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: MESSAGES -->
+    <div class="slide" data-audio="07_messages.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/messages</div>
+          </div>
+          <div class="mock-body">
+            <table class="mock-table">
+              <tr><th>الاسم</th><th>الرسالة</th><th>التاريخ</th></tr>
+              <tr class="mock-row" style="transition-delay:.2s"><td>فاطمة</td><td style="color:var(--muted)">استفسار عن سعر التقويم...</td><td>منذ ساعة</td></tr>
+              <tr class="mock-row" style="transition-delay:.3s"><td>عمر</td><td style="color:var(--muted)">هل تقبلون التأمين الصحي؟</td><td>أمس</td></tr>
+              <tr class="mock-row" style="transition-delay:.4s"><td>نورا</td><td style="color:var(--muted)">أريد تأجيل الموعد...</td><td>٢ يوم</td></tr>
+            </table>
+            <div style="background:#0f172a;border-radius:8px;padding:12px;font-size:12px;color:var(--text);">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px">رد على فاطمة</div>
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--muted)">اكتب ردك هنا...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ٧ من ١٥</div>
+        <div class="slide-title">رسائل العملاء</div>
+        <div class="slide-desc">كل رسائل الاستفسار والتواصل من الموقع في مكان واحد.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">📥</div><span>استقبال رسائل نموذج التواصل فوراً</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">👤</div><span>بيانات كاملة: الاسم، الهاتف، الرسالة</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">↩️</div><span>الرد من داخل لوحة التحكم مباشرة</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">🔄</div><span>تحويل الرسالة لحجز موعد</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: REMINDERS -->
+    <div class="slide" data-audio="08_reminders.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/reminders</div>
+          </div>
+          <div class="mock-body">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div class="mock-row show" style="background:#0f172a;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;transition-delay:.2s">
+                <div style="width:36px;height:36px;border-radius:8px;background:#064e3b;display:flex;align-items:center;justify-content:center;">📞</div>
+                <div><div style="font-size:12px">مراجعة أحمد بعد العملية</div><div style="font-size:10px;color:var(--muted)">غداً ١٠:٠٠ ص</div></div>
+              </div>
+              <div class="mock-row show" style="background:#0f172a;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;transition-delay:.3s">
+                <div style="width:36px;height:36px;border-radius:8px;background:#422006;display:flex;align-items:center;justify-content:center;">🦷</div>
+                <div><div style="font-size:12px">طلب صور أشعة لسارة</div><div style="font-size:10px;color:var(--muted)">اليوم ٢:٠٠ م</div></div>
+              </div>
+              <div class="mock-row show" style="background:#0f172a;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;transition-delay:.4s">
+                <div style="width:36px;height:36px;border-radius:8px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;">📋</div>
+                <div><div style="font-size:12px">مراجعة التقرير الشهري</div><div style="font-size:10px;color:var(--muted)">٣١ يوليو</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ٨ من ١٥</div>
+        <div class="slide-title">التذكيرات</div>
+        <div class="slide-desc">نظام تذكيرات ذكي لمتابعة المرضى والمهام المهمة.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">⏰</div><span>تذكيرات بالمواعيد القادمة والمتابعات</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">📝</div><span>إضافة ملاحظات وتذكيرات شخصية</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">🔔</div><span>تنبيهات فورية داخل لوحة التحكم</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">✅</div><span>تحديد التذكيرات كمنجزة</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 9: CALENDAR -->
+    <div class="slide" data-audio="09_calendar.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/calendar</div>
+          </div>
+          <div class="mock-body">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:14px;font-weight:700">يوليو ٢٠٢٦</span>
+              <div style="display:flex;gap:8px;"><span style="cursor:pointer;color:var(--muted)">◀</span><span style="cursor:pointer;color:var(--muted)">▶</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:9px;color:var(--muted);text-align:center;margin-bottom:4px;">
+              <span>أح</span><span>إث</span><span>ث</span><span>أر</span><span>خ</span><span>ج</span><span>س</span>
+            </div>
+            <div class="cal-grid" id="cal-grid">
+              <!-- days generated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ٩ من ١٥</div>
+        <div class="slide-title">التقويم</div>
+        <div class="slide-desc">عرض جميع المواعيد على شكل تقويم شهري أو أسبوعي.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">📆</div><span>عرض شهري وأسبوعي لكل المواعيد</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">👁️</div><span>رؤية الأيام المشغولة والفارغة دفعة واحدة</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">➕</div><span>إضافة موعد بالضغط على أي يوم</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">🎨</div><span>ألوان مختلفة لأنواع الخدمات</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 10: PATIENTS -->
+    <div class="slide" data-audio="10_patients.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/patients</div>
+          </div>
+          <div class="mock-body">
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+              <div class="form-field" style="flex:2">🔍 بحث عن مريض...</div>
+              <div style="background:var(--blue);color:white;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;">+ مريض جديد</div>
+            </div>
+            <table class="mock-table">
+              <tr><th>الاسم</th><th>الهاتف</th><th>آخر زيارة</th><th>العمليات</th></tr>
+              <tr class="mock-row" style="transition-delay:.2s"><td>أحمد محمد</td><td>0100xxx</td><td>٥ يوليو</td><td><span style="color:#60a5fa">٣</span></td></tr>
+              <tr class="mock-row" style="transition-delay:.3s"><td>سارة علي</td><td>0112xxx</td><td>٣ يوليو</td><td><span style="color:#60a5fa">٧</span></td></tr>
+              <tr class="mock-row" style="transition-delay:.4s"><td>محمود حسن</td><td>0155xxx</td><td>١ يوليو</td><td><span style="color:#60a5fa">١</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ١٠ من ١٥</div>
+        <div class="slide-title">إدارة العملاء</div>
+        <div class="slide-desc">سجل شامل لكل مرضى العيادة مع تاريخهم الطبي الكامل.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">👤</div><span>ملف شامل لكل مريض: البيانات والتاريخ</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">🔍</div><span>بحث سريع بالاسم أو الهاتف</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">📸</div><span>رفع صور وملفات الأشعة لكل مريض</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">📋</div><span>عرض كل العمليات والمواعيد السابقة</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 11: OPERATIONS -->
+    <div class="slide" data-audio="11_operations.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/operations</div>
+          </div>
+          <div class="mock-body">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <div class="form-field" style="flex:2">🔍 بحث...</div>
+              <div style="background:var(--blue);color:white;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;">+ عملية جديدة</div>
+            </div>
+            <table class="mock-table">
+              <tr><th>المريض</th><th>الخدمة</th><th>الطبيب</th><th>السعر</th><th>الحالة</th></tr>
+              <tr class="mock-row" style="transition-delay:.2s"><td>أحمد</td><td>حشو</td><td>د. سارة</td><td>٨٠٠ ج</td><td><span class="badge" style="background:#064e3b;color:#34d399">مكتمل</span></td></tr>
+              <tr class="mock-row" style="transition-delay:.3s"><td>نورا</td><td>تقويم</td><td>د. أحمد</td><td>٤٠٠٠ ج</td><td><span class="badge" style="background:#1e3a5f;color:#60a5fa">جاري</span></td></tr>
+              <tr class="mock-row" style="transition-delay:.4s"><td>علي</td><td>تبييض</td><td>د. محمود</td><td>١٥٠٠ ج</td><td><span class="badge" style="background:#064e3b;color:#34d399">مكتمل</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ١١ من ١٥</div>
+        <div class="slide-title">إدارة العمليات</div>
+        <div class="slide-desc">تتبع وتسجيل كل الإجراءات الطبية والفواتير.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">🦷</div><span>تسجيل كل عملية مع الطبيب والسعر</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">💳</div><span>متابعة حالة الدفع لكل عملية</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">🧾</div><span>إنشاء فاتورة تلقائية لكل عملية</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">📎</div><span>ربط العملية بملف المريض مباشرة</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 12: DOCTORS -->
+    <div class="slide" data-audio="12_doctors.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/doctors</div>
+          </div>
+          <div class="mock-body">
+            <div class="doc-cards">
+              <div class="doc-card show" style="transition-delay:.1s"><div class="doc-avatar">👨‍⚕️</div><div style="font-size:12px;font-weight:600">د. أحمد رضا</div><div style="font-size:10px;color:var(--muted)">تقويم الأسنان</div><div style="font-size:10px;color:#34d399;margin-top:4px">٤٥ عملية</div></div>
+              <div class="doc-card show" style="transition-delay:.2s"><div class="doc-avatar" style="background:var(--teal)">👩‍⚕️</div><div style="font-size:12px;font-weight:600">د. سارة منير</div><div style="font-size:10px;color:var(--muted)">زراعة الأسنان</div><div style="font-size:10px;color:#34d399;margin-top:4px">٣٨ عملية</div></div>
+              <div class="doc-card show" style="transition-delay:.3s"><div class="doc-avatar" style="background:var(--purple)">👨‍⚕️</div><div style="font-size:12px;font-weight:600">د. محمود فاروق</div><div style="font-size:10px;color:var(--muted)">تجميل الأسنان</div><div style="font-size:10px;color:#34d399;margin-top:4px">٢٩ عملية</div></div>
+              <div class="doc-card show" style="transition-delay:.4s;cursor:pointer;border-style:dashed;"><div class="doc-avatar" style="background:#1e293b">+</div><div style="font-size:12px;color:var(--muted)">إضافة طبيب</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ١٢ من ١٥</div>
+        <div class="slide-title">إدارة الأطباء</div>
+        <div class="slide-desc">إدارة فريق الأطباء وجداولهم وعمولاتهم.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">➕</div><span>إضافة طبيب جديد بسهولة</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">🕐</div><span>تحديد ساعات وأيام عمل كل طبيب</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">💰</div><span>نسبة عمولة مخصصة لكل طبيب</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">📊</div><span>إحصاءات أداء كل طبيب</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 13: OFFERS -->
+    <div class="slide" data-audio="13_offers.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/offers</div>
+          </div>
+          <div class="mock-body">
+            <div style="display:flex;gap:10px;margin-bottom:8px;">
+              <div class="offer-card show" style="flex:1;transition-delay:.2s">
+                <div class="offer-discount">٣٠٪</div>
+                <div style="font-size:13px;font-weight:700;margin-bottom:4px">خصم على التبييض</div>
+                <div style="font-size:10px;color:var(--muted)">حتى ٣١ يوليو</div>
+                <div style="margin-top:8px"><span class="badge" style="background:#064e3b;color:#34d399">✓ نشط</span></div>
+              </div>
+              <div class="offer-card show" style="flex:1;transition-delay:.4s;border-color:var(--teal)">
+                <div class="offer-discount" style="color:var(--teal)">٢٠٪</div>
+                <div style="font-size:13px;font-weight:700;margin-bottom:4px">عرض التقويم الصيفي</div>
+                <div style="font-size:10px;color:var(--muted)">حتى ١٥ أغسطس</div>
+                <div style="margin-top:8px"><span class="badge" style="background:#064e3b;color:#34d399">✓ نشط</span></div>
+              </div>
+            </div>
+            <div style="text-align:center;cursor:pointer;background:var(--blue);color:white;padding:8px;border-radius:8px;font-size:12px;">+ إنشاء عرض جديد</div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ١٣ من ١٥</div>
+        <div class="slide-title">إدارة العروض</div>
+        <div class="slide-desc">إنشاء وإدارة العروض والخصومات وعرضها على الموقع.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">🎯</div><span>إنشاء عرض مع خصم ومدة محددة</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">🌐</div><span>ظهور العرض على الموقع تلقائياً</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">⏱️</div><span>انتهاء العرض تلقائياً في تاريخ محدد</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">✏️</div><span>تعديل أو إيقاف العرض في أي وقت</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 14: SITE EDITOR -->
+    <div class="slide" data-audio="14_editor.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/editor</div>
+          </div>
+          <div class="mock-body">
+            <div class="mock-form">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">اسم العيادة</div>
+              <div class="form-field focus">مركز طب الأسنان</div>
+              <div style="font-size:11px;color:var(--muted);margin:4px 0">عنوان العيادة</div>
+              <div class="form-row">
+                <div class="form-field">القاهرة، مصر الجديدة</div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin:4px 0">الخدمات</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                <span class="badge" style="background:#1e3a5f;color:#60a5fa">تقويم ✎</span>
+                <span class="badge" style="background:#1e3a5f;color:#60a5fa">زراعة ✎</span>
+                <span class="badge" style="background:#1e3a5f;color:#60a5fa">تبييض ✎</span>
+                <span class="badge" style="background:var(--border);color:var(--muted)">+ إضافة</span>
+              </div>
+              <div style="background:var(--blue);color:white;text-align:center;padding:8px;border-radius:8px;font-size:12px;cursor:pointer;margin-top:8px">💾 حفظ التغييرات</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ١٤ من ١٥</div>
+        <div class="slide-title">محرر الموقع</div>
+        <div class="slide-desc">تعديل محتوى الموقع الإلكتروني بدون أي خبرة تقنية.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">✏️</div><span>تعديل النصوص والعناوين والوصف</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">🖼️</div><span>رفع الصور والشعار وصور قبل وبعد</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">⚙️</div><span>إدارة الخدمات والأسعار والفريق</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">⚡</div><span>التغييرات تظهر على الموقع فوراً</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 15: SETTINGS -->
+    <div class="slide" data-audio="15_settings.mp3">
+      <div class="mock-panel">
+        <div class="mock">
+          <div class="mock-header">
+            <div class="mock-dot" style="background:#ef4444"></div><div class="mock-dot" style="background:#f59e0b"></div><div class="mock-dot" style="background:#22c55e"></div>
+            <div class="mock-url">dashboard/settings</div>
+          </div>
+          <div class="mock-body">
+            <div class="mock-form">
+              <div class="form-row">
+                <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">يفتح الساعة</div><div class="form-field">٩:٠٠ ص</div></div>
+                <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">يغلق الساعة</div><div class="form-field">١٠:٠٠ م</div></div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin:4px 0">أيام العمل</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                <span class="badge" style="background:#064e3b;color:#34d399">السبت</span>
+                <span class="badge" style="background:#064e3b;color:#34d399">الأحد</span>
+                <span class="badge" style="background:#064e3b;color:#34d399">الاثنين</span>
+                <span class="badge" style="background:#064e3b;color:#34d399">الثلاثاء</span>
+                <span class="badge" style="background:#064e3b;color:#34d399">الأربعاء</span>
+                <span class="badge" style="background:var(--border);color:var(--muted)">الخميس</span>
+                <span class="badge" style="background:var(--border);color:var(--muted)">الجمعة</span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin:4px 0">كلمة المرور الجديدة</div>
+              <div class="form-field">••••••••</div>
+              <div style="background:var(--blue);color:white;text-align:center;padding:8px;border-radius:8px;font-size:12px;cursor:pointer;">💾 حفظ الإعدادات</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-panel">
+        <div class="slide-num">القسم ١٥ من ١٥</div>
+        <div class="slide-title">الإعدادات</div>
+        <div class="slide-desc">ضبط كل إعدادات العيادة ومعلومات الحساب.</div>
+        <div class="feature-list">
+          <div class="feature"><div class="feat-icon" style="background:#1e3a5f;color:#60a5fa">🕐</div><span>تحديد ساعات وأيام العمل</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#064e3b;color:#34d399">📞</div><span>تعديل معلومات التواصل والعنوان</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#422006;color:#fbbf24">🔐</div><span>تغيير كلمة المرور وبيانات الدخول</span></div>
+          <div class="feature"><div class="feat-icon" style="background:#3b1f6e;color:#a78bfa">🏥</div><span>إعدادات خاصة بإجراءات العيادة</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /slides -->
+
+  <div id="controls">
+    <div id="ctrl-left">
+      <button class="btn" id="btn-prev">◀ السابق</button>
+    </div>
+    <div id="ctrl-center">
+      <div id="audio-bar">
+        <span style="font-size:18px;cursor:pointer;" id="btn-play-pause">⏸</span>
+        <div id="audio-progress" onclick="seekAudio(event)">
+          <div id="audio-fill"></div>
+        </div>
+        <span id="slide-counter" style="font-size:11px;color:var(--muted)">١ / ١٦</span>
+      </div>
+    </div>
+    <div id="ctrl-right">
+      <button class="btn primary" id="btn-next">التالي ▶</button>
+    </div>
+  </div>
+</div><!-- /app -->
+
+<audio id="player" preload="auto"></audio>
+
+<script>
+const TOTAL = 16;
+let current = 0;
+let playing = false;
+
+const slides = document.querySelectorAll('.slide');
+const player = document.getElementById('player');
+const fill = document.getElementById('audio-fill');
+const pFill = document.getElementById('progress-fill');
+const counter = document.getElementById('slide-counter');
+const btnPP = document.getElementById('btn-play-pause');
+const overlay = document.getElementById('play-overlay');
+
+// Build calendar
+const cal = document.getElementById('cal-grid');
+if(cal){
+  const evDays = [3,7,10,14,15,18,21,22,25,28];
+  for(let i=1;i<=31;i++){
+    const d=document.createElement('div');
+    d.className='cal-cell'+(i===7?' today':evDays.includes(i)?' has-event':'');
+    d.textContent=i;
+    cal.appendChild(d);
+  }
+}
+
+function arabicNum(n){
+  return String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
+}
+
+function goTo(idx){
+  slides[current].classList.remove('active');
+  current = (idx + TOTAL) % TOTAL;
+  slides[current].classList.add('active');
+  // animate children
+  setTimeout(()=>{
+    const el = slides[current];
+    el.querySelectorAll('.stat-card,.mock-row,.feature,.bar,.bubble,.doc-card,.offer-card,.cal-cell').forEach((e,i)=>{
+      setTimeout(()=>e.classList.add('show'), i*80);
+    });
+  }, 100);
+  // update progress bar
+  pFill.style.width = ((current/(TOTAL-1))*100)+'%';
+  counter.textContent = arabicNum(current+1)+' / '+arabicNum(TOTAL);
+  // load audio
+  const src = slides[current].dataset.audio;
+  if(src){
+    player.src='/tutorial/'+src;
+    player.load();
+    if(playing) player.play().catch(()=>{});
+  }
+  fill.style.width='0%';
+}
+
+player.addEventListener('timeupdate',()=>{
+  if(player.duration) fill.style.width=(player.currentTime/player.duration*100)+'%';
+});
+
+player.addEventListener('ended',()=>{
+  setTimeout(()=>{ if(current<TOTAL-1) goTo(current+1); }, 800);
+});
+
+player.addEventListener('play',()=>{ playing=true; btnPP.textContent='⏸'; });
+player.addEventListener('pause',()=>{ playing=false; btnPP.textContent='▶'; });
+
+document.getElementById('btn-next').onclick=()=>goTo(current+1);
+document.getElementById('btn-prev').onclick=()=>goTo(current-1);
+btnPP.onclick=()=>{ if(player.paused) player.play(); else player.pause(); };
+
+window.seekAudio=function(e){
+  const r=document.getElementById('audio-progress').getBoundingClientRect();
+  const ratio=(e.clientX-r.left)/r.width;
+  if(player.duration) player.currentTime=ratio*player.duration;
+};
+
+// Activate initial features
+setTimeout(()=>{
+  slides[0].querySelectorAll('.stat-card,.mock-row,.feature,.bar,.bubble,.doc-card,.offer-card,.cal-cell').forEach((e,i)=>{
+    setTimeout(()=>e.classList.add('show'), i*80);
+  });
+},300);
+
+// Keyboard nav
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft') goTo(current+1);
+  if(e.key==='ArrowRight') goTo(current-1);
+  if(e.key===' '){ e.preventDefault(); if(player.paused) player.play(); else player.pause(); }
+});
+
+overlay.addEventListener('click',()=>{
+  overlay.classList.add('hidden');
+  playing=true;
+  goTo(0);
+  player.play().catch(()=>{});
+});
+</script>
+</body>
+</html>

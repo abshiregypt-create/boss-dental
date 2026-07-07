@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
-import { ALLOWED_MIME, MAX_FILE_BYTES, safeName, writeFileBuffer } from "@/lib/server/storage";
+import { ALLOWED_MIME, MAX_FILE_BYTES, mimeMatchesContent, safeName, writeFileBuffer } from "@/lib/server/storage";
 
 const CATEGORIES = new Set(["xray", "photo", "document", "medical"]);
 
@@ -56,7 +56,17 @@ export async function POST(req: Request) {
   if (!ALLOWED_MIME.has(file.type)) return NextResponse.json({ error: "bad_type", type: file.type }, { status: 415 });
 
   const buf = Buffer.from(await file.arrayBuffer());
-  const stored = `${randomUUID()}__${safeName(file.name)}`;
+
+  // Content-based validation: the magic bytes must match the declared type,
+  // and the sanitized name must not contain traversal components.
+  if (!mimeMatchesContent(file.type, buf)) {
+    return NextResponse.json({ error: "content_mismatch", type: file.type }, { status: 415 });
+  }
+  const safe = safeName(file.name);
+  if (safe.includes("..") || safe.startsWith(".")) {
+    return NextResponse.json({ error: "invalid_filename" }, { status: 400 });
+  }
+  const stored = `${randomUUID()}__${safe}`;
   await writeFileBuffer(stored, buf);
 
   const rec = await prisma.patientFile.create({

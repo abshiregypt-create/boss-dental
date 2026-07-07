@@ -20,12 +20,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
   const download = new URL(req.url).searchParams.get("download") === "1";
   const disposition = download ? "attachment" : "inline";
+  // Quote-safe ASCII fallback + RFC 5987 UTF-8 name for non-ASCII filenames.
+  const asciiName = file.fileName.replace(/["\\\r\n]/g, "_");
 
   return new Response(new Uint8Array(buf), {
     headers: {
       "Content-Type": file.mimeType,
       "Content-Length": String(file.size),
-      "Content-Disposition": `${disposition}; filename="${encodeURIComponent(file.fileName)}"`,
+      "Content-Disposition": `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+      // Never let the browser MIME-sniff user-uploaded bytes into something executable.
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, no-store",
     },
   });

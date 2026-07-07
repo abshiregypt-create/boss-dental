@@ -130,12 +130,19 @@ export async function processFollowups(now = new Date()): Promise<{ scanned: num
     if (dueAt > now.getTime()) continue; // not time yet
     if (end.getTime() < earliest.getTime()) continue; // ended too long ago
 
+    // Atomically claim the send (null → now) so overlapping runs or multiple
+    // instances can never double-send the same follow-up. Only the winner sends.
+    const claim = await prisma.appointment.updateMany({
+      where: { id: appt.id, followupSentAt: null },
+      data: { followupSentAt: now },
+    });
+    if (claim.count !== 1) continue;
+
     const body = buildFollowupMessage(appt);
     const to = normalizePhone(appt.phone).digits;
     try {
       await sendWhatsApp({ to, body, chatId: appt.waChatId ?? null });
       await logChat({ phone: to, chatId: appt.waChatId ?? null, direction: "out", body, kind: "followup" });
-      await prisma.appointment.update({ where: { id: appt.id }, data: { followupSentAt: now } });
 
       // Mark the conversation so the patient's next reply is treated as a
       // follow-up reply (a friendly ack) rather than starting a new booking.
@@ -146,6 +153,8 @@ export async function processFollowups(now = new Date()): Promise<{ scanned: num
       });
       sent++;
     } catch (e) {
+      // Release the claim so a later run can retry this follow-up.
+      await prisma.appointment.updateMany({ where: { id: appt.id, followupSentAt: now }, data: { followupSentAt: null } });
       console.error("[followup] send failed:", e instanceof Error ? e.message : e);
     }
   }

@@ -190,38 +190,45 @@ export async function POST(req: Request) {
   if (!patientId) return NextResponse.json({ error: "patient_failed" }, { status: 400 });
 
   const performedAt = body.performedAt ? new Date(body.performedAt) : new Date();
-
-  const treatment = await prisma.treatmentRecord.create({
-    data: {
-      patientId,
-      procedureId,
-      nameEn: nameEn || nameAr,
-      nameAr: nameAr || nameEn,
-      basePrice,
-      discountPct,
-      price: netPrice,
-      cost,
-      notes: body.notes ? String(body.notes).trim() : null,
-      performedAt: isNaN(performedAt.getTime()) ? new Date() : performedAt,
-      doctors: shares.length
-        ? { create: shares.map((s) => ({ doctorId: s.doctorId, commissionPct: s.commissionPct, amount: s.amount })) }
-        : undefined,
-    },
-  });
-
-  // Optional initial payment (full or partial), capped at the net price.
   const paidNow = Number(body.paidNow);
-  if (Number.isFinite(paidNow) && paidNow > 0) {
-    await prisma.payment.create({
+  const hasPayment = Number.isFinite(paidNow) && paidNow > 0;
+
+  // Create the treatment (with its doctor splits) and the optional initial payment
+  // atomically: a crash between the two writes must never leave a billed operation
+  // with a silently dropped payment (or vice-versa).
+  const treatment = await prisma.$transaction(async (tx) => {
+    const created = await tx.treatmentRecord.create({
       data: {
         patientId,
-        treatmentRecordId: treatment.id,
-        amount: Math.min(paidNow, netPrice),
-        method: normalizeMethod(body.method),
-        paidAt: new Date(),
+        procedureId,
+        nameEn: nameEn || nameAr,
+        nameAr: nameAr || nameEn,
+        basePrice,
+        discountPct,
+        price: netPrice,
+        cost,
+        notes: body.notes ? String(body.notes).trim() : null,
+        performedAt: isNaN(performedAt.getTime()) ? new Date() : performedAt,
+        doctors: shares.length
+          ? { create: shares.map((s) => ({ doctorId: s.doctorId, commissionPct: s.commissionPct, amount: s.amount })) }
+          : undefined,
       },
     });
-  }
+
+    if (hasPayment) {
+      await tx.payment.create({
+        data: {
+          patientId,
+          treatmentRecordId: created.id,
+          amount: Math.min(paidNow, netPrice),
+          method: normalizeMethod(body.method),
+          paidAt: new Date(),
+        },
+      });
+    }
+
+    return created;
+  });
 
   return NextResponse.json({ ok: true, id: treatment.id });
 }

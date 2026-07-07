@@ -1,4 +1,4 @@
-import type { Appointment } from "@prisma/client";
+import { Prisma, type Appointment } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { dispatchMessage } from "./notify";
 import { generateCode } from "./code";
@@ -141,26 +141,55 @@ export async function processTick(now = new Date()): Promise<{ scanned: number; 
     const mins = minutesUntil(a, now);
 
     if (!a.reminderSentAt && mins <= R && mins > Q) {
-      await dispatchMessage(a, "reminder");
-      await prisma.appointment.update({ where: { id: a.id }, data: { reminderSentAt: now } });
-      sent++;
+      if (await claimStage(a.id, "reminderSentAt", now)) {
+        await sendClaimed(a.id, "reminderSentAt", now, () => dispatchMessage(a, "reminder"));
+        sent++;
+      }
     }
 
     if (!a.queueOpenedAt && mins <= Q && mins > 0) {
-      const ahead = await patientsAhead(a, now);
-      await dispatchMessage(a, "queue", { ahead });
-      await prisma.appointment.update({ where: { id: a.id }, data: { queueOpenedAt: now } });
-      sent++;
+      if (await claimStage(a.id, "queueOpenedAt", now)) {
+        const ahead = await patientsAhead(a, now);
+        await sendClaimed(a.id, "queueOpenedAt", now, () => dispatchMessage(a, "queue", { ahead }));
+        sent++;
+      }
     }
 
     if (!a.turnSentAt && mins <= 0) {
-      await dispatchMessage(a, "turn");
-      await prisma.appointment.update({ where: { id: a.id }, data: { turnSentAt: now } });
-      sent++;
+      if (await claimStage(a.id, "turnSentAt", now)) {
+        await sendClaimed(a.id, "turnSentAt", now, () => dispatchMessage(a, "turn"));
+        sent++;
+      }
     }
   }
 
   return { scanned: appts.length, sent };
+}
+
+type StageStamp = "reminderSentAt" | "queueOpenedAt" | "turnSentAt";
+
+/**
+ * Atomically claim a one-time stage by flipping its timestamp from null → now.
+ * Returns true only for the caller that won the claim, so two overlapping ticks
+ * (or two server instances) can never both dispatch the same message.
+ */
+async function claimStage(id: string, field: StageStamp, now: Date): Promise<boolean> {
+  const res = await prisma.appointment.updateMany({
+    where: { id, [field]: null },
+    data: { [field]: now },
+  });
+  return res.count === 1;
+}
+
+/** Run the dispatch for a claimed stage; release the claim on failure so a later
+ *  tick retries instead of the message being silently lost. */
+async function sendClaimed(id: string, field: StageStamp, now: Date, send: () => Promise<unknown>): Promise<void> {
+  try {
+    await send();
+  } catch (e) {
+    await prisma.appointment.updateMany({ where: { id, [field]: now }, data: { [field]: null } });
+    throw e;
+  }
 }
 
 export type NewBooking = {
@@ -226,30 +255,44 @@ export async function ensurePatient(name: string, phone: string): Promise<string
  * No client account is created here — that happens when the doctor confirms
  * (see confirmAppointment), so the Clients list only holds confirmed patients.
  */
-export async function createBooking(input: NewBooking): Promise<Appointment> {
-  let code = generateCode();
-  for (let i = 0; i < 6; i++) {
-    const clash = await prisma.appointment.findUnique({ where: { code } });
-    if (!clash) break;
-    code = generateCode();
+/**
+ * Create an appointment, retrying on the rare unique-code collision. Two bookings
+ * can generate the same code between an existence check and the insert, so instead
+ * of check-then-create we let the DB's unique constraint arbitrate: catch P2002
+ * and retry with a fresh code. This removes the booking-under-load 500s.
+ */
+export async function createAppointmentWithUniqueCode(
+  data: Omit<Prisma.AppointmentUncheckedCreateInput, "code">,
+  attempts = 8,
+): Promise<Appointment> {
+  for (let i = 0; i < attempts; i++) {
+    const code = generateCode();
+    try {
+      return await prisma.appointment.create({ data: { ...data, code } });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        continue; // code collision — try a fresh code
+      }
+      throw e; // any other error is real
+    }
   }
+  throw new Error("could_not_allocate_appointment_code");
+}
 
-  return prisma.appointment.create({
-    data: {
-      code,
-      patientName: input.name,
-      phone: input.phone,
-      serviceId: input.serviceId,
-      serviceLabelEn: input.serviceLabelEn,
-      serviceLabelAr: input.serviceLabelAr,
-      scheduledAt: input.scheduledAt,
-      durationMin: input.durationMin ?? 30,
-      complaint: input.complaint ?? null,
-      offerTitle: input.offerTitle ?? null,
-      lang: input.lang === "ar" ? "ar" : "en",
-      waChatId: input.waChatId ?? null,
-      status: "pending",
-    },
+export async function createBooking(input: NewBooking): Promise<Appointment> {
+  return createAppointmentWithUniqueCode({
+    patientName: input.name,
+    phone: input.phone,
+    serviceId: input.serviceId,
+    serviceLabelEn: input.serviceLabelEn,
+    serviceLabelAr: input.serviceLabelAr,
+    scheduledAt: input.scheduledAt,
+    durationMin: input.durationMin ?? 30,
+    complaint: input.complaint ?? null,
+    offerTitle: input.offerTitle ?? null,
+    lang: input.lang === "ar" ? "ar" : "en",
+    waChatId: input.waChatId ?? null,
+    status: "pending",
   });
 }
 

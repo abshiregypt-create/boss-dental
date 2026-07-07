@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 import { expensesForMonth, normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey, monthKeyOf } from "@/lib/server/doctors";
 
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { error } = await requireSession();
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 
   let body: { labelEn?: string; labelAr?: string; kind?: string; amount?: number };
@@ -45,6 +46,15 @@ export async function POST(req: Request) {
       active: true,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
     },
+  });
+  await writeAudit({
+    action: "expense.create",
+    actor: session,
+    entityType: "ClinicExpense",
+    entityId: expense.id,
+    summary: `Created expense ${expense.labelEn || expense.labelAr}`,
+    metadata: { amount: Number(expense.amount), kind: expense.kind },
+    ip: auditIp(req),
   });
   return NextResponse.json({ expense });
 }

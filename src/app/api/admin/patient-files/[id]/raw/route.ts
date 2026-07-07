@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/server/auth";
+import { requireSession } from "@/lib/server/guard";
 import { readStored } from "@/lib/server/storage";
 
 /** Stream the raw binary (auth-guarded). Used by <img> and download links. */
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await getSession();
-  if (!session) return new Response("unauthorized", { status: 401 });
+  // Use the revocation-aware guard (not bare getSession) so a logged-out or
+  // revoked cookie can no longer stream patient files.
+  const { error } = await requireSession();
+  if (error) return error;
 
   const { id } = await ctx.params;
   const file = await prisma.patientFile.findUnique({ where: { id } });

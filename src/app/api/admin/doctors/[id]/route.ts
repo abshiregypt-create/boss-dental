@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 import { clampPct } from "@/lib/server/doctors";
 
 const MAX_PHOTO_LEN = 1_500_000;
 
 /** Admin: edit or remove a doctor. */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
 
@@ -47,17 +48,35 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (typeof body.active === "boolean") data.active = body.active;
 
   const doctor = await prisma.doctor.update({ where: { id }, data });
+  await writeAudit({
+    action: "doctor.update",
+    actor: session,
+    entityType: "Doctor",
+    entityId: id,
+    summary: `Updated doctor ${doctor.nameEn || doctor.nameAr}`,
+    metadata: { fields: Object.keys(data) },
+    ip: auditIp(req),
+  });
   return NextResponse.json({ doctor });
 }
 
-export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
 
   // TreatmentDoctor rows cascade-delete, but their snapshot amounts are already
   // reflected in past treatments' history; deleting a doctor only removes them
   // from future assignment and the earnings roll-up.
+  const existing = await prisma.doctor.findUnique({ where: { id }, select: { nameEn: true, nameAr: true } });
   await prisma.doctor.delete({ where: { id } });
+  await writeAudit({
+    action: "doctor.delete",
+    actor: session,
+    entityType: "Doctor",
+    entityId: id,
+    summary: existing ? `Deleted doctor ${existing.nameEn || existing.nameAr}` : `Deleted doctor ${id}`,
+    ip: auditIp(req),
+  });
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 import { normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey } from "@/lib/server/doctors";
 
@@ -12,7 +13,7 @@ import { isValidMonthKey } from "@/lib/server/doctors";
  *   - monthKey + null monthAmount    → clear that month's override (revert to recurring).
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
 
@@ -59,13 +60,30 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 
   const expense = await prisma.clinicExpense.findUnique({ where: { id } });
+  await writeAudit({
+    action: "expense.update",
+    actor: session,
+    entityType: "ClinicExpense",
+    entityId: id,
+    summary: `Updated expense ${id}`,
+    metadata: { fields: Object.keys(data), monthKey: body.monthKey ?? null },
+    ip: auditIp(req),
+  });
   return NextResponse.json({ expense });
 }
 
-export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
   await prisma.clinicExpense.delete({ where: { id } });
+  await writeAudit({
+    action: "expense.delete",
+    actor: session,
+    entityType: "ClinicExpense",
+    entityId: id,
+    summary: `Deleted expense ${id}`,
+    ip: auditIp(req),
+  });
   return NextResponse.json({ ok: true });
 }

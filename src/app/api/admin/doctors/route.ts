@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 import { clampPct } from "@/lib/server/doctors";
 
 /** Admin: the clinic's doctors (practitioners assignable to operations). */
@@ -18,7 +19,7 @@ export async function GET() {
 const MAX_PHOTO_LEN = 1_500_000;
 
 export async function POST(req: Request) {
-  const { error } = await requireSession();
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 
   let body: {
@@ -59,6 +60,15 @@ export async function POST(req: Request) {
       active: true,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
     },
+  });
+  await writeAudit({
+    action: "doctor.create",
+    actor: session,
+    entityType: "Doctor",
+    entityId: doctor.id,
+    summary: `Created doctor ${doctor.nameEn || doctor.nameAr}`,
+    metadata: { commissionPct: Number(doctor.commissionPct) },
+    ip: auditIp(req),
   });
   return NextResponse.json({ doctor });
 }

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 import { deleteStored } from "@/lib/server/storage";
 
 /** Delete a patient file (DB row + disk binary). */
-export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 
   const { id } = await ctx.params;
@@ -14,5 +15,14 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
 
   await deleteStored(file.storagePath);
   await prisma.patientFile.delete({ where: { id } });
+  await writeAudit({
+    action: "patientFile.delete",
+    actor: session,
+    entityType: "PatientFile",
+    entityId: id,
+    summary: `Deleted file ${file.fileName} for patient ${file.patientKey}`,
+    metadata: { patientKey: file.patientKey, category: file.category },
+    ip: auditIp(req),
+  });
   return NextResponse.json({ ok: true });
 }

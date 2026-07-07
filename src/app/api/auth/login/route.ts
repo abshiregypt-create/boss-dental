@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   // Successful login — clear the throttle counter for this key.
   loginRateLimiter.reset(rlKey);
 
-  const token = await createSessionToken({ sub: user.id, email: user.email, name: user.name, role: user.role });
+  const token = await createSessionToken({ sub: user.id, email: user.email, name: user.name, role: user.role, ver: user.tokenVersion });
   const res = NextResponse.json({ ok: true, user: { email: user.email, name: user.name, role: user.role } });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
   return res;

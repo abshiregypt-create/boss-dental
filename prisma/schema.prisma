@@ -17,7 +17,28 @@ model User {
   passwordHash String
   name         String
   role         String   @default("doctor") // doctor | admin | staff
+  tokenVersion Int      @default(1) // bumped on logout / password change to revoke old JWTs
   createdAt    DateTime @default(now())
+}
+
+/// Append-only audit trail for sensitive/destructive actions (RBAC-gated routes,
+/// deletions, financial mutations). Written best-effort inside the same request;
+/// never blocks the primary operation. Query in the Audit Center.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String? // User.id that performed the action (null = system/unauthenticated)
+  actorName  String? // snapshot of the actor's display name at action time
+  action     String // e.g. "admin.reset", "doctor.delete", "payout.create"
+  entityType String? // e.g. "Doctor", "Payment", "Appointment"
+  entityId   String? // affected row id when applicable
+  summary    String? // short human-readable description
+  metadata   Json? // structured before/after or request context
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
 }
 
 /// A person who has booked at least once.

@@ -10,6 +10,7 @@ export type SessionPayload = {
   email: string;
   name: string;
   role: string;
+  ver?: number; // tokenVersion at issue time; compared against User.tokenVersion to revoke
 };
 
 // Reject known-weak/placeholder secrets so a copied .env.example can never sign

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 
 /**
  * POST /api/admin/reset
@@ -18,7 +19,7 @@ import { requireSession } from "@/lib/server/guard";
 const CONFIRM = "RESET-FRESH";
 
 export async function POST(req: Request) {
-  const { error } = await requireSession();
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 
   let body: { confirm?: string; wipeCatalog?: boolean };
@@ -77,5 +78,13 @@ export async function POST(req: Request) {
   });
 
   const total = Object.values(removed).reduce((a, b) => a + b, 0);
+  await writeAudit({
+    action: "admin.reset",
+    actor: session,
+    entityType: "Clinic",
+    summary: `Wiped ${total} rows (wipeCatalog=${wipeCatalog})`,
+    metadata: { removed, wipeCatalog },
+    ip: auditIp(req),
+  });
   return NextResponse.json({ ok: true, removed, total, keptCatalog: !wipeCatalog });
 }

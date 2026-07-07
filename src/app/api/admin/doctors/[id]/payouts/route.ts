@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 import { round2 } from "@/lib/server/doctors";
 
 /** GET /api/admin/doctors/[id]/payouts — payouts made to a doctor + running totals. */
@@ -35,7 +36,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
 /** POST /api/admin/doctors/[id]/payouts — record a payment made to the doctor. */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
 
@@ -72,6 +73,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       note: body.note ? String(body.note).trim() : null,
       paidAt,
     },
+  });
+
+  await writeAudit({
+    action: "payout.create",
+    actor: session,
+    entityType: "DoctorPayout",
+    entityId: payout.id,
+    summary: `Recorded payout of ${amount} to doctor ${id} via ${method}`,
+    metadata: { doctorId: id, amount, method },
+    ip: auditIp(req),
   });
 
   return NextResponse.json({ ok: true, payout: { ...payout, paidAt: payout.paidAt.toISOString() } });

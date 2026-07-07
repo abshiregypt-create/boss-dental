@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { ensureProceduresSeeded } from "@/lib/server/operations";
+import { serializeProcedure } from "@/lib/server/money";
 
 /** Admin: the operations/procedures catalog. */
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
   const procedures = await prisma.procedure.findMany({
     orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
   });
-  return NextResponse.json({ procedures });
+  return NextResponse.json({ procedures: procedures.map(serializeProcedure) });
 }
 
 export async function POST(req: Request) {
@@ -50,5 +51,5 @@ export async function POST(req: Request) {
       sortOrder: (max._max.sortOrder ?? 0) + 1,
     },
   });
-  return NextResponse.json({ procedure });
+  return NextResponse.json({ procedure: serializeProcedure(procedure) });
 }

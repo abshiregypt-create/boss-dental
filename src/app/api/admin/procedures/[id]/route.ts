@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
+import { serializeProcedure } from "@/lib/server/money";
 
 /** Admin: edit or remove a catalog procedure. */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -29,7 +30,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (typeof body.active === "boolean") data.active = body.active;
 
   const procedure = await prisma.procedure.update({ where: { id }, data });
-  return NextResponse.json({ procedure });
+  return NextResponse.json({ procedure: serializeProcedure(procedure) });
 }
 
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {

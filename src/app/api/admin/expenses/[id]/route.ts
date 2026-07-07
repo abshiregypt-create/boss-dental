@@ -4,6 +4,7 @@ import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey } from "@/lib/server/doctors";
+import { num } from "@/lib/server/money";
 
 /**
  * PATCH /api/admin/expenses/[id]
@@ -69,7 +70,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     metadata: { fields: Object.keys(data), monthKey: body.monthKey ?? null },
     ip: auditIp(req),
   });
-  return NextResponse.json({ expense });
+  return NextResponse.json({ expense: expense ? { ...expense, amount: num(expense.amount) } : null });
 }
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {

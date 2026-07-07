@@ -4,6 +4,7 @@ import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { expensesForMonth, normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey, monthKeyOf } from "@/lib/server/doctors";
+import { num } from "@/lib/server/money";
 
 /**
  * GET /api/admin/expenses?month=YYYY-MM
@@ -56,5 +57,5 @@ export async function POST(req: Request) {
     metadata: { amount: Number(expense.amount), kind: expense.kind },
     ip: auditIp(req),
   });
-  return NextResponse.json({ expense });
+  return NextResponse.json({ expense: { ...expense, amount: num(expense.amount) } });
 }

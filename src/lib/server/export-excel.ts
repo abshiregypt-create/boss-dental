@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db";
 import { activeClinic } from "@/lib/clinics";
 import { monthKeyOf, round2 } from "@/lib/server/doctors";
 import { settleStatus, type SettleStatus } from "@/lib/server/earnings";
+import { num } from "@/lib/server/money";
 
 const CLINIC_TAG = activeClinic().slug.toUpperCase();
 const CLINIC_CREATOR = `${activeClinic().brand.en} Dashboard`;
@@ -133,8 +134,8 @@ export async function buildProfilesWorkbook(): Promise<Buffer> {
     if (!byPatient.has(id)) byPatient.set(id, { billed: 0, paid: 0, appts: 0 });
     return byPatient.get(id)!;
   };
-  for (const t of treatments) ensure(t.patientId).billed += t.price || 0;
-  for (const p of payments) ensure(p.patientId).paid += p.amount || 0;
+  for (const t of treatments) ensure(t.patientId).billed += num(t.price);
+  for (const p of payments) ensure(p.patientId).paid += num(p.amount);
   for (const a of appts) if (a.patientId) ensure(a.patientId).appts += 1;
 
   // Name lookup by patientId for the child sheets.
@@ -187,7 +188,7 @@ export async function buildProfilesWorkbook(): Promise<Buffer> {
   const wsT = wb.addWorksheet("Operations");
   const paidByTreatment = new Map<string, number>();
   for (const p of payments) {
-    if (p.treatmentRecordId) paidByTreatment.set(p.treatmentRecordId, (paidByTreatment.get(p.treatmentRecordId) ?? 0) + p.amount);
+    if (p.treatmentRecordId) paidByTreatment.set(p.treatmentRecordId, (paidByTreatment.get(p.treatmentRecordId) ?? 0) + num(p.amount));
   }
   setup(wsT, [
     { header: "Patient", key: "patient", width: 24 },
@@ -207,11 +208,11 @@ export async function buildProfilesWorkbook(): Promise<Buffer> {
       patient: nameById.get(t.patientId) ?? "",
       nameAr: t.nameAr,
       nameEn: t.nameEn,
-      base: t.basePrice ?? t.price,
-      disc: t.discountPct || 0,
-      price: t.price,
+      base: num(t.basePrice ?? t.price),
+      disc: num(t.discountPct),
+      price: num(t.price),
       paid,
-      remaining: Math.max(0, t.price - paid),
+      remaining: Math.max(0, num(t.price) - paid),
       notes: t.notes ?? "",
       performedAt: fmtDate(t.performedAt),
     });
@@ -340,9 +341,9 @@ export async function buildEarningsWorkbook(doctorId?: string): Promise<Buffer> 
   );
   for (const l of opsSorted) {
     const t = l.treatmentRecord;
-    const opCommission = t.doctors.reduce((s, d) => s + (d.amount || 0), 0);
-    const paid = t.payments.reduce((s, p) => s + (p.amount || 0), 0);
-    const status = settleStatus(paid, t.price || 0);
+    const opCommission = t.doctors.reduce((s, d) => s + num(d.amount), 0);
+    const paid = t.payments.reduce((s, p) => s + num(p.amount), 0);
+    const status = settleStatus(paid, num(t.price));
     const lastPay = t.payments.reduce<Date | null>((acc, p) => (!acc || p.paidAt > acc ? p.paidAt : acc), null);
     wsOps.addRow({
       date: fmtDate(t.performedAt),
@@ -350,10 +351,10 @@ export async function buildEarningsWorkbook(doctorId?: string): Promise<Buffer> 
       patient: t.patient?.name ?? "",
       op: t.nameEn || t.nameAr,
       cat: t.procedure?.nameEn ?? "Custom",
-      price: t.price || 0,
-      pct: l.commissionPct || 0,
-      docEarn: l.amount || 0,
-      clinicEarn: round2((t.price || 0) - opCommission - (t.cost || 0)),
+      price: num(t.price),
+      pct: num(l.commissionPct),
+      docEarn: num(l.amount),
+      clinicEarn: round2(num(t.price) - opCommission - num(t.cost)),
       status: STATUS_LABEL[status],
       payDate: status === "paid" && lastPay ? fmtDate(lastPay) : "",
       notes: t.notes ?? "",
@@ -378,11 +379,11 @@ export async function buildEarningsWorkbook(doctorId?: string): Promise<Buffer> 
     const t = l.treatmentRecord;
     const v = ensureM(l.doctorId, monthKeyOf(t.performedAt));
     v.operations += 1;
-    v.revenue += t.price || 0;
-    v.earnings += l.amount || 0;
-    v.materials += t.cost || 0;
+    v.revenue += num(t.price);
+    v.earnings += num(l.amount);
+    v.materials += num(t.cost);
   }
-  for (const p of payouts) ensureM(p.doctorId, monthKeyOf(p.paidAt)).paid += p.amount || 0;
+  for (const p of payouts) ensureM(p.doctorId, monthKeyOf(p.paidAt)).paid += num(p.amount);
 
   const wsMonthly = wb.addWorksheet("Monthly Summary");
   setup(wsMonthly, [
@@ -429,15 +430,15 @@ export async function buildEarningsWorkbook(doctorId?: string): Promise<Buffer> 
     const t = l.treatmentRecord;
     const v = ensureD(l.doctorId);
     v.operations += 1;
-    v.revenue += t.price || 0;
-    v.earnings += l.amount || 0;
-    v.materials += t.cost || 0;
+    v.revenue += num(t.price);
+    v.earnings += num(l.amount);
+    v.materials += num(t.cost);
     const key = monthKeyOf(t.performedAt);
-    if (key === curMonth) v.cur += l.amount || 0;
-    if (key === prevMonth) v.prev += l.amount || 0;
+    if (key === curMonth) v.cur += num(l.amount);
+    if (key === prevMonth) v.prev += num(l.amount);
   }
   const paidByDoctor = new Map<string, number>();
-  for (const p of payouts) paidByDoctor.set(p.doctorId, (paidByDoctor.get(p.doctorId) || 0) + (p.amount || 0));
+  for (const p of payouts) paidByDoctor.set(p.doctorId, (paidByDoctor.get(p.doctorId) || 0) + num(p.amount));
 
   const wsDoc = wb.addWorksheet("Doctor Summary");
   setup(wsDoc, [

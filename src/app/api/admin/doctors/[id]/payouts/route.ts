@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { round2 } from "@/lib/server/doctors";
+import { num } from "@/lib/server/money";
 
 /** GET /api/admin/doctors/[id]/payouts — payouts made to a doctor + running totals. */
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -18,13 +19,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     prisma.treatmentDoctor.aggregate({ where: { doctorId: id }, _sum: { amount: true } }),
   ]);
 
-  const totalPaid = round2(payouts.reduce((s, p) => s + (p.amount || 0), 0));
-  const totalEarned = round2(earnedAgg._sum.amount || 0);
+  const totalPaid = round2(payouts.reduce((s, p) => s + num(p.amount), 0));
+  const totalEarned = round2(num(earnedAgg._sum.amount));
 
   return NextResponse.json({
     payouts: payouts.map((p) => ({
       id: p.id,
-      amount: p.amount,
+      amount: num(p.amount),
       method: p.method,
       reference: p.reference,
       note: p.note,
@@ -85,5 +86,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     ip: auditIp(req),
   });
 
-  return NextResponse.json({ ok: true, payout: { ...payout, paidAt: payout.paidAt.toISOString() } });
+  return NextResponse.json({ ok: true, payout: { ...payout, amount: num(payout.amount), paidAt: payout.paidAt.toISOString() } });
 }

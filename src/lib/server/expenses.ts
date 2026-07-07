@@ -6,6 +6,7 @@
  * present, otherwise the recurring amount.
  */
 import { prisma } from "@/lib/db";
+import { num } from "@/lib/server/money";
 
 export type ExpenseKind = "rent" | "electricity" | "custom";
 
@@ -40,13 +41,13 @@ export async function expensesForMonth(monthKey: string): Promise<{
   });
   const expenses: EffectiveExpense[] = rows.map((e) => {
     const ov = e.overrides[0];
-    const effective = ov ? ov.amount : e.amount;
+    const effective = ov ? num(ov.amount) : num(e.amount);
     return {
       id: e.id,
       labelEn: e.labelEn,
       labelAr: e.labelAr,
       kind: e.kind,
-      amount: e.amount,
+      amount: num(e.amount),
       effective,
       overridden: !!ov,
       active: e.active,

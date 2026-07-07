@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { lastOutboundByKind } from "@/lib/server/wa-send";
+import { num } from "@/lib/server/money";
 
 /**
  * Admin receivables: patients who still owe money (billed − paid > 0), so the
@@ -26,12 +27,12 @@ export async function GET() {
   const billed = new Map<string, number>();
   const lastTreatment = new Map<string, Date>();
   for (const t of treatments) {
-    billed.set(t.patientId, (billed.get(t.patientId) ?? 0) + (t.price || 0));
+    billed.set(t.patientId, (billed.get(t.patientId) ?? 0) + num(t.price));
     const cur = lastTreatment.get(t.patientId);
     if (!cur || t.performedAt > cur) lastTreatment.set(t.patientId, t.performedAt);
   }
   const paid = new Map<string, number>();
-  for (const p of payments) paid.set(p.patientId, (paid.get(p.patientId) ?? 0) + (p.amount || 0));
+  for (const p of payments) paid.set(p.patientId, (paid.get(p.patientId) ?? 0) + num(p.amount));
 
   // Last appointment per phone tail (a second signal for "last visit").
   const lastApptByTail = new Map<string, Date>();

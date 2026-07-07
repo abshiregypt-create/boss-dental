@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { clampPct } from "@/lib/server/doctors";
+import { serializeDoctor } from "@/lib/server/money";
 
 /** Admin: the clinic's doctors (practitioners assignable to operations). */
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
   const doctors = await prisma.doctor.findMany({
     orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
   });
-  return NextResponse.json({ doctors });
+  return NextResponse.json({ doctors: doctors.map(serializeDoctor) });
 }
 
 // Guard against oversized profile photos stored as data URLs (~1.5MB of base64).
@@ -70,5 +71,5 @@ export async function POST(req: Request) {
     metadata: { commissionPct: Number(doctor.commissionPct) },
     ip: auditIp(req),
   });
-  return NextResponse.json({ doctor });
+  return NextResponse.json({ doctor: serializeDoctor(doctor) });
 }

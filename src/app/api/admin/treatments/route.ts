@@ -5,6 +5,7 @@ import { normalizePhone } from "@/lib/server/phone";
 import { ensurePatient } from "@/lib/server/appointments";
 import { computeTotals, normalizeMethod } from "@/lib/server/operations";
 import { clampPct, computeShares, type DoctorAssignmentInput } from "@/lib/server/doctors";
+import { num, numOrNull } from "@/lib/server/money";
 
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
@@ -52,7 +53,7 @@ export async function GET(req: Request) {
   const paidByTreatment = new Map<string, number>();
   for (const p of payments) {
     if (p.treatmentRecordId) {
-      paidByTreatment.set(p.treatmentRecordId, (paidByTreatment.get(p.treatmentRecordId) ?? 0) + p.amount);
+      paidByTreatment.set(p.treatmentRecordId, (paidByTreatment.get(p.treatmentRecordId) ?? 0) + num(p.amount));
     }
   }
 
@@ -62,10 +63,10 @@ export async function GET(req: Request) {
       procedureId: t.procedureId,
       nameEn: t.nameEn,
       nameAr: t.nameAr,
-      basePrice: t.basePrice,
-      discountPct: t.discountPct,
-      price: t.price,
-      cost: t.cost,
+      basePrice: numOrNull(t.basePrice),
+      discountPct: num(t.discountPct),
+      price: num(t.price),
+      cost: numOrNull(t.cost),
       paid: paidByTreatment.get(t.id) ?? 0,
       notes: t.notes,
       performedAt: t.performedAt.toISOString(),
@@ -73,13 +74,13 @@ export async function GET(req: Request) {
         doctorId: d.doctorId,
         nameEn: d.doctor?.nameEn ?? "",
         nameAr: d.doctor?.nameAr ?? "",
-        commissionPct: d.commissionPct,
-        amount: d.amount,
+        commissionPct: num(d.commissionPct),
+        amount: num(d.amount),
       })),
     })),
     payments: payments.map((p) => ({
       id: p.id,
-      amount: p.amount,
+      amount: num(p.amount),
       method: p.method,
       note: p.note,
       treatmentRecordId: p.treatmentRecordId,
@@ -142,7 +143,7 @@ export async function POST(req: Request) {
     if (proc) {
       nameEn = nameEn || proc.nameEn;
       nameAr = nameAr || proc.nameAr;
-      procCost = proc.cost ?? null;
+      procCost = numOrNull(proc.cost);
     } else {
       procedureId = null; // stale id → treat as custom
     }
@@ -176,7 +177,7 @@ export async function POST(req: Request) {
       for (const [id, a] of byId) {
         const doc = known.get(id);
         if (!doc) continue; // silently drop unknown ids
-        const pct = Number.isFinite(a.commissionPct) && a.commissionPct > 0 ? clampPct(a.commissionPct) : doc.commissionPct;
+        const pct = Number.isFinite(a.commissionPct) && a.commissionPct > 0 ? clampPct(a.commissionPct) : num(doc.commissionPct);
         assignments.push({ doctorId: id, commissionPct: pct });
       }
       const computed = computeShares(netPrice, assignments);

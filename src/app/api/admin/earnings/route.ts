@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { expensesForMonth } from "@/lib/server/expenses";
+import { num } from "@/lib/server/money";
 import {
   settleStatus,
   expensesBetween,
@@ -77,9 +78,9 @@ export async function GET(req: Request) {
   let materials = 0;
   let commission = 0;
   for (const t of rangeTreatments) {
-    gross += t.price || 0;
-    materials += t.cost || 0;
-    commission += t.doctors.reduce((s, d) => s + (d.amount || 0), 0);
+    gross += num(t.price);
+    materials += num(t.cost);
+    commission += t.doctors.reduce((s, d) => s + num(d.amount), 0);
   }
   const rangeStartForExp =
     from ??
@@ -106,9 +107,9 @@ export async function GET(req: Request) {
     { name: string; count: number; revenue: number; doctorEarnings: number; clinicEarnings: number }
   >();
   for (const t of rangeTreatments) {
-    const price = t.price || 0;
-    const cost = t.cost || 0;
-    const opCommission = t.doctors.reduce((s, d) => s + (d.amount || 0), 0);
+    const price = num(t.price);
+    const cost = num(t.cost);
+    const opCommission = t.doctors.reduce((s, d) => s + num(d.amount), 0);
     const name = (t.nameEn || t.nameAr || "—").trim();
     const key = name.toLowerCase();
     const e = byType.get(key) ?? { name, count: 0, revenue: 0, doctorEarnings: 0, clinicEarnings: 0 };
@@ -122,7 +123,7 @@ export async function GET(req: Request) {
       const a = ensure(d.doctorId);
       a.operations += 1;
       a.revenue += price;
-      a.earnings += d.amount || 0;
+      a.earnings += num(d.amount);
       a.materials += cost;
     }
   }
@@ -132,7 +133,7 @@ export async function GET(req: Request) {
   const monthEarned = new Map<string, number>();
   const lastOp = new Map<string, Date>();
   for (const l of allLinks) {
-    const amt = l.amount || 0;
+    const amt = num(l.amount);
     earnedLifetime.set(l.doctorId, (earnedLifetime.get(l.doctorId) || 0) + amt);
     const when = l.treatmentRecord.performedAt;
     if (when >= curStart && when < curEnd) monthEarned.set(l.doctorId, (monthEarned.get(l.doctorId) || 0) + amt);
@@ -142,9 +143,9 @@ export async function GET(req: Request) {
   const paidLifetime = new Map<string, number>();
   let paidInRange = 0;
   for (const p of allPayouts) {
-    paidLifetime.set(p.doctorId, (paidLifetime.get(p.doctorId) || 0) + (p.amount || 0));
+    paidLifetime.set(p.doctorId, (paidLifetime.get(p.doctorId) || 0) + num(p.amount));
     const inRange = (!from || p.paidAt >= from) && (!to || p.paidAt <= to);
-    if (inRange) paidInRange += p.amount || 0;
+    if (inRange) paidInRange += num(p.amount);
   }
 
   const doctorRows = doctors.map((d) => {
@@ -160,7 +161,7 @@ export async function GET(req: Request) {
       specialtyEn: d.specialtyEn,
       specialtyAr: d.specialtyAr,
       photoUrl: d.photoUrl,
-      commissionPct: d.commissionPct,
+      commissionPct: num(d.commissionPct),
       active: d.active,
       operations: r.operations,
       revenue: round2(r.revenue),
@@ -190,9 +191,9 @@ export async function GET(req: Request) {
     const i = trendIdx.get(monthKeyOf(t.performedAt));
     if (i == null) continue;
     const m = monthly[i];
-    m.revenue += t.price || 0;
-    m.materials += t.cost || 0;
-    m.doctorEarnings += t.doctors.reduce((s, d) => s + (d.amount || 0), 0);
+    m.revenue += num(t.price);
+    m.materials += num(t.cost);
+    m.doctorEarnings += t.doctors.reduce((s, d) => s + num(d.amount), 0);
     m.operations += 1;
   }
   const trendExpenses = await Promise.all(monthly.map((m) => expensesForMonth(m.key)));

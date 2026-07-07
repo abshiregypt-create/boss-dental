@@ -10,6 +10,7 @@
  */
 import { prisma } from "@/lib/db";
 import { sessionTypes } from "@/lib/dashboard";
+import { num, type DecimalLike } from "@/lib/server/money";
 
 export type PaymentMethod = "cash" | "card" | "insurance" | "transfer";
 
@@ -38,10 +39,10 @@ export async function ensureProceduresSeeded(): Promise<void> {
 
 /** Per-patient money totals from their treatments + payments. */
 export function computeTotals(
-  treatments: { price: number }[],
-  payments: { amount: number }[]
+  treatments: { price: DecimalLike }[],
+  payments: { amount: DecimalLike }[]
 ): { billed: number; paid: number; balance: number } {
-  const billed = treatments.reduce((s, t) => s + (t.price || 0), 0);
-  const paid = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const billed = treatments.reduce((s, t) => s + num(t.price), 0);
+  const paid = payments.reduce((s, p) => s + num(p.amount), 0);
   return { billed, paid, balance: billed - paid };
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { clampPct } from "@/lib/server/doctors";
+import { serializeDoctor } from "@/lib/server/money";
 
 const MAX_PHOTO_LEN = 1_500_000;
 
@@ -57,7 +58,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     metadata: { fields: Object.keys(data) },
     ip: auditIp(req),
   });
-  return NextResponse.json({ doctor });
+  return NextResponse.json({ doctor: serializeDoctor(doctor) });
 }
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {

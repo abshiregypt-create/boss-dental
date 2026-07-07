@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { expensesForMonth } from "@/lib/server/expenses";
 import { isValidMonthKey, monthBounds, monthKeyOf, round2 } from "@/lib/server/doctors";
+import { num } from "@/lib/server/money";
 
 /**
  * GET /api/admin/revenue?month=YYYY-MM
@@ -40,9 +41,9 @@ export async function GET(req: Request) {
   >();
 
   for (const t of treatments) {
-    const price = t.price || 0;
-    const cost = t.cost || 0;
-    const commission = t.doctors.reduce((s, d) => s + (d.amount || 0), 0);
+    const price = num(t.price);
+    const cost = num(t.cost);
+    const commission = t.doctors.reduce((s, d) => s + num(d.amount), 0);
     gross += price;
     materialsCost += cost;
     doctorsCommission += commission;
@@ -61,13 +62,13 @@ export async function GET(req: Request) {
       const cur =
         byDoctor.get(d.doctorId) ??
         { doctorId: d.doctorId, nameEn: d.doctor?.nameEn ?? "", nameAr: d.doctor?.nameAr ?? "", amount: 0, count: 0 };
-      cur.amount += d.amount || 0;
+      cur.amount += num(d.amount);
       cur.count += 1;
       byDoctor.set(d.doctorId, cur);
     }
   }
 
-  const collected = payments.reduce((s, x) => s + (x.amount || 0), 0);
+  const collected = payments.reduce((s, x) => s + num(x.amount), 0);
   const net = gross - doctorsCommission - materialsCost - exp.total;
 
   const doctors = [...byDoctor.values()]

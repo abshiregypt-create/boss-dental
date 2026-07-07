@@ -45,12 +45,23 @@
       "package.json"
     ],
     "extraResources": [
-      { "from": ".next/standalone", "to": "app" },
-      { "from": "prisma/clinva-seed.db", "to": "clinva-seed.db" }
+      {
+        "from": ".next/standalone",
+        "to": "app"
+      },
+      {
+        "from": "prisma/clinva-seed.db",
+        "to": "clinva-seed.db"
+      }
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "electron/assets/icon.ico",
       "artifactName": "Clinva-Setup-${version}.${ext}"
@@ -81,7 +92,8 @@
     "prisma": "^6.19.3",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

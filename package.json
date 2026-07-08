@@ -16,6 +16,7 @@
     "db:seed": "node prisma/seed.mjs",
     "db:studio": "prisma studio",
     "db:backup": "node scripts/backup.mjs",
+    "db:pg-backup": "node scripts/pg-backup.mjs",
     "db:restore": "node scripts/restore.mjs",
     "staging:sync": "node scripts/staging-sync.mjs",
     "health": "node scripts/healthcheck.mjs",

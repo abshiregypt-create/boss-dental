@@ -26,6 +26,14 @@ and docs. Backward compatible.
   `^8.3.0` requirement to patch an unexploitable path, so it is documented and
   deferred rather than force-upgraded. Re-evaluate when exceljs ships a
   uuid@>=11-compatible release.
+- **CI now runs against real PostgreSQL** - `.github/workflows/ci.yml` spins up a
+  `postgres:16-alpine` service and points `DATABASE_URL` at it, so
+  `prisma migrate deploy` actually exercises the production dialect (NUMERIC money
+  columns, CHECK constraints, indexes) instead of the previous throwaway
+  `file:./dev.db` SQLite URL that silently skipped every Postgres-only migration.
+  Added a dedicated `npm run typecheck` (`tsc --noEmit`) script and CI step, and
+  annotated the three Playwright fixture params in `tests/e2e/whatsapp-agent.spec.ts`
+  so the typecheck gate is green. No runtime/API/UX change.
 
 #### Sprint 4 — Enterprise Readiness
 - **Centralized env validation** — `src/lib/server/env.ts` `checkEnv()` reports

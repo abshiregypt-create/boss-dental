@@ -11,7 +11,48 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
-#### Sprint 5 - Dependency security
+#### Sprint 6 - Data safety: soft-delete, Recycle Bin, Postgres backups
+
+Approved feature sprint. Deletes of sensitive records are now recoverable, and
+production database backups are automated. No financial number, workflow, or API
+response shape changed; soft-deleted rows are hidden from every existing read so
+all totals and lists behave exactly as before.
+
+- **Soft-delete columns (additive migration)** - `20260709000005_soft_delete`
+  adds nullable `deletedAt DateTime?` / `deletedBy String?` to the nine sensitive
+  models (Patient, TreatmentRecord, TreatmentDoctor, Payment, Doctor,
+  DoctorPayout, ClinicExpense, PatientFile, Procedure). ADD COLUMN only -
+  reversible and non-destructive; existing rows read as live (`deletedAt = null`).
+- **Automatic hide via Prisma client extension** - `src/lib/server/soft-delete.ts`
+  injects `deletedAt: null` into top-level `findFirst/findMany/count/aggregate/
+  groupBy` for soft-deletable models, so trashed rows disappear from normal reads
+  and roll-ups without touching any call site. Callers opt out explicitly
+  (`deletedAt: { not: null }`) for Trash views. Pure transform is unit-tested.
+- **Nested include filters** - analytics, earnings, treatments, revenue, doctor
+  earnings, and the Excel export now filter soft-deletable relations
+  (`where: { deletedAt: null }`) so included children match the top-level scoping.
+- **DELETE routes cascade-soft-delete with audit** - the eight delete endpoints
+  now stamp `deletedAt`/`deletedBy` inside a `$transaction` that soft-deletes the
+  exact children today's `onDelete: Cascade` removed (treatment -> TreatmentDoctor;
+  doctor -> TreatmentDoctor + DoctorPayout; patient -> TreatmentRecord + Payment),
+  keeping every financial roll-up identical. Each delete is written to `AuditLog`.
+- **Trash API (new, additive)** - `GET /api/admin/trash` (list by type with
+  counts, owner roles), `POST /api/admin/trash/restore` (owner roles; revives the
+  record and its co-trashed children), `POST /api/admin/trash/purge` (Super Admin
+  only; blocks permanent delete of records still referenced by financial/medical
+  history unless `force: true`, and removes stored files on purge). All audited.
+- **Recycle Bin admin UI (new route)** - `/dashboard/recycle-bin` lists trashed
+  records by type, restores for owner roles, and offers admin-only permanent
+  delete with a 409 -> force-confirm flow. Bilingual (en/ar), standalone route so
+  no existing dashboard component changed.
+- **Automated PostgreSQL backups (OPS-01)** - `npm run db:pg-backup` runs a
+  `pg_dump -Fc` custom-format dump (includes soft-deleted rows), writes a manifest
+  sidecar, prunes to a retention count, and redacts credentials in logs. Pure core
+  (`scripts/lib/pg-backup-core.mjs`) is unit-tested (13 cases); `docs/RUNBOOK.md`
+  section 5 documents scheduling, offsite copy, and a verified restore drill. The
+  existing SQLite `backup.mjs` remains for the desktop build.
+
+
 - **postcss advisory cleared (GHSA-qx2v-qp2m-jg93, moderate)** - added a
   `package.json` `overrides` pinning `postcss` to `^8.5.15`. This dedupes the
   tree to a single patched `postcss@8.5.16` (previously Next bundled a vulnerable

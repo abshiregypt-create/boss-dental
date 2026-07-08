@@ -145,6 +145,42 @@ Delete the file (disk + DB row). `200` → `{ ok:true }` · `404` not found.
 
 ---
 
+## Admin - Recycle Bin / Trash (auth required)
+
+Deletes of sensitive records (patients, treatments, payments, doctors, payouts,
+clinic expenses, patient files, procedures) are **soft deletes**: the row is
+stamped `deletedAt`/`deletedBy` and hidden from every normal read, instead of
+being physically removed. The DELETE endpoints above are unchanged from a client's
+perspective (still `200 { ok:true }`); the record simply becomes restorable from
+the Trash. The endpoints below manage those trashed rows.
+
+### GET `/api/admin/trash`
+List trashed records. Owner roles (`requireRole(OWNER_ROLES)`).
+- No query: overview -> `{ total, types:[ { type, label, count } ] }`
+- `?type=<type>&limit=&offset=`: items of one type ->
+  `{ type, items:[ { id, label, detail, deletedAt, deletedBy } ] }`
+- `type` is one of `patient|doctor|treatment|payment|procedure|file|payout|expense`
+- `400 {"error":"bad_type"}` for an unknown type
+
+### POST `/api/admin/trash/restore`
+Restore a trashed record and its co-trashed children. Owner roles.
+- Body: `{ "type": <type>, "id": string }`
+- `200` → `{ ok:true }` · `404 {"error":"not_found"}` when the id is not trashed
+- `422 {"error":"validation_error"}` on a missing/invalid body
+
+### POST `/api/admin/trash/purge`
+Permanently delete a trashed record (Super Admin / `admin` role only). Removes any
+stored file bytes and lets the database cascade run.
+- Body: `{ "type": <type>, "id": string, "force"?: boolean }`
+- `200` → `{ ok:true }`
+- `409 {"error":"purge_blocked","details":{ references }}` when the record is still
+  referenced by financial/medical history; retry with `"force": true` to override
+- `403` for non-admin roles · `404` when the id is not trashed
+
+The Recycle Bin operator UI for these endpoints is at `/dashboard/recycle-bin`.
+
+---
+
 ## WhatsApp booking agent
 
 ### GET `/api/whatsapp/webhook`

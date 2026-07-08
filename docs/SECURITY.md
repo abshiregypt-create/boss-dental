@@ -143,6 +143,29 @@ wrapped route emits a redacted `api_request` log line, records metrics, returns
 server-side. High-frequency WhatsApp worker-polling routes and the Meta webhook are
 intentionally excluded to avoid log flooding and preserve their response contracts.
 
+## Controls implemented (Sprint 6 — Data Safety: Soft-Delete, Recycle Bin, Backups)
+
+### 19. Recoverable deletes (soft-delete) with audit
+Deletes of sensitive records now stamp `deletedAt`/`deletedBy` instead of physically
+removing rows, and a Prisma client extension hides trashed rows from all normal reads.
+This prevents accidental or malicious permanent data loss and preserves financial and
+medical history for recovery. Every delete, restore, and purge is written to `AuditLog`
+with the acting user, so destructive actions are attributable.
+
+### 20. Least-privilege Trash controls
+The Trash API enforces role separation: listing and restoring require owner roles
+(`requireRole(OWNER_ROLES)`), while **permanent** deletion (`POST /api/admin/trash/purge`)
+is restricted to the Super Admin (`admin`) role. Purge is refused with `409` when the
+record is still referenced by financial/medical history unless a Super Admin explicitly
+forces it, so irreversible removal can't happen by accident or via a lower-privileged
+account. Purging a patient file also deletes its stored bytes so no orphaned PHI remains.
+
+### 21. Automated database backups
+`npm run db:pg-backup` produces `pg_dump -Fc` snapshots (including soft-deleted rows)
+with a manifest and retention pruning, and **redacts database credentials** from all log
+output. RUNBOOK section 5 documents scheduling, offsite copy, and a verified restore
+drill, reducing the blast radius of data loss or ransomware.
+
 ## Testing
 
 Pure security logic is covered by `node --test` unit tests:
@@ -162,6 +185,10 @@ Pure security logic is covered by `node --test` unit tests:
 - `tests/unit/env.test.mjs` — boot env validation (errors vs warnings)
 - `tests/unit/health.test.mjs` — readiness payload + build metadata
 - `tests/unit/metrics.test.mjs` — quantiles + bounded metric collection
+- `tests/unit/soft-delete.test.mjs` — read-scoping transform + cascade map
+- `tests/unit/soft-delete-cascade.test.mjs` — delete cascade child selection
+- `tests/unit/soft-delete-restore.test.mjs` — restore/purge/reference-block logic
+- `tests/unit/pg-backup.test.mjs` — dump args, URL redaction, retention pruning
 
 Run: `npm run test:unit`
 

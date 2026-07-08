@@ -165,6 +165,20 @@ Pure security logic is covered by `node --test` unit tests:
 
 Run: `npm run test:unit`
 
+## Dependency advisories (production)
+
+Tracked via `npm audit --omit=dev`. Current disposition:
+
+- **postcss GHSA-qx2v-qp2m-jg93 (moderate) - FIXED.** A `package.json`
+  `overrides` pins `postcss` to `^8.5.15`, deduping the tree to the patched
+  `8.5.16`. The `npm audit fix --force` remedy was rejected because it downgrades
+  Next 16 to 9; the same-major override is verified with a full `next build`.
+- **uuid GHSA-w5hq-g745-h8pq (moderate) - ACCEPTED (not reachable).** The bounds
+  issue triggers only for `uuid` v3/v5/v6 with a caller-supplied `buf`. The lone
+  consumer `exceljs@4.4.0` calls only `v4()` without a buffer and the app uses no
+  `uuid` directly, so no code path reaches the flaw. A `uuid@>=11` override would
+  violate exceljs's `^8.3.0` range; deferred until exceljs supports uuid v11.
+
 ## Deferred / follow-up (require Product Owner approval — see roadmap)
 
 - **Content-Security-Policy** — needs nonce integration with the app shell.

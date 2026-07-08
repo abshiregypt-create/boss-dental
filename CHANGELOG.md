@@ -11,6 +11,22 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 5 - Dependency security
+- **postcss advisory cleared (GHSA-qx2v-qp2m-jg93, moderate)** - added a
+  `package.json` `overrides` pinning `postcss` to `^8.5.15`. This dedupes the
+  tree to a single patched `postcss@8.5.16` (previously Next bundled a vulnerable
+  `8.4.31` while Tailwind already used `8.5.x`). Same-major bump, verified with a
+  full `next build`; avoids the `npm audit fix --force` path that would downgrade
+  Next 16 -> 9. No runtime/API/UX change.
+- **uuid advisory accepted (GHSA-w5hq-g745-h8pq, moderate) - not reachable.**
+  The flaw affects `uuid` v3/v5/v6 only when a caller-supplied `buf` output
+  buffer is passed. The single transitive consumer, `exceljs@4.4.0`, imports
+  `{ v4: uuidv4 } = require('uuid')` and calls `uuidv4()` with no `buf`; the app
+  code uses no `uuid` directly. Forcing `uuid@>=11` would break exceljs's
+  `^8.3.0` requirement to patch an unexploitable path, so it is documented and
+  deferred rather than force-upgraded. Re-evaluate when exceljs ships a
+  uuid@>=11-compatible release.
+
 #### Sprint 4 — Enterprise Readiness
 - **Centralized env validation** — `src/lib/server/env.ts` `checkEnv()` reports
   every misconfiguration at once (errors for functionality-breaking gaps,

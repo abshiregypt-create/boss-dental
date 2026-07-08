@@ -1,13 +1,23 @@
 import { PrismaClient } from "@prisma/client";
+import { softDeleteExtension } from "@/lib/server/soft-delete";
 
-// Reuse a single PrismaClient across hot-reloads / serverless invocations.
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+// Build the singleton client with the soft-delete filter applied. The extension
+// hides `deletedAt`-stamped rows from every list/aggregate read (see
+// src/lib/server/soft-delete.ts), so soft-deleted records disappear from the UI
+// and all financial roll-ups exactly as a hard delete would — without losing the
+// data. Writes and the Recycle Bin opt out explicitly.
+function createPrismaClient() {
+  return new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-  });
+  }).$extends(softDeleteExtension);
+}
+
+export type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
+
+// Reuse a single client across hot-reloads / serverless invocations.
+const globalForPrisma = globalThis as unknown as { prisma?: ExtendedPrismaClient };
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 // Cache the client on the global in EVERY environment. Cliniva runs as a
 // long-lived server (Railway `next start`) and as an Electron desktop process —

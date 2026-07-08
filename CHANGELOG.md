@@ -34,6 +34,14 @@ and docs. Backward compatible.
   Added a dedicated `npm run typecheck` (`tsc --noEmit`) script and CI step, and
   annotated the three Playwright fixture params in `tests/e2e/whatsapp-agent.spec.ts`
   so the typecheck gate is green. No runtime/API/UX change.
+- **`.env.example` / `.env.railway.example` completed** - documented every
+  environment variable the code actually consumes that was previously missing:
+  `CRON_SECRET` (guards the external `POST /api/admin/tick` reminder trigger via
+  the `x-cron-secret` header), the `SEED_DOCTOR_*` seeding credentials
+  (production requires `SEED_DOCTOR_PASSWORD`; dev generates a random one),
+  `WA_SESSION_DIR`/`CHROME_PATH` (WhatsApp Web worker), `NEXT_PUBLIC_SALES_WHATSAPP`,
+  `NEXT_PUBLIC_LOGIN_USERNAME`, and the `NEXT_PUBLIC_CLINIC`/`CLINIC` slug.
+  Prevents silent production misconfiguration. Template-only; no code change.
 
 #### Sprint 4 — Enterprise Readiness
 - **Centralized env validation** — `src/lib/server/env.ts` `checkEnv()` reports

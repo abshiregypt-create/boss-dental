@@ -44,7 +44,17 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # The committed lockfile is missing some optional transitive entries, so
+        # `npm ci` fails on Linux ("lock file not in sync"). `npm install`
+        # reconciles it and installs the optional native deps `next build` needs.
+        run: npm install --no-audit --no-fund
+
+      - name: Upload reconciled lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-lock
+          path: package-lock.json
 
       - name: Lint
         run: npm run lint --if-present

@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { sessionTypes, sessionTypeById } from "@/lib/dashboard";
+import { parseJson, z } from "@/lib/server/validate";
 
 /**
  * Admin: manage client accounts. Clients live in the database (Patient table).
@@ -110,19 +111,11 @@ export async function GET() {
   return NextResponse.json({ patients: mapped });
 }
 
-type Body = {
-  id?: string;
-  name?: string;
-  phone?: string;
-  email?: string;
-  gender?: string;
-  notes?: string;
-  medical?: Record<string, string> | null;
-};
-
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
-function medicalInput(medical: Body["medical"]): Prisma.InputJsonValue | typeof Prisma.DbNull | undefined {
+function medicalInput(
+  medical: Record<string, unknown> | null | undefined
+): Prisma.InputJsonValue | typeof Prisma.DbNull | undefined {
   if (medical === undefined) return undefined; // leave unchanged
   if (medical === null) return Prisma.DbNull;
   const cleaned = Object.fromEntries(
@@ -131,11 +124,24 @@ function medicalInput(medical: Body["medical"]): Prisma.InputJsonValue | typeof 
   return Object.keys(cleaned).length ? (cleaned as Prisma.InputJsonValue) : Prisma.DbNull;
 }
 
+const PatientBody = z.object({
+  id: z.string().nullish(),
+  name: z.union([z.string(), z.number()]).nullish(),
+  phone: z.union([z.string(), z.number()]).nullish(),
+  email: z.union([z.string(), z.number()]).nullish(),
+  gender: z.string().nullish(),
+  notes: z.union([z.string(), z.number()]).nullish(),
+  medical: z.record(z.string(), z.unknown()).nullish().catch(undefined),
+});
+
 export async function POST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  const body = (await req.json().catch(() => ({}))) as Body;
+  const parsed = await parseJson(req, PatientBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
+
   const name = str(body.name);
   const phone = str(body.phone);
   if (!name || !phone) {
@@ -163,7 +169,9 @@ export async function PATCH(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  const body = (await req.json().catch(() => ({}))) as Body;
+  const parsed = await parseJson(req, PatientBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const id = str(body.id);
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
@@ -199,7 +207,7 @@ export async function DELETE(req: Request) {
   const url = new URL(req.url);
   let id = url.searchParams.get("id") ?? "";
   if (!id) {
-    const body = (await req.json().catch(() => ({}))) as Body;
+    const body = (await req.json().catch(() => ({}))) as { id?: string };
     id = str(body.id);
   }
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });

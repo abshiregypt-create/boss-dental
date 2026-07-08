@@ -5,6 +5,7 @@ import { writeAudit, auditIp } from "@/lib/server/audit";
 import { expensesForMonth, normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey, monthKeyOf } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
+import { parseJson, z, zOptText } from "@/lib/server/validate";
 
 /**
  * GET /api/admin/expenses?month=YYYY-MM
@@ -21,20 +22,25 @@ export async function GET(req: Request) {
   return NextResponse.json({ month, expenses, total });
 }
 
+const ExpenseCreateBody = z
+  .object({
+    labelEn: zOptText,
+    labelAr: zOptText,
+    kind: z.string().nullish(),
+    amount: z.union([z.string(), z.number()]).nullish(),
+  })
+  .refine((b) => Boolean(b.labelEn || b.labelAr), { message: "label_required", path: ["labelEn"] });
+
 export async function POST(req: Request) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 
-  let body: { labelEn?: string; labelAr?: string; kind?: string; amount?: number };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, ExpenseCreateBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
-  const labelEn = String(body.labelEn ?? "").trim();
-  const labelAr = String(body.labelAr ?? "").trim();
-  if (!labelEn && !labelAr) return NextResponse.json({ error: "label_required" }, { status: 400 });
+  const labelEn = body.labelEn ?? "";
+  const labelAr = body.labelAr ?? "";
 
   const amount = Number(body.amount);
   const max = await prisma.clinicExpense.aggregate({ _max: { sortOrder: true } });

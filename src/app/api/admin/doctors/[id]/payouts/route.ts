@@ -4,6 +4,7 @@ import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { round2 } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
+import { parseJson, z } from "@/lib/server/validate";
 
 /** GET /api/admin/doctors/[id]/payouts — payouts made to a doctor + running totals. */
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -35,6 +36,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   });
 }
 
+const PayoutBody = z.object({
+  amount: z.union([z.string(), z.number()]).nullish(),
+  method: z.union([z.string(), z.number()]).nullish(),
+  reference: z.union([z.string(), z.number()]).nullish(),
+  note: z.union([z.string(), z.number()]).nullish(),
+  paidAt: z.union([z.string(), z.number()]).nullish(),
+});
+
 /** POST /api/admin/doctors/[id]/payouts — record a payment made to the doctor. */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error, session } = await requireRole(OWNER_ROLES);
@@ -44,12 +53,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const doctor = await prisma.doctor.findUnique({ where: { id }, select: { id: true } });
   if (!doctor) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  let body: { amount?: number; method?: string; reference?: string; note?: string; paidAt?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, PayoutBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const amount = round2(Number(body.amount));
   if (!Number.isFinite(amount) || amount <= 0) {

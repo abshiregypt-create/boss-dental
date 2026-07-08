@@ -58,6 +58,32 @@ export const zPct = z.coerce.number().min(0, "must be >= 0").max(100, "must be <
 /** Non-empty trimmed string. */
 export const zNonEmpty = z.string().trim().min(1, "required");
 
+/**
+ * Coerce JSON scalars to string the way `String(x)` did in the hand-rolled
+ * routes (numbers/booleans → string), but reject objects/arrays. `null`/
+ * `undefined` become `undefined` so `.optional()` short-circuits and required
+ * variants report "required" — matching the previous `*_required` 400s.
+ */
+const toStr = (v: unknown): unknown =>
+  v == null ? undefined : typeof v === "number" || typeof v === "boolean" ? String(v) : v;
+
+/** Required free text: trims, rejects empty. Accepts number/boolean (coerced). */
+export const zReqText = z.preprocess(toStr, z.string().trim().min(1, "required"));
+
+/** Optional free text: trims. Absent/null → undefined (handler keeps its default). */
+export const zOptText = z.preprocess(toStr, z.string().trim().optional());
+
+/** Optional ISO date string that, if present, must parse to a real date. */
+export const zDateString = z
+  .string()
+  .refine((s) => !Number.isNaN(new Date(s).getTime()), "invalid date")
+  .nullish();
+
+/** Required date string that must parse (mirrors routes that 400 on bad dates). */
+export const zRequiredDateString = z
+  .string()
+  .refine((s) => !Number.isNaN(new Date(s).getTime()), "invalid date");
+
 /** Optional monetary amount that preserves null/undefined (e.g. optional cost). */
 export const zMoneyOptional = zMoney.nullish();
 

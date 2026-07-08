@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { serializeProcedure } from "@/lib/server/money";
+import { parseJson, z } from "@/lib/server/validate";
+
+const ProcedureUpdateBody = z.object({
+  nameEn: z.string().nullish(),
+  nameAr: z.string().nullish(),
+  price: z.union([z.string(), z.number()]).nullish(),
+  cost: z.union([z.string(), z.number()]).nullish(),
+  active: z.boolean().nullish(),
+});
 
 /** Admin: edit or remove a catalog procedure. */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -9,12 +18,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (error) return error;
   const { id } = await ctx.params;
 
-  let body: { nameEn?: string; nameAr?: string; price?: number; cost?: number | null; active?: boolean };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, ProcedureUpdateBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const data: { nameEn?: string; nameAr?: string; price?: number; cost?: number | null; active?: boolean } = {};
   if (typeof body.nameEn === "string" && body.nameEn.trim()) data.nameEn = body.nameEn.trim();
@@ -23,8 +29,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     data.price = Number(body.price);
   }
   // cost: null or "" clears it; a valid number ≥ 0 sets it; anything else is ignored.
-  if ("cost" in body) {
-    if (body.cost == null || body.cost === ("" as unknown)) data.cost = null;
+  if (body.cost !== undefined) {
+    if (body.cost == null || body.cost === "") data.cost = null;
     else if (Number.isFinite(Number(body.cost)) && Number(body.cost) >= 0) data.cost = Number(body.cost);
   }
   if (typeof body.active === "boolean") data.active = body.active;

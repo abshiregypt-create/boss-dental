@@ -6,6 +6,7 @@ import { ensurePatient } from "@/lib/server/appointments";
 import { computeTotals, normalizeMethod } from "@/lib/server/operations";
 import { clampPct, computeShares, type DoctorAssignmentInput } from "@/lib/server/doctors";
 import { num, numOrNull } from "@/lib/server/money";
+import { parseJson, z } from "@/lib/server/validate";
 
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
@@ -90,6 +91,27 @@ export async function GET(req: Request) {
   });
 }
 
+const zLoose = z.union([z.string(), z.number()]).nullish();
+
+const TreatmentBody = z.object({
+  phone: zLoose,
+  name: zLoose,
+  procedureId: zLoose,
+  nameEn: zLoose,
+  nameAr: zLoose,
+  price: zLoose,
+  discountPct: zLoose,
+  cost: zLoose,
+  doctors: z
+    .array(z.object({ doctorId: zLoose, commissionPct: zLoose }).passthrough())
+    .optional()
+    .catch(undefined),
+  notes: zLoose,
+  paidNow: zLoose,
+  method: zLoose,
+  performedAt: zLoose,
+});
+
 /**
  * POST /api/admin/treatments
  * Records an operation for a patient (creating the patient by phone if needed),
@@ -101,26 +123,9 @@ export async function POST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  let body: {
-    phone?: string;
-    name?: string;
-    procedureId?: string | null;
-    nameEn?: string;
-    nameAr?: string;
-    price?: number;
-    discountPct?: number;
-    cost?: number | null;
-    doctors?: { doctorId?: string; commissionPct?: number }[];
-    notes?: string;
-    paidNow?: number;
-    method?: string;
-    performedAt?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, TreatmentBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const phoneRaw = String(body.phone ?? "").trim();
   if (!phoneRaw) return NextResponse.json({ error: "phone_required" }, { status: 400 });
@@ -153,8 +158,8 @@ export async function POST(req: Request) {
   // Net cost (materials/lab) snapshot: explicit value wins, else fall back to the
   // catalog cost. null/blank clears it. Used for clinic-profit precision only.
   let cost: number | null = procCost;
-  if ("cost" in body) {
-    if (body.cost == null || body.cost === ("" as unknown)) cost = null;
+  if (body.cost !== undefined) {
+    if (body.cost == null || body.cost === "") cost = null;
     else if (Number.isFinite(Number(body.cost)) && Number(body.cost) >= 0) cost = Number(body.cost);
   }
 

@@ -5,6 +5,17 @@ import { writeAudit, auditIp } from "@/lib/server/audit";
 import { normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
+import { parseJson, z } from "@/lib/server/validate";
+
+const ExpenseUpdateBody = z.object({
+  labelEn: z.string().nullish(),
+  labelAr: z.string().nullish(),
+  kind: z.string().nullish(),
+  amount: z.union([z.string(), z.number()]).nullish(),
+  active: z.boolean().nullish(),
+  monthKey: z.string().nullish(),
+  monthAmount: z.union([z.string(), z.number()]).nullish(),
+});
 
 /**
  * PATCH /api/admin/expenses/[id]
@@ -18,20 +29,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (error) return error;
   const { id } = await ctx.params;
 
-  let body: {
-    labelEn?: string;
-    labelAr?: string;
-    kind?: string;
-    amount?: number;
-    active?: boolean;
-    monthKey?: string;
-    monthAmount?: number | null;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, ExpenseUpdateBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const data: Record<string, unknown> = {};
   if (typeof body.labelEn === "string" && body.labelEn.trim()) data.labelEn = body.labelEn.trim();

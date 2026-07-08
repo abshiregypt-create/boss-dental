@@ -1,6 +1,8 @@
 /** Next.js startup hook — validates critical config, then boots the scheduler. */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { logger } = await import("./src/lib/server/logger");
+
     // Pin the process timezone to the clinic's zone (Africa/Cairo) unless the
     // host already set TZ. All appointment slot/day math uses Date.setHours/
     // getHours, which read the process timezone; on a UTC host (e.g. Railway)
@@ -10,23 +12,18 @@ export async function register() {
     // Cairo-local. Non-destructive: stored UTC instants are unchanged.
     if (!process.env.TZ) {
       process.env.TZ = "Africa/Cairo";
-      console.info("[startup] TZ not set; defaulting process timezone to Africa/Cairo");
+      logger.info("startup_tz_default", { tz: "Africa/Cairo" });
     }
 
-    // Boot-time configuration validation — surface critical misconfig in logs.
-    if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32) {
-      console.error(
-        "[startup] CRITICAL: AUTH_SECRET is missing or too short (<32 chars). " +
-          "Generate one: node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\"",
-      );
-    }
-    if (process.env.WHATSAPP_PROVIDER === "metaCloud" && !process.env.WHATSAPP_APP_SECRET) {
-      console.error(
-        "[startup] CRITICAL: WHATSAPP_PROVIDER=metaCloud but WHATSAPP_APP_SECRET is not set. " +
-          "The webhook will reject all requests until it is configured.",
-      );
-    }
+    // Boot-time configuration validation — surface every misconfig at once via
+    // structured logs (errors for functionality-breaking gaps, warnings for
+    // degraded/less-secure setups). Never throws: a runnable-but-flawed process
+    // still starts and logs loudly.
+    const { validateEnvAndLog } = await import("./src/lib/server/env");
+    await validateEnvAndLog();
+
     const { startScheduler } = await import("./src/lib/scheduler");
     startScheduler();
+    logger.info("startup_scheduler_started", {});
   }
 }

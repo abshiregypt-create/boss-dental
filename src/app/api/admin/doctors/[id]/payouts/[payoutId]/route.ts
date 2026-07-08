@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
+import { softDeleteEntity } from "@/lib/server/soft-delete-ops";
 import { withRoute } from "@/lib/server/http";
 
 /** DELETE /api/admin/doctors/[id]/payouts/[payoutId] — remove a doctor payout. */
@@ -17,7 +18,7 @@ async function adminDoctorsIdPayoutsPayoutIdDELETE(req: Request, ctx: { params: 
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  await prisma.doctorPayout.delete({ where: { id: payoutId } });
+  await softDeleteEntity("DoctorPayout", payoutId, session?.sub ?? null);
   await writeAudit({
     action: "payout.delete",
     actor: session,

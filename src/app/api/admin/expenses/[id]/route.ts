@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { normalizeExpenseKind } from "@/lib/server/expenses";
+import { softDeleteEntity } from "@/lib/server/soft-delete-ops";
 import { isValidMonthKey } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
 import { parseJson, z } from "@/lib/server/validate";
@@ -82,7 +83,10 @@ async function adminExpensesIdDELETE(req: Request, ctx: { params: Promise<{ id: 
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
-  await prisma.clinicExpense.delete({ where: { id } });
+  // Soft-delete: the recurring expense is hidden from every month's roll-up while
+  // its month overrides stay intact for a lossless restore (they are only read
+  // through the now-hidden parent, so they never affect totals meanwhile).
+  await softDeleteEntity("ClinicExpense", id, session?.sub ?? null);
   await writeAudit({
     action: "expense.delete",
     actor: session,

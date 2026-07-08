@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
-import { deleteStored } from "@/lib/server/storage";
+import { softDeleteEntity } from "@/lib/server/soft-delete-ops";
 import { withRoute } from "@/lib/server/http";
 
-/** Delete a patient file (DB row + disk binary). */
+/** Soft-delete a patient file (moves the DB row to the Recycle Bin; the disk
+ * binary is retained so a restore is lossless — permanent delete removes it). */
 export const DELETE = withRoute("admin.patient-files.id.DELETE", adminPatientfilesIdDELETE);
 
 async function adminPatientfilesIdDELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -16,8 +17,7 @@ async function adminPatientfilesIdDELETE(req: Request, ctx: { params: Promise<{ 
   const file = await prisma.patientFile.findUnique({ where: { id } });
   if (!file) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  await deleteStored(file.storagePath);
-  await prisma.patientFile.delete({ where: { id } });
+  await softDeleteEntity("PatientFile", id, session?.sub ?? null);
   await writeAudit({
     action: "patientFile.delete",
     actor: session,

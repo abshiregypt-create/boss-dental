@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
+import { softDeleteEntity } from "@/lib/server/soft-delete-ops";
 import { clampPct } from "@/lib/server/doctors";
 import { serializeDoctor } from "@/lib/server/money";
 import { parseJson, z } from "@/lib/server/validate";
@@ -71,11 +72,12 @@ async function adminDoctorsIdDELETE(req: Request, ctx: { params: Promise<{ id: s
   if (error) return error;
   const { id } = await ctx.params;
 
-  // TreatmentDoctor rows cascade-delete, but their snapshot amounts are already
-  // reflected in past treatments' history; deleting a doctor only removes them
-  // from future assignment and the earnings roll-up.
+  // Soft-delete: the doctor and its commission splits + payouts are stamped
+  // deletedAt in one transaction (the same rows today's ON DELETE CASCADE would
+  // remove), so earnings/revenue roll-ups drop them exactly as before while the
+  // records stay recoverable in the Recycle Bin.
   const existing = await prisma.doctor.findUnique({ where: { id }, select: { nameEn: true, nameAr: true } });
-  await prisma.doctor.delete({ where: { id } });
+  await softDeleteEntity("Doctor", id, session?.sub ?? null);
   await writeAudit({
     action: "doctor.delete",
     actor: session,

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
+import { softDeleteInTransaction } from "@/lib/server/soft-delete-ops";
 import { sessionTypes, sessionTypeById } from "@/lib/dashboard";
 import { parseJson, z } from "@/lib/server/validate";
 import { withRoute } from "@/lib/server/http";
@@ -210,7 +212,7 @@ async function adminPatientsPATCH(req: Request) {
 export const DELETE = withRoute("admin.patients.DELETE", adminPatientsDELETE);
 
 async function adminPatientsDELETE(req: Request) {
-  const { error } = await requireSession();
+  const { error, session } = await requireSession();
   if (error) return error;
 
   const url = new URL(req.url);
@@ -229,8 +231,24 @@ async function adminPatientsDELETE(req: Request) {
     );
   }
 
-  // Detach appointments (keep the schedule history) then remove the client.
-  await prisma.appointment.updateMany({ where: { patientId: id }, data: { patientId: null } });
-  await prisma.patient.delete({ where: { id } }).catch(() => null);
+  // A missing patient stays a no-op success (matches the prior swallow-on-delete).
+  const existing = await prisma.patient.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) return NextResponse.json({ ok: true });
+
+  // Detach appointments (keep the schedule history, unchanged) then soft-delete
+  // the client and its standalone payments in one transaction, so the client is
+  // recoverable from the Recycle Bin instead of being erased.
+  await prisma.$transaction(async (tx) => {
+    await tx.appointment.updateMany({ where: { patientId: id }, data: { patientId: null } });
+    await softDeleteInTransaction(tx, "Patient", id, session?.sub ?? null, new Date());
+  });
+  await writeAudit({
+    action: "patient.delete",
+    actor: session,
+    entityType: "Patient",
+    entityId: id,
+    summary: `Deleted patient ${id}`,
+    ip: auditIp(req),
+  });
   return NextResponse.json({ ok: true });
 }

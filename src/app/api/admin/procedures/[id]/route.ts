@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
+import { softDeleteEntity } from "@/lib/server/soft-delete-ops";
 import { serializeProcedure } from "@/lib/server/money";
 import { parseJson, z } from "@/lib/server/validate";
 import { withRoute } from "@/lib/server/http";
@@ -44,13 +46,22 @@ async function adminProceduresIdPATCH(req: Request, ctx: { params: Promise<{ id:
 
 export const DELETE = withRoute("admin.procedures.id.DELETE", adminProceduresIdDELETE);
 
-async function adminProceduresIdDELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+async function adminProceduresIdDELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { error, session } = await requireSession();
   if (error) return error;
   const { id } = await ctx.params;
 
-  // Treatment records keep their snapshot (procedureId is set null on delete),
-  // so removing a catalog entry never corrupts history.
-  await prisma.procedure.delete({ where: { id } });
+  // Soft-delete: treatment records keep their snapshot (procedureId stays put but
+  // the catalog entry is hidden, matching the old SET NULL effect on reads), so
+  // removing a catalog entry never corrupts history and is fully recoverable.
+  await softDeleteEntity("Procedure", id, session?.sub ?? null);
+  await writeAudit({
+    action: "procedure.delete",
+    actor: session,
+    entityType: "Procedure",
+    entityId: id,
+    summary: `Deleted procedure ${id}`,
+    ip: auditIp(req),
+  });
   return NextResponse.json({ ok: true });
 }

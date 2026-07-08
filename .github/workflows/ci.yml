@@ -34,6 +34,12 @@ jobs:
       AUTH_SECRET: "ci-test-secret-not-for-production"
       APP_URL: "http://localhost:3000"
       WHATSAPP_PROVIDER: "mock"
+      # Seed a known doctor account so the e2e booking-flow login succeeds
+      # (matches tests/e2e/booking-flow.spec.ts). Without SEED_DOCTOR_PASSWORD the
+      # hardened seed generates a random password (SEC-03), so the test's
+      # hardcoded credentials would 401. CI-only throwaway credentials.
+      SEED_DOCTOR_EMAIL: "doctor@bdic.clinic"
+      SEED_DOCTOR_PASSWORD: "bdic12345"
 
     steps:
       - uses: actions/checkout@v4

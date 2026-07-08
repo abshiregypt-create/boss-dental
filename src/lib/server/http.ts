@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/server/jwt";
 import { logger, describeError } from "@/lib/server/logger";
+import { metrics } from "@/lib/server/metrics";
 
 /**
  * Consistent JSON error envelope for API routes.
@@ -91,6 +92,12 @@ export function logRequest(fields: {
 }): void {
   const level = fields.status >= 500 ? "error" : fields.status >= 400 ? "warn" : "info";
   logger[level]("api_request", fields);
+  metrics.record({
+    method: fields.method,
+    route: fields.route,
+    status: fields.status,
+    durationMs: fields.durationMs,
+  });
 }
 
 /**

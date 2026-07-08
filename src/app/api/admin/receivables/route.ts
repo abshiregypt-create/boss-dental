@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { lastOutboundByKind } from "@/lib/server/wa-send";
 import { num } from "@/lib/server/money";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin receivables: patients who still owe money (billed − paid > 0), so the
@@ -12,7 +13,9 @@ import { num } from "@/lib/server/money";
  */
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
-export async function GET() {
+export const GET = withRoute("admin.receivables.GET", adminReceivablesGET);
+
+async function adminReceivablesGET() {
   const { error } = await requireSession();
   if (error) return error;
 

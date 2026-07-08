@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { lastOutboundByKind } from "@/lib/server/wa-send";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin recall / reactivation: patients whose last visit was more than `months`
@@ -11,7 +12,9 @@ import { lastOutboundByKind } from "@/lib/server/wa-send";
  */
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
-export async function GET(req: Request) {
+export const GET = withRoute("admin.recall.GET", adminRecallGET);
+
+async function adminRecallGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

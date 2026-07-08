@@ -5,9 +5,12 @@ import { writeAudit, auditIp } from "@/lib/server/audit";
 import { round2 } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
 import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 /** GET /api/admin/doctors/[id]/payouts — payouts made to a doctor + running totals. */
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const GET = withRoute("admin.doctors.id.payouts.GET", adminDoctorsIdPayoutsGET);
+
+async function adminDoctorsIdPayoutsGET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error } = await requireSession();
   if (error) return error;
   const { id } = await ctx.params;
@@ -45,7 +48,9 @@ const PayoutBody = z.object({
 });
 
 /** POST /api/admin/doctors/[id]/payouts — record a payment made to the doctor. */
-export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const POST = withRoute("admin.doctors.id.payouts.POST", adminDoctorsIdPayoutsPOST);
+
+async function adminDoctorsIdPayoutsPOST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;

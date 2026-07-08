@@ -120,9 +120,9 @@ export function logRequest(fields: {
  */
 export function withRoute<A extends unknown[]>(
   context: string,
-  handler: (...args: A) => Promise<NextResponse>,
-): (...args: A) => Promise<NextResponse> {
-  return async (...args: A): Promise<NextResponse> => {
+  handler: (...args: A) => Promise<Response>,
+): (...args: A) => Promise<Response> {
+  return async (...args: A): Promise<Response> => {
     const requestId = newRequestId();
     const startedAt = Date.now();
     const { method, route } = routeInfo(args[0]);

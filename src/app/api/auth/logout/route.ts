@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, getSession } from "@/lib/server/auth";
 import { prisma } from "@/lib/db";
+import { withRoute } from "@/lib/server/http";
 
-export async function POST() {
+export const POST = withRoute("auth.logout.POST", authLogoutPOST);
+
+async function authLogoutPOST() {
   // Revoke every token issued to this user by bumping their tokenVersion. This
   // turns the stateless JWT into a truly invalidatable session: any other device
   // still holding the old cookie is rejected by requireSession on its next call.

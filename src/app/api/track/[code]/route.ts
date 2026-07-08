@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { findByCode, publicView, type Stage } from "@/lib/server/appointments";
+import { withRoute } from "@/lib/server/http";
 
 const STAGES: Stage[] = ["pending", "reserved", "reminder", "queue", "turn", "completed", "declined", "cancelled"];
 
 /** Public live tracker data for a booking code. `?preview=<stage>` forces a stage. */
-export async function GET(req: Request, ctx: { params: Promise<{ code: string }> }) {
+export const GET = withRoute("track.code.GET", trackCodeGET);
+
+async function trackCodeGET(req: Request, ctx: { params: Promise<{ code: string }> }) {
   const { code } = await ctx.params;
   const appt = await findByCode(code);
   if (!appt) return NextResponse.json({ error: "not_found" }, { status: 404 });

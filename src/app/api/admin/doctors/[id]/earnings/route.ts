@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/server/guard";
 import { isValidMonthKey, monthBounds, monthKeyOf, round2 } from "@/lib/server/doctors";
 import { settleStatus, monthKeysForYear } from "@/lib/server/earnings";
 import { num } from "@/lib/server/money";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * GET /api/admin/doctors/[id]/earnings?month=YYYY-MM&year=YYYY
@@ -17,7 +18,9 @@ import { num } from "@/lib/server/money";
  * Preserves the legacy `totals` + `months` + `operations` shape (used by the
  * existing doctor profile view) and adds `summary`, `yearly`, `payouts`.
  */
-export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const GET = withRoute("admin.doctors.id.earnings.GET", adminDoctorsIdEarningsGET);
+
+async function adminDoctorsIdEarningsGET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error } = await requireSession();
   if (error) return error;
   const { id } = await ctx.params;

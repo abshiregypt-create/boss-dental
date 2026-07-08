@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * POST /api/admin/reset
@@ -18,7 +19,9 @@ import { writeAudit, auditIp } from "@/lib/server/audit";
  */
 const CONFIRM = "RESET-FRESH";
 
-export async function POST(req: Request) {
+export const POST = withRoute("admin.reset.POST", adminResetPOST);
+
+async function adminResetPOST(req: Request) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 

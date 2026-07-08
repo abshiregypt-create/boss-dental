@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { createBooking } from "@/lib/server/appointments";
 import { normalizePhone } from "@/lib/server/phone";
+import { withRoute } from "@/lib/server/http";
 
 /** Public endpoint: create a booking request from the landing-page form. */
-export async function POST(req: Request) {
+export const POST = withRoute("bookings.POST", bookingsPOST);
+
+async function bookingsPOST(req: Request) {
   let data: Record<string, unknown>;
   try {
     data = await req.json();

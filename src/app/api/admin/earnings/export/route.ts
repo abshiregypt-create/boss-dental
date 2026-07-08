@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/server/guard";
 import { buildEarningsWorkbook, exportFileName } from "@/lib/server/export-excel";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin: download the doctor-earnings report as an Excel (.xlsx) workbook with
@@ -8,7 +9,9 @@ import { buildEarningsWorkbook, exportFileName } from "@/lib/server/export-excel
  *   GET /api/admin/earnings/export            → all doctors
  *   GET /api/admin/earnings/export?doctorId=… → a single doctor's report
  */
-export async function GET(req: Request) {
+export const GET = withRoute("admin.earnings.export.GET", adminEarningsExportGET);
+
+async function adminEarningsExportGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

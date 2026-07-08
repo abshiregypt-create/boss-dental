@@ -6,6 +6,7 @@ import { normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
 import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 const ExpenseUpdateBody = z.object({
   labelEn: z.string().nullish(),
@@ -24,7 +25,9 @@ const ExpenseUpdateBody = z.object({
  *   - monthKey + numeric monthAmount → upsert that month's override.
  *   - monthKey + null monthAmount    → clear that month's override (revert to recurring).
  */
-export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const PATCH = withRoute("admin.expenses.id.PATCH", adminExpensesIdPATCH);
+
+async function adminExpensesIdPATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
@@ -73,7 +76,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   return NextResponse.json({ expense: expense ? { ...expense, amount: num(expense.amount) } : null });
 }
 
-export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const DELETE = withRoute("admin.expenses.id.DELETE", adminExpensesIdDELETE);
+
+async function adminExpensesIdDELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;

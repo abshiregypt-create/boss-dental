@@ -3,13 +3,16 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { confirmAppointment, findByCode, stageOf } from "@/lib/server/appointments";
 import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 const PatchBody = z.object({
   action: z.enum(["confirm", "decline", "complete"]),
 });
 
 /** Admin: read one appointment (with messages). */
-export async function GET(_req: Request, ctx: { params: Promise<{ code: string }> }) {
+export const GET = withRoute("admin.appointments.code.GET", adminAppointmentsCodeGET);
+
+async function adminAppointmentsCodeGET(_req: Request, ctx: { params: Promise<{ code: string }> }) {
   const { error } = await requireSession();
   if (error) return error;
   const { code } = await ctx.params;
@@ -22,7 +25,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ code: string }
 }
 
 /** Admin: confirm / decline / complete a booking. Confirm fires the WhatsApp flow. */
-export async function PATCH(req: Request, ctx: { params: Promise<{ code: string }> }) {
+export const PATCH = withRoute("admin.appointments.code.PATCH", adminAppointmentsCodePATCH);
+
+async function adminAppointmentsCodePATCH(req: Request, ctx: { params: Promise<{ code: string }> }) {
   const { error } = await requireSession();
   if (error) return error;
   const { code } = await ctx.params;

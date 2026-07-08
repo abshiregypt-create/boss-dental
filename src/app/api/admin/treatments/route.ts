@@ -7,6 +7,7 @@ import { computeTotals, normalizeMethod } from "@/lib/server/operations";
 import { clampPct, computeShares, type DoctorAssignmentInput } from "@/lib/server/doctors";
 import { num, numOrNull } from "@/lib/server/money";
 import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
@@ -15,7 +16,9 @@ const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
  * Returns the patient's operations, payments and money totals (billed/paid/balance).
  * Keyed by phone so it works for any patient (WhatsApp, website or manual).
  */
-export async function GET(req: Request) {
+export const GET = withRoute("admin.treatments.GET", adminTreatmentsGET);
+
+async function adminTreatmentsGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -119,7 +122,9 @@ const TreatmentBody = z.object({
  * Body: { phone, name?, procedureId?, nameEn, nameAr, price(=list price),
  *         discountPct?, notes?, paidNow?, method?, performedAt? }
  */
-export async function POST(req: Request) {
+export const POST = withRoute("admin.treatments.POST", adminTreatmentsPOST);
+
+async function adminTreatmentsPOST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

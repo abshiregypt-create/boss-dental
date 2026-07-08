@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/server/guard";
 import { confirmAppointment, createAppointmentWithUniqueCode } from "@/lib/server/appointments";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin demo helper: create a *confirmed* appointment N minutes from now so the
  * WhatsApp + live-queue stages can be showcased without waiting hours.
  */
-export async function POST(req: Request) {
+export const POST = withRoute("admin.demo.POST", adminDemoPOST);
+
+async function adminDemoPOST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

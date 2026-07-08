@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/server/guard";
 import { expensesForMonth } from "@/lib/server/expenses";
 import { isValidMonthKey, monthBounds, monthKeyOf, round2 } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * GET /api/admin/revenue?month=YYYY-MM
@@ -13,7 +14,9 @@ import { num } from "@/lib/server/money";
  *   - per-operation-type counts, revenue, materials, commissions and clinic net.
  * Net = gross − doctor commissions − materials cost − monthly expenses.
  */
-export async function GET(req: Request) {
+export const GET = withRoute("admin.revenue.GET", adminRevenueGET);
+
+async function adminRevenueGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

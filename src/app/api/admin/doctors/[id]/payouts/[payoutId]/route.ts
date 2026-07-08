@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
+import { withRoute } from "@/lib/server/http";
 
 /** DELETE /api/admin/doctors/[id]/payouts/[payoutId] — remove a doctor payout. */
-export async function DELETE(req: Request, ctx: { params: Promise<{ id: string; payoutId: string }> }) {
+export const DELETE = withRoute("admin.doctors.id.payouts.payoutId.DELETE", adminDoctorsIdPayoutsPayoutIdDELETE);
+
+async function adminDoctorsIdPayoutsPayoutIdDELETE(req: Request, ctx: { params: Promise<{ id: string; payoutId: string }> }) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id, payoutId } = await ctx.params;

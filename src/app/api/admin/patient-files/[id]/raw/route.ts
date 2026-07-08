@@ -1,9 +1,12 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { readStored } from "@/lib/server/storage";
+import { withRoute } from "@/lib/server/http";
 
 /** Stream the raw binary (auth-guarded). Used by <img> and download links. */
-export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const GET = withRoute("admin.patient-files.id.raw.GET", adminPatientfilesIdRawGET);
+
+async function adminPatientfilesIdRawGET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   // Use the revocation-aware guard (not bare getSession) so a logged-out or
   // revoked cookie can no longer stream patient files.
   const { error } = await requireSession();

@@ -6,13 +6,16 @@ import { expensesForMonth, normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey, monthKeyOf } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
 import { parseJson, z, zOptText } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * GET /api/admin/expenses?month=YYYY-MM
  * Active clinic expenses with the amount that applies to the requested month
  * (recurring default unless overridden) and the month total.
  */
-export async function GET(req: Request) {
+export const GET = withRoute("admin.expenses.GET", adminExpensesGET);
+
+async function adminExpensesGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -31,7 +34,9 @@ const ExpenseCreateBody = z
   })
   .refine((b) => Boolean(b.labelEn || b.labelAr), { message: "label_required", path: ["labelEn"] });
 
-export async function POST(req: Request) {
+export const POST = withRoute("admin.expenses.POST", adminExpensesPOST);
+
+async function adminExpensesPOST(req: Request) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 

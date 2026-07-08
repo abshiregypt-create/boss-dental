@@ -11,6 +11,7 @@ import {
   monthKeyOf,
   round2,
 } from "@/lib/server/earnings";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * GET /api/admin/earnings?from=YYYY-MM-DD&to=YYYY-MM-DD
@@ -24,7 +25,9 @@ import {
  * The date range scopes the summary + per-doctor range figures + by-type; the
  * pending/paid/status figures are lifetime (settlement is inherently all-time).
  */
-export async function GET(req: Request) {
+export const GET = withRoute("admin.earnings.GET", adminEarningsGET);
+
+async function adminEarningsGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

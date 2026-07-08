@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { num } from "@/lib/server/money";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin analytics: the clinic's key numbers, computed live from appointments,
@@ -26,7 +27,9 @@ function sinceFor(range: Range): Date | null {
 
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
-export async function GET(req: Request) {
+export const GET = withRoute("admin.analytics.GET", adminAnalyticsGET);
+
+async function adminAnalyticsGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

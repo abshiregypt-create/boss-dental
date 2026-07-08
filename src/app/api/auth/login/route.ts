@@ -3,8 +3,11 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { createSessionToken, SESSION_COOKIE, sessionCookieOptions } from "@/lib/server/auth";
 import { loginRateLimiter, clientIp } from "@/lib/server/rate-limit";
+import { withRoute } from "@/lib/server/http";
 
-export async function POST(req: Request) {
+export const POST = withRoute("auth.login.POST", authLoginPOST);
+
+async function authLoginPOST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as Record<string, string>;
   const identifier = String(body.username ?? body.email ?? "").toLowerCase().trim();
   const password = body.password;

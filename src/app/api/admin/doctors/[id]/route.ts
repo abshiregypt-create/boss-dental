@@ -5,6 +5,7 @@ import { writeAudit, auditIp } from "@/lib/server/audit";
 import { clampPct } from "@/lib/server/doctors";
 import { serializeDoctor } from "@/lib/server/money";
 import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 const MAX_PHOTO_LEN = 1_500_000;
 
@@ -22,7 +23,9 @@ const DoctorUpdateBody = z.object({
 });
 
 /** Admin: edit or remove a doctor. */
-export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const PATCH = withRoute("admin.doctors.id.PATCH", adminDoctorsIdPATCH);
+
+async function adminDoctorsIdPATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
@@ -61,7 +64,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   return NextResponse.json({ doctor: serializeDoctor(doctor) });
 }
 
-export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const DELETE = withRoute("admin.doctors.id.DELETE", adminDoctorsIdDELETE);
+
+async function adminDoctorsIdDELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;

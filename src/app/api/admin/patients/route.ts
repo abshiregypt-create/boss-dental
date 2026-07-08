@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { sessionTypes, sessionTypeById } from "@/lib/dashboard";
 import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin: manage client accounts. Clients live in the database (Patient table).
@@ -86,7 +87,9 @@ async function loadAppts(): Promise<ApptRow[]> {
   });
 }
 
-export async function GET() {
+export const GET = withRoute("admin.patients.GET", adminPatientsGET);
+
+async function adminPatientsGET() {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -134,7 +137,9 @@ const PatientBody = z.object({
   medical: z.record(z.string(), z.unknown()).nullish().catch(undefined),
 });
 
-export async function POST(req: Request) {
+export const POST = withRoute("admin.patients.POST", adminPatientsPOST);
+
+async function adminPatientsPOST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -165,7 +170,9 @@ export async function POST(req: Request) {
   return NextResponse.json({ patient: mapPatient(created, appts) });
 }
 
-export async function PATCH(req: Request) {
+export const PATCH = withRoute("admin.patients.PATCH", adminPatientsPATCH);
+
+async function adminPatientsPATCH(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -200,7 +207,9 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ patient: mapPatient(updated, appts) });
 }
 
-export async function DELETE(req: Request) {
+export const DELETE = withRoute("admin.patients.DELETE", adminPatientsDELETE);
+
+async function adminPatientsDELETE(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

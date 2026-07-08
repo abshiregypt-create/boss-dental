@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/server/guard";
 import { getFollowupConfig, setFollowupConfig } from "@/lib/server/followups";
 import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 /** Admin: read or update the post-session follow-up settings (on/off + delay). */
-export async function GET() {
+export const GET = withRoute("admin.settings.followup.GET", adminSettingsFollowupGET);
+
+async function adminSettingsFollowupGET() {
   const { error } = await requireSession();
   if (error) return error;
   const config = await getFollowupConfig();
@@ -17,7 +20,9 @@ const FollowupBody = z.object({
   delayMinutes: z.union([z.string(), z.number()]).nullish(),
 });
 
-export async function PUT(req: Request) {
+export const PUT = withRoute("admin.settings.followup.PUT", adminSettingsFollowupPUT);
+
+async function adminSettingsFollowupPUT(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

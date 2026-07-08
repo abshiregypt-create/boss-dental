@@ -3,9 +3,12 @@ import { prisma } from "@/lib/db";
 import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { deleteStored } from "@/lib/server/storage";
+import { withRoute } from "@/lib/server/http";
 
 /** Delete a patient file (DB row + disk binary). */
-export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const DELETE = withRoute("admin.patient-files.id.DELETE", adminPatientfilesIdDELETE);
+
+async function adminPatientfilesIdDELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 

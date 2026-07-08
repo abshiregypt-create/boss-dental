@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * GET /api/admin/patients/search?q=...
  * Type-ahead search across ALL patient accounts by name or phone (trailing
  * digits), for the appointment/operation client pickers. Returns up to 10.
  */
-export async function GET(req: Request) {
+export const GET = withRoute("admin.patients.search.GET", adminPatientsSearchGET);
+
+async function adminPatientsSearchGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

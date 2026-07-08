@@ -16,8 +16,10 @@ import { prisma } from "@/lib/db";
 import {
   cascadeChildrenFor,
   isSoftDeletableModel,
+  type CascadeChild,
   type CascadeChildModel,
 } from "@/lib/server/soft-delete";
+import { deleteStored } from "@/lib/server/storage";
 
 /** Prisma delegate (camelCase) for each soft-deletable model (PascalCase). */
 const DELEGATE_BY_MODEL: Readonly<Record<string, string>> = {
@@ -41,6 +43,7 @@ const MODEL_BY_DELEGATE: Readonly<Record<CascadeChildModel, string>> = {
 };
 
 type IdRow = { id: string };
+type TrashedRow = { id: string; deletedAt?: Date | null };
 
 /**
  * Minimal structural view of the Prisma delegate methods this module uses. The
@@ -50,7 +53,9 @@ type IdRow = { id: string };
 type DelegateOps = {
   update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<IdRow>;
   updateMany(args: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<{ count: number }>;
-  findMany(args: { where: Record<string, unknown>; select: { id: true } }): Promise<IdRow[]>;
+  findMany(args: { where: Record<string, unknown>; select: Record<string, true> }): Promise<TrashedRow[]>;
+  count(args: { where: Record<string, unknown> }): Promise<number>;
+  delete(args: { where: { id: string } }): Promise<IdRow>;
 };
 type DelegateMap = Record<string, DelegateOps>;
 
@@ -119,4 +124,144 @@ export async function softDeleteEntity(
   await prisma.$transaction(async (tx) => {
     await softDeleteInTransaction(tx, model, id, deletedBy, deletedAt);
   });
+}
+
+// ---------------------------------------------------------------------------
+// Restore (Recycle Bin -> live)
+// ---------------------------------------------------------------------------
+
+/**
+ * Recursively clear `deletedAt` on the cascade children that were trashed
+ * TOGETHER with this parent — i.e. those whose `deletedAt` equals the parent's
+ * exact deletion timestamp. Children trashed independently (a different
+ * timestamp, e.g. a split removed on its own earlier) keep their own state and
+ * are deliberately NOT revived, mirroring how the delete cascade only ever
+ * stamped currently-live children.
+ */
+async function cascadeRestore(
+  tx: DelegateMap,
+  parentModel: string,
+  parentIds: string[],
+  deletedAt: Date,
+): Promise<void> {
+  if (parentIds.length === 0) return;
+  for (const child of cascadeChildrenFor(parentModel)) {
+    const delegate = tx[child.model];
+    const rows = await delegate.findMany({
+      where: { [child.fk]: { in: parentIds }, deletedAt },
+      select: { id: true },
+    });
+    if (rows.length === 0) continue;
+    const ids = rows.map((r) => r.id);
+    await delegate.updateMany({ where: { id: { in: ids } }, data: { deletedAt: null, deletedBy: null } });
+    await cascadeRestore(tx, MODEL_BY_DELEGATE[child.model], ids, deletedAt);
+  }
+}
+
+/**
+ * Restore one trashed record and the children that were trashed with it, inside
+ * a caller-provided transaction. Returns false (no-op) when the id is not
+ * currently in the Recycle Bin, so the route can answer 404.
+ */
+export async function restoreInTransaction(tx: unknown, model: string, id: string): Promise<boolean> {
+  if (!isSoftDeletableModel(model)) {
+    throw new Error(`restore: model "${model}" is not soft-deletable`);
+  }
+  const map = tx as DelegateMap;
+  const delegate = map[DELEGATE_BY_MODEL[model]];
+  const found = await delegate.findMany({
+    where: { id, deletedAt: { not: null } },
+    select: { id: true, deletedAt: true },
+  });
+  const parent = found[0];
+  if (!parent || !parent.deletedAt) return false;
+  const deletedAt = parent.deletedAt;
+  await delegate.updateMany({ where: { id: { in: [id] } }, data: { deletedAt: null, deletedBy: null } });
+  await cascadeRestore(map, model, [id], deletedAt);
+  return true;
+}
+
+/** Restore one record (+ its co-trashed children) in its own transaction. */
+export async function restoreEntity(model: string, id: string): Promise<boolean> {
+  return prisma.$transaction(async (tx) => restoreInTransaction(tx, model, id));
+}
+
+// ---------------------------------------------------------------------------
+// Permanent delete (purge) — hard delete a trashed record
+// ---------------------------------------------------------------------------
+
+/**
+ * Relations that block a permanent delete unless an admin forces it. This is
+ * intentionally BROADER than the soft-delete cascade: it also lists SET NULL
+ * relations (payments -> treatment, treatments -> procedure). A hard delete
+ * wouldn't remove those rows, but it WOULD sever real financial/medical history
+ * (a payment losing its treatment link, a treatment losing its procedure), so
+ * the Recycle Bin refuses to purge a referenced record without an explicit
+ * force from a Super Admin.
+ */
+export const PURGE_REFERENCES: Readonly<Record<string, readonly CascadeChild[]>> = {
+  Patient: [
+    { model: "treatmentRecord", fk: "patientId" },
+    { model: "payment", fk: "patientId" },
+  ],
+  Doctor: [
+    { model: "treatmentDoctor", fk: "doctorId" },
+    { model: "doctorPayout", fk: "doctorId" },
+  ],
+  TreatmentRecord: [
+    { model: "treatmentDoctor", fk: "treatmentRecordId" },
+    { model: "payment", fk: "treatmentRecordId" },
+  ],
+  Procedure: [{ model: "treatmentRecord", fk: "procedureId" }],
+};
+
+/** Reference relations that guard a purge for a model (empty if none). Pure. */
+export function purgeReferencesFor(model: string): readonly CascadeChild[] {
+  return PURGE_REFERENCES[model] ?? [];
+}
+
+/** Pure decision: a purge is blocked when references exist and force is off. */
+export function isPurgeBlocked(referenceCount: number, force: boolean): boolean {
+  return referenceCount > 0 && !force;
+}
+
+/**
+ * Count every row (live AND trashed) that references `id` through any of the
+ * model's purge-reference relations. `deletedAt: undefined` keeps the key
+ * present so the read extension opts out of its live-only filter, yet applies no
+ * constraint — so trashed history still counts toward the guard.
+ */
+export async function countPurgeReferences(model: string, id: string): Promise<number> {
+  const map = prisma as unknown as DelegateMap;
+  let total = 0;
+  for (const ref of purgeReferencesFor(model)) {
+    total += await map[ref.model].count({ where: { [ref.fk]: id, deletedAt: undefined } });
+  }
+  return total;
+}
+
+/**
+ * Permanently hard-delete a trashed record. The database's ON DELETE rules do
+ * the cascading (the same ones a normal delete would trigger), so this matches
+ * the pre-soft-delete behaviour exactly. Returns false when the id is not in the
+ * Recycle Bin. For PatientFile the on-disk binary is removed first (it was kept
+ * on soft-delete so a restore could recover it).
+ *
+ * Callers MUST enforce the reference guard ({@link isPurgeBlocked}) before
+ * calling this; purge itself is unconditional so an admin force can go through.
+ */
+export async function purgeEntity(model: string, id: string): Promise<boolean> {
+  if (!isSoftDeletableModel(model)) {
+    throw new Error(`purge: model "${model}" is not soft-deletable`);
+  }
+  const map = prisma as unknown as DelegateMap;
+  const delegate = map[DELEGATE_BY_MODEL[model]];
+  const trashed = await delegate.findMany({ where: { id, deletedAt: { not: null } }, select: { id: true } });
+  if (trashed.length === 0) return false;
+  if (model === "PatientFile") {
+    const file = await prisma.patientFile.findUnique({ where: { id }, select: { storagePath: true } });
+    if (file) await deleteStored(file.storagePath);
+  }
+  await delegate.delete({ where: { id } });
+  return true;
 }

@@ -63,7 +63,7 @@ async function adminEarningsGET(req: Request) {
         nameEn: true,
         nameAr: true,
         performedAt: true,
-        doctors: { select: { doctorId: true, amount: true } },
+        doctors: { where: { deletedAt: null }, select: { doctorId: true, amount: true } },
       },
     }),
     prisma.treatmentDoctor.findMany({
@@ -72,7 +72,7 @@ async function adminEarningsGET(req: Request) {
     prisma.doctorPayout.findMany({ select: { doctorId: true, amount: true, paidAt: true } }),
     prisma.treatmentRecord.findMany({
       where: { performedAt: { gte: trendStart } },
-      select: { price: true, cost: true, performedAt: true, doctors: { select: { amount: true } } },
+      select: { price: true, cost: true, performedAt: true, doctors: { where: { deletedAt: null }, select: { amount: true } } },
     }),
   ]);
 

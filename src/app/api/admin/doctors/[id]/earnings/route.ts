@@ -41,8 +41,8 @@ async function adminDoctorsIdEarningsGET(req: Request, ctx: { params: Promise<{ 
           include: {
             patient: { select: { id: true, name: true, phone: true } },
             procedure: { select: { nameEn: true, nameAr: true } },
-            doctors: { select: { amount: true } },
-            payments: { select: { amount: true, paidAt: true } },
+            doctors: { where: { deletedAt: null }, select: { amount: true } },
+            payments: { where: { deletedAt: null }, select: { amount: true, paidAt: true } },
           },
         },
       },

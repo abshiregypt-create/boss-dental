@@ -27,7 +27,7 @@ async function adminRevenueGET(req: Request) {
   const [treatments, payments, exp] = await Promise.all([
     prisma.treatmentRecord.findMany({
       where: { performedAt: { gte: start, lt: end } },
-      include: { doctors: { include: { doctor: { select: { nameEn: true, nameAr: true } } } } },
+      include: { doctors: { where: { deletedAt: null }, include: { doctor: { select: { nameEn: true, nameAr: true } } } } },
     }),
     prisma.payment.findMany({ where: { paidAt: { gte: start, lt: end } }, select: { amount: true } }),
     expensesForMonth(month),

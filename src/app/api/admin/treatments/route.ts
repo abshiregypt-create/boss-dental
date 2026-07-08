@@ -43,6 +43,7 @@ async function adminTreatmentsGET(req: Request) {
       orderBy: { performedAt: "desc" },
       include: {
         doctors: {
+          where: { deletedAt: null },
           include: { doctor: { select: { nameEn: true, nameAr: true } } },
         },
       },

@@ -302,8 +302,8 @@ export async function buildEarningsWorkbook(doctorId?: string): Promise<Buffer> 
           include: {
             patient: { select: { name: true } },
             procedure: { select: { nameEn: true } },
-            doctors: { select: { amount: true } },
-            payments: { select: { amount: true, paidAt: true } },
+            doctors: { where: { deletedAt: null }, select: { amount: true } },
+            payments: { where: { deletedAt: null }, select: { amount: true, paidAt: true } },
           },
         },
       },

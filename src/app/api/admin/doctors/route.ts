@@ -5,10 +5,13 @@ import { writeAudit, auditIp } from "@/lib/server/audit";
 import { clampPct } from "@/lib/server/doctors";
 import { serializeDoctor } from "@/lib/server/money";
 import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
+import { withRoute } from "@/lib/server/http";
 import { parseJson, z, zOptText } from "@/lib/server/validate";
 
 /** Admin: the clinic's doctors (practitioners assignable to operations). */
-export async function GET(req: Request) {
+export const GET = withRoute("doctors.GET", doctorsGet);
+
+async function doctorsGet(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -39,7 +42,9 @@ const DoctorCreateBody = z
   })
   .refine((b) => Boolean(b.nameEn || b.nameAr), { message: "name_required", path: ["nameEn"] });
 
-export async function POST(req: Request) {
+export const POST = withRoute("doctors.POST", doctorsPost);
+
+async function doctorsPost(req: Request) {
   const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
 

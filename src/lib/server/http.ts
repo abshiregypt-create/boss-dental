@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/server/jwt";
+import { logger, describeError } from "@/lib/server/logger";
 
 /**
  * Consistent JSON error envelope for API routes.
@@ -25,13 +27,13 @@ export function newRequestId(): string {
 }
 
 /**
- * Log an unexpected error server-side and return a generic 500 that never leaks
- * a stack trace or internal message to the client. The `requestId` ties the
- * client response to the server log for support.
+ * Log an unexpected error server-side (structured, with stack + DB-error
+ * detection) and return a generic 500 that never leaks a stack trace or
+ * internal message to the client. The `requestId` ties the client response to
+ * the server log for support.
  */
-export function serverError(context: string, err: unknown): NextResponse {
-  const requestId = newRequestId();
-  console.error(`[api-error] ${context} rid=${requestId}`, err);
+export function serverError(context: string, err: unknown, requestId: string = newRequestId()): NextResponse {
+  logger.error("api_error", { context, requestId, ...describeError(err) });
   return errorJson("internal_error", 500, { requestId });
 }
 
@@ -48,6 +50,77 @@ export function withErrorHandling<A extends unknown[]>(
       return await handler(...args);
     } catch (err) {
       return serverError(context, err);
+    }
+  };
+}
+
+function routeInfo(req: unknown): { method: string; route: string } {
+  if (req instanceof Request) {
+    try {
+      return { method: req.method, route: new URL(req.url).pathname };
+    } catch {
+      return { method: req.method, route: "" };
+    }
+  }
+  return { method: "", route: "" };
+}
+
+/** Best-effort user id from the session cookie, for log correlation only. */
+async function userIdOf(req: unknown): Promise<string | undefined> {
+  if (!(req instanceof Request)) return undefined;
+  const cookie = req.headers.get("cookie");
+  if (!cookie) return undefined;
+  const match = cookie.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`));
+  if (!match) return undefined;
+  try {
+    const session = await verifySessionToken(decodeURIComponent(match[1]));
+    return session?.sub;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Emit one structured `api_request` line, choosing the level from the status. */
+export function logRequest(fields: {
+  requestId: string;
+  method: string;
+  route: string;
+  status: number;
+  durationMs: number;
+  userId?: string;
+}): void {
+  const level = fields.status >= 500 ? "error" : fields.status >= 400 ? "warn" : "info";
+  logger[level]("api_request", fields);
+}
+
+/**
+ * Wrap a route handler with structured request logging: assigns a request id
+ * (also returned as the `x-request-id` response header), measures execution
+ * time, resolves the user id from the session cookie, and logs a single
+ * `api_request` line with method, route, status and duration. Uncaught errors
+ * are logged (with stack) and converted to a safe 500 via `serverError`.
+ *
+ * Backward compatible: success responses are returned unchanged apart from the
+ * extra `x-request-id` header; only previously-uncaught exceptions change (from
+ * Next's default error to the standard `{ error: "internal_error" }` envelope).
+ */
+export function withRoute<A extends unknown[]>(
+  context: string,
+  handler: (...args: A) => Promise<NextResponse>,
+): (...args: A) => Promise<NextResponse> {
+  return async (...args: A): Promise<NextResponse> => {
+    const requestId = newRequestId();
+    const startedAt = Date.now();
+    const { method, route } = routeInfo(args[0]);
+    const userId = await userIdOf(args[0]);
+    try {
+      const res = await handler(...args);
+      res.headers.set("x-request-id", requestId);
+      logRequest({ requestId, method, route, status: res.status, durationMs: Date.now() - startedAt, userId });
+      return res;
+    } catch (err) {
+      logRequest({ requestId, method, route, status: 500, durationMs: Date.now() - startedAt, userId });
+      return serverError(context, err, requestId);
     }
   };
 }

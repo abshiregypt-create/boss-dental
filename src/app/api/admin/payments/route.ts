@@ -5,6 +5,7 @@ import { normalizePhone } from "@/lib/server/phone";
 import { ensurePatient } from "@/lib/server/appointments";
 import { normalizeMethod } from "@/lib/server/operations";
 import { parseJson, z, zReqText, zOptText } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 const PaymentBody = z.object({
   phone: zReqText,
@@ -21,7 +22,9 @@ const PaymentBody = z.object({
  * Record a payment from a patient (general, or toward a specific treatment).
  * Body: { phone, name?, amount, method?, note?, treatmentRecordId?, paidAt? }
  */
-export async function POST(req: Request) {
+export const POST = withRoute("payments.POST", paymentsPost);
+
+async function paymentsPost(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

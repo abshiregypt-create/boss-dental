@@ -5,6 +5,7 @@ import { stageOf, minutesUntil, ensurePatient } from "@/lib/server/appointments"
 import { normalizePhone } from "@/lib/server/phone";
 import { generateCode } from "@/lib/server/code";
 import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
+import { withRoute } from "@/lib/server/http";
 import {
   parseJson,
   z,
@@ -14,7 +15,9 @@ import {
 } from "@/lib/server/validate";
 
 /** Admin: list recent appointments with their WhatsApp message log + live stage. */
-export async function GET(req: Request) {
+export const GET = withRoute("appointments.GET", appointmentsGet);
+
+async function appointmentsGet(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -77,7 +80,9 @@ const AppointmentBody = z.object({
   lang: z.string().optional().catch(undefined),
 });
 
-export async function POST(req: Request) {
+export const POST = withRoute("appointments.POST", appointmentsPost);
+
+async function appointmentsPost(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

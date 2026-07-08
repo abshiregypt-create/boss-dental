@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
+import { withRoute } from "@/lib/server/http";
 import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { ALLOWED_MIME, MAX_FILE_BYTES, mimeMatchesContent, safeName, writeFileBuffer } from "@/lib/server/storage";
 
 const CATEGORIES = new Set(["xray", "photo", "document", "medical"]);
 
 /** List files for a patient: GET /api/admin/patient-files?patientKey=pt-xxx */
-export async function GET(req: Request) {
+export const GET = withRoute("patient-files.GET", patientFilesGet);
+
+async function patientFilesGet(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -37,7 +40,9 @@ export async function GET(req: Request) {
 }
 
 /** Upload a file (multipart form-data): fields file, patientKey, category?, title?, patientName? */
-export async function POST(req: Request) {
+export const POST = withRoute("patient-files.POST", patientFilesPost);
+
+async function patientFilesPost(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

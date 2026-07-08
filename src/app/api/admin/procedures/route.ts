@@ -4,10 +4,13 @@ import { requireSession } from "@/lib/server/guard";
 import { ensureProceduresSeeded } from "@/lib/server/operations";
 import { serializeProcedure } from "@/lib/server/money";
 import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
+import { withRoute } from "@/lib/server/http";
 import { parseJson, z, zOptText, zMoney } from "@/lib/server/validate";
 
 /** Admin: the operations/procedures catalog. */
-export async function GET(req: Request) {
+export const GET = withRoute("procedures.GET", proceduresGet);
+
+async function proceduresGet(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -31,7 +34,9 @@ const ProcedureCreateBody = z
   })
   .refine((b) => Boolean(b.nameEn || b.nameAr), { message: "name_required", path: ["nameEn"] });
 
-export async function POST(req: Request) {
+export const POST = withRoute("procedures.POST", proceduresPost);
+
+async function proceduresPost(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

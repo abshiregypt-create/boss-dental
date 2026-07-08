@@ -96,6 +96,30 @@ All monetary columns are SQL `NUMERIC` (Prisma `Decimal`), not float, so
 balances, commissions, and revenue cannot drift through binary rounding. See
 `docs/DATA-MODEL.md` and `docs/DEPLOY-RAILWAY.md` (migration deploy order).
 
+## Controls implemented (Sprint 3 — Data Integrity & API Robustness)
+
+### 16. Server-side input validation
+Every write endpoint parses its body through a `zod` schema
+(`src/lib/server/validate.ts`) before touching the database, rejecting malformed
+input with a consistent `{ error, message, details }` envelope instead of relying
+on ad-hoc per-field checks. Schemas are intentionally at least as permissive as
+the previous hand-rolled parsing, so no previously-valid request is now refused.
+
+### 17. Database CHECK constraints
+Migration `…_data_constraints` adds domain CHECK constraints (non-negative money,
+percentages `0..100`, valid appointment status and payment method) as a
+defence-in-depth backstop that holds even if a future code path or manual SQL
+tries to write invalid values. See `docs/DATA-MODEL.md`.
+
+### 18. Structured logging with secret redaction
+`src/lib/server/logger.ts` emits JSON-Lines logs whose fields are deep-scrubbed
+for credential-like keys (password, token, secret, cookie, authorization, otp,
+card numbers, connection strings) and length/depth-bounded, so request logs never
+leak secrets or unbounded payloads. `http.ts` `withRoute()` correlates each
+request with an `x-request-id` and records method, route, user id, status and
+duration; error stacks and DB error codes are logged server-side only and never
+returned to the client.
+
 ## Testing
 
 Pure security logic is covered by `node --test` unit tests:
@@ -109,6 +133,9 @@ Pure security logic is covered by `node --test` unit tests:
 - `tests/unit/money.test.mjs` — exact Decimal money conversion
 - `tests/unit/timezone.test.mjs` — Cairo timezone slot consistency
 - `tests/unit/appointment-code.test.mjs` — unique-code allocation race
+- `tests/unit/validation.test.mjs` — zod input-validation primitives
+- `tests/unit/pagination.test.mjs` — limit/offset clamping + page headers
+- `tests/unit/logger.test.mjs` — secret redaction + error/DB describe
 
 Run: `npm run test:unit`
 

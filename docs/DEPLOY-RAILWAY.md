@@ -131,6 +131,15 @@ which of the above it is.
   `prisma migrate deploy` on start (before `next start`), preserves existing
   values, and needs no app downtime. If you run migrations manually, apply it
   **before** deploying the new app build (the code expects Decimal columns).
+- **Sprint 3 constraints & indexes.** `20260709000003_data_constraints` (domain
+  CHECK constraints) and `20260709000004_performance_indexes` (FK + scheduledAt
+  indexes) apply automatically with `prisma migrate deploy`, in sequence after
+  the money migration. Both are additive and reversible (each migration documents
+  its rollback), preserve existing rows, and need no downtime. The CHECK
+  constraints only reject values the app already refused, so conforming data
+  passes unchanged. For a very large existing `Appointment`/`Payment` table you
+  may prefer to create the indexes out-of-band with `CREATE INDEX CONCURRENTLY`
+  before deploy to avoid a brief write lock.
 - **Single instance still recommended.** The uploads Volume at `/data` is a
   single disk, and the in-process reminder scheduler assumes one instance, so
   keep the web service at one replica. (Postgres itself handles concurrency

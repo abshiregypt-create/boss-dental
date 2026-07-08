@@ -11,6 +11,34 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 3 — Data Integrity & API Robustness
+- **Input validation** — `zod` schemas on every write endpoint via
+  `src/lib/server/validate.ts` (`parseJson`, `zMoney`, `zPct`, `zReqText`,
+  `zOptText`, `zDateString`, …). Consistent `{ error, message, details }`
+  envelope. Schemas are at least as permissive as the old hand-rolled checks
+  (null-tolerant `.nullish()`, lenient `.catch()`), so no previously-accepted
+  request is now rejected; all existing error codes/messages preserved.
+- **CHECK constraints (`20260709000003_data_constraints`)** — non-negative money
+  (Procedure, TreatmentRecord, Payment, TreatmentDoctor, DoctorPayout,
+  ClinicExpense, ClinicExpenseOverride), percentages `0..100` (discountPct,
+  commissionPct), and enum guards for `Appointment.status` and
+  `Payment`/`DoctorPayout.method`. Raw SQL (Prisma can't model CHECK);
+  case-insensitive enum compare + drop-if-exists make it safe and re-runnable.
+- **Indexes (`20260709000004_performance_indexes`)** — added on the unindexed
+  FKs `TreatmentRecord.procedureId`, `Payment.treatmentRecordId`,
+  `Appointment.patientId`, and the hot sort column `Appointment.scheduledAt`
+  (schema `@@index` kept in sync). Redundant indexes avoided.
+- **Opt-in pagination** — `src/lib/server/pagination.ts` adds `?limit`/`?offset`
+  (clamped) with page metadata in response **headers** (`X-Total-Count`,
+  `X-Limit`, `X-Offset`, `X-Has-More`, `X-Next-Offset`). Response bodies are
+  unchanged; with no query params behaviour is identical to before. Applied to
+  appointments, patient-files, procedures, doctors; report/aggregation routes
+  intentionally excluded to preserve totals.
+- **Structured logging** — `src/lib/server/logger.ts` emits JSON-Lines
+  (info/warn/error) with credential-key redaction and stack/DB-error capture.
+  `http.ts` adds `withRoute()` (request id via `x-request-id`, user id, route,
+  status, duration) adopted on the primary read/write routes.
+
 #### Sprint 2 — Access Control & Financial Integrity
 - **RBAC (SEC-02)** — `requireRole()` + `OWNER_ROLES` in `src/lib/server/guard.ts`
   gate admin/owner routes from the authenticated session (not client input).

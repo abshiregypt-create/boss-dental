@@ -138,12 +138,28 @@ that's the "N patients ahead of you" number.
 | `20260627112143_wa_conversation` | WaConversation |
 | `20260709000001_audit_and_token_version` | `AuditLog` table + `User.tokenVersion` (session revocation + audit trail) |
 | `20260709000002_money_decimal` | Converts all monetary columns from float to `NUMERIC(12,2)` / percentages to `NUMERIC(5,2)` (exact money) |
+| `20260709000003_data_constraints` | Domain CHECK constraints: non-negative money, percentages `0..100`, valid `Appointment.status` and `Payment`/`DoctorPayout.method` |
+| `20260709000004_performance_indexes` | Indexes on FKs `TreatmentRecord.procedureId`, `Payment.treatmentRecordId`, `Appointment.patientId`, and `Appointment.scheduledAt` |
 
 **Money is stored as exact `Decimal`** (SQL `NUMERIC`), never float, so balances,
 commissions, and revenue cannot drift through binary rounding. The API converts
 Decimal↔number at the server boundary (`src/lib/server/money.ts`), so JSON stays
 numeric and the frontend is unaffected. See `docs/DEPLOY-RAILWAY.md` for the
 money migration deploy order.
+
+**Domain CHECK constraints** (migration `…_data_constraints`) are authored in raw
+SQL because Prisma cannot express `CHECK` in `schema.prisma`. Prisma leaves these
+unknown constraints untouched on later `migrate dev`/`deploy`, so they persist as
+a defence-in-depth backstop behind the application-layer validation. The
+migration compares enum columns case-insensitively and drops-if-exists before
+adding, so it is safe to re-run; a documented rollback block sits at the bottom
+of the migration file.
+
+**List pagination is opt-in and header-based.** Collection endpoints accept
+`?limit`/`?offset` (clamped) and return page metadata in the `X-Total-Count`,
+`X-Limit`, `X-Offset`, `X-Has-More`, and `X-Next-Offset` response headers. With
+no query params the response body and behaviour are identical to before, so the
+frontend is unaffected. See `src/lib/server/pagination.ts`.
 
 **Rules**
 - Schema changes go through `npm run db:migrate` (dev) → commit the generated migration.

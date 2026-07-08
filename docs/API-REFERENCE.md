@@ -13,6 +13,30 @@ All request/response bodies are JSON unless noted (patient-file upload is `multi
 
 ---
 
+## Conventions
+
+**API version.** Instrumented routes return `x-api-version: 1`. This is the API
+*contract* version — bumped only on a breaking change to request/response shapes.
+Additive changes (new optional fields, new endpoints, new headers) keep the same
+version, so clients must ignore unknown fields and headers. The build/release
+version is reported separately by `/api/health` (`version`/`commit`).
+
+**Request correlation.** Instrumented routes return `x-request-id` (a UUID). The
+same id appears in the server's structured `api_request` log line and in the
+`{ "error": "internal_error", "requestId": "…" }` body of a `500`, so a client
+error can be traced to its server log.
+
+**Error envelope.** Errors are `{ "error": "<machine_code>" }`, optionally with a
+human `message` and structured `details`. `error` is a stable code for client
+branching; validation failures return `422 { "error":"validation_error", "details":[…] }`.
+
+**Pagination (opt-in).** List endpoints accept `?limit=` and `?offset=`. When
+neither is present the response is unchanged (full list, backward compatible).
+When applied, the body shape is identical and page metadata is returned in
+headers: `X-Total-Count`, `X-Limit`, `X-Offset`, `X-Has-More`, `X-Next-Offset`.
+
+---
+
 ## Auth
 
 ### POST `/api/auth/login`
@@ -142,7 +166,21 @@ Local testing of the agent without Meta. **Only enabled when `WHATSAPP_PROVIDER=
 ## Health
 
 ### GET `/api/health`
-Liveness/readiness probe (DB connectivity + uptime). `200` → `{ status:"ok", db:"up", uptimeSec, latencyMs }` · `503` when the DB is unreachable.
+Readiness probe — pings the database. `200` → `{ status:"ok", db:"up", uptimeSec, latencyMs, version, commit, env, time }` · `503 { status:"error", db:"down", error, … }` when the DB is unreachable. `version`/`commit`/`env` are additive build metadata.
+
+### HEAD `/api/health`
+Liveness probe — confirms the process is serving without touching the database. Always `200` with an empty body. Suitable for aggressive orchestrator polling.
+
+---
+
+## Metrics
+
+### GET `/api/admin/metrics`
+Owner-only (`requireRole(OWNER_ROLES)`) in-process request metrics. Read-only; exposes no patient or financial data.
+- `200` → `{ since, uptimeSec, totals:{ requests, byClass:{ "2xx","3xx","4xx","5xx" }, errors }, routes:[ { key, method, route, count, errors, p50, p95, p99, maxMs } ] }`
+- `401` when not signed in · `403` for non-owner roles
+
+Latency figures are milliseconds over a bounded, in-memory sample window and reset on restart. For durable dashboards, scrape this endpoint or forward the structured `api_request` logs.
 
 ---
 

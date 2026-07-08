@@ -28,6 +28,13 @@ export function newRequestId(): string {
 }
 
 /**
+ * API contract version, surfaced as the `x-api-version` response header on every
+ * instrumented route. Bumped only on a breaking change to the API surface;
+ * additive changes keep the same version (see docs/API-REFERENCE.md).
+ */
+export const API_VERSION = "1";
+
+/**
  * Log an unexpected error server-side (structured, with stack + DB-error
  * detection) and return a generic 500 that never leaks a stack trace or
  * internal message to the client. The `requestId` ties the client response to
@@ -123,11 +130,14 @@ export function withRoute<A extends unknown[]>(
     try {
       const res = await handler(...args);
       res.headers.set("x-request-id", requestId);
+      res.headers.set("x-api-version", API_VERSION);
       logRequest({ requestId, method, route, status: res.status, durationMs: Date.now() - startedAt, userId });
       return res;
     } catch (err) {
       logRequest({ requestId, method, route, status: 500, durationMs: Date.now() - startedAt, userId });
-      return serverError(context, err, requestId);
+      const res = serverError(context, err, requestId);
+      res.headers.set("x-api-version", API_VERSION);
+      return res;
     }
   };
 }

@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/server/guard";
 import { stageOf, minutesUntil, ensurePatient } from "@/lib/server/appointments";
 import { normalizePhone } from "@/lib/server/phone";
 import { generateCode } from "@/lib/server/code";
+import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import {
   parseJson,
   z,
@@ -19,26 +20,35 @@ export async function GET(req: Request) {
 
   const status = new URL(req.url).searchParams.get("status") || undefined;
   const now = new Date();
+  const pg = getPagination(req, { defaultLimit: 100, maxLimit: 500 });
+  const where = status ? { status } : undefined;
 
   const appts = await prisma.appointment.findMany({
-    where: status ? { status } : undefined,
+    where,
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: pg.applied ? pg.take : 100,
+    skip: pg.applied ? pg.skip : undefined,
     include: {
       messages: { orderBy: { createdAt: "asc" } },
       doctor: { select: { id: true, nameEn: true, nameAr: true } },
     },
   });
 
-  return NextResponse.json({
-    appointments: appts.map((a) => ({
-      ...a,
-      doctorNameEn: a.doctor?.nameEn ?? null,
-      doctorNameAr: a.doctor?.nameAr ?? null,
-      stage: stageOf(a, now),
-      minutesUntil: Math.round(minutesUntil(a, now)),
-    })),
-  });
+  const total = pg.applied ? await prisma.appointment.count({ where }) : appts.length;
+
+  return jsonWithPagination(
+    {
+      appointments: appts.map((a) => ({
+        ...a,
+        doctorNameEn: a.doctor?.nameEn ?? null,
+        doctorNameAr: a.doctor?.nameAr ?? null,
+        stage: stageOf(a, now),
+        minutesUntil: Math.round(minutesUntil(a, now)),
+      })),
+    },
+    total,
+    pg
+  );
 }
 
 /**

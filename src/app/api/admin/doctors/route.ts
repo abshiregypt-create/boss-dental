@@ -4,17 +4,22 @@ import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { clampPct } from "@/lib/server/doctors";
 import { serializeDoctor } from "@/lib/server/money";
+import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { parseJson, z, zOptText } from "@/lib/server/validate";
 
 /** Admin: the clinic's doctors (practitioners assignable to operations). */
-export async function GET() {
+export async function GET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
+  const pg = getPagination(req, { defaultLimit: 100, maxLimit: 500 });
   const doctors = await prisma.doctor.findMany({
     orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+    take: pg.take,
+    skip: pg.skip,
   });
-  return NextResponse.json({ doctors: doctors.map(serializeDoctor) });
+  const total = pg.applied ? await prisma.doctor.count() : doctors.length;
+  return jsonWithPagination({ doctors: doctors.map(serializeDoctor) }, total, pg);
 }
 
 // Guard against oversized profile photos stored as data URLs (~1.5MB of base64).

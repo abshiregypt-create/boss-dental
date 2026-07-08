@@ -3,18 +3,23 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { ensureProceduresSeeded } from "@/lib/server/operations";
 import { serializeProcedure } from "@/lib/server/money";
+import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { parseJson, z, zOptText, zMoney } from "@/lib/server/validate";
 
 /** Admin: the operations/procedures catalog. */
-export async function GET() {
+export async function GET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
   await ensureProceduresSeeded();
+  const pg = getPagination(req, { defaultLimit: 100, maxLimit: 500 });
   const procedures = await prisma.procedure.findMany({
     orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+    take: pg.take,
+    skip: pg.skip,
   });
-  return NextResponse.json({ procedures: procedures.map(serializeProcedure) });
+  const total = pg.applied ? await prisma.procedure.count() : procedures.length;
+  return jsonWithPagination({ procedures: procedures.map(serializeProcedure) }, total, pg);
 }
 
 const ProcedureCreateBody = z

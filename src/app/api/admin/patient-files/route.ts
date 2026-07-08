@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
+import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { ALLOWED_MIME, MAX_FILE_BYTES, mimeMatchesContent, safeName, writeFileBuffer } from "@/lib/server/storage";
 
 const CATEGORIES = new Set(["xray", "photo", "document", "medical"]);
@@ -14,9 +15,13 @@ export async function GET(req: Request) {
   const patientKey = new URL(req.url).searchParams.get("patientKey");
   if (!patientKey) return NextResponse.json({ error: "missing_patientKey" }, { status: 400 });
 
+  const pg = getPagination(req, { defaultLimit: 100, maxLimit: 500 });
+  const where = { patientKey };
   const files = await prisma.patientFile.findMany({
-    where: { patientKey },
+    where,
     orderBy: { createdAt: "desc" },
+    take: pg.take,
+    skip: pg.skip,
     select: {
       id: true,
       category: true,
@@ -27,7 +32,8 @@ export async function GET(req: Request) {
       createdAt: true,
     },
   });
-  return NextResponse.json({ files });
+  const total = pg.applied ? await prisma.patientFile.count({ where }) : files.length;
+  return jsonWithPagination({ files }, total, pg);
 }
 
 /** Upload a file (multipart form-data): fields file, patientKey, category?, title?, patientName? */

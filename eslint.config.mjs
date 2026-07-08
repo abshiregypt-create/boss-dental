@@ -21,6 +21,13 @@ const eslintConfig = defineConfig([
     "exports/**",
     "_export/**",
     "prisma/generated/**",
+    // Desktop (Electron) build output + CommonJS main-process bootstrap. These
+    // are not part of the Next/TS app source: dist-desktop/** is the bundled
+    // electron-builder output, and electron/*.js legitimately uses CommonJS
+    // require() (which the app's TS ruleset flags). Linted separately if at all.
+    "dist-desktop/**",
+    "dist/**",
+    "electron/**",
   ]),
   // The React Compiler ESLint rules bundled with eslint-config-next are strict
   // about patterns this app uses intentionally and safely:

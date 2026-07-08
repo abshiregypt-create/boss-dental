@@ -136,3 +136,27 @@ only metadata is in the database.
 | Secrets | `.env` (git-ignored) | server env / secrets manager |
 
 See **RUNBOOK.md** for deploy + backup procedures and **DATA-MODEL.md** for the schema.
+
+## 7. Observability & operational endpoints
+
+Cross-cutting operational concerns live in `src/lib/server/`:
+
+- **Config validation** — `env.ts` `checkEnv()` inspects the environment at boot;
+  `instrumentation.ts` logs every error/warning through the structured logger
+  before the scheduler starts. Typed accessors (`intEnv`, `boolEnv`, …) standardise
+  reads.
+- **Structured logging** — `logger.ts` emits JSON-Lines with credential redaction.
+  `http.ts` `withRoute()` wraps handlers to log one `api_request` line per request
+  (method, route, status, duration, `x-request-id`, best-effort user id) and to
+  convert uncaught errors into a safe 500.
+- **Metrics** — `metrics.ts` aggregates request counts by status class and per-route
+  latency quantiles in memory (bounded); surfaced at owner-only
+  `GET /api/admin/metrics`.
+- **Health** — `GET /api/health` is a DB-backed readiness probe with build metadata;
+  `HEAD /api/health` is a DB-free liveness probe for orchestrators.
+- **API contract** — every instrumented response carries `x-api-version`; see
+  **API-REFERENCE.md** for the versioning and pagination conventions.
+
+Excluded from `withRoute` by design: health probes, the Meta webhook/simulate, and
+high-frequency WhatsApp worker-polling routes (to avoid log/metric flooding).
+

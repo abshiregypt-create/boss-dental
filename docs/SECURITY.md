@@ -120,6 +120,29 @@ request with an `x-request-id` and records method, route, user id, status and
 duration; error stacks and DB error codes are logged server-side only and never
 returned to the client.
 
+## Controls implemented (Sprint 4 — Enterprise Readiness)
+
+### 16. Centralized environment validation
+`src/lib/server/env.ts` `checkEnv()` validates all critical configuration at boot
+(`AUTH_SECRET` strength, `DATABASE_URL`, Meta-provider secrets) and flags
+less-secure setups as warnings (`WA_SIMULATE_ENABLED` on a live provider, missing
+`WA_AGENT_SECRET`/`CRON_SECRET`). `instrumentation.ts` reports each finding through
+the structured logger, so misconfiguration is visible immediately and in one place.
+
+### 17. Owner-only operational metrics
+`GET /api/admin/metrics` is gated by `requireRole(OWNER_ROLES)` and returns only
+aggregate request counts and latency quantiles — no patient, financial, or
+credential data. Latency is held in a bounded in-memory buffer that resets on
+restart.
+
+### 18. Uniform request instrumentation and safe error envelopes
+`withRoute()` is applied across the app's own API (34 additional handlers). Every
+wrapped route emits a redacted `api_request` log line, records metrics, returns
+`x-request-id`/`x-api-version`, and converts any uncaught exception into a generic
+`{ "error": "internal_error", "requestId" }` 500 — stacks and DB error codes stay
+server-side. High-frequency WhatsApp worker-polling routes and the Meta webhook are
+intentionally excluded to avoid log flooding and preserve their response contracts.
+
 ## Testing
 
 Pure security logic is covered by `node --test` unit tests:
@@ -136,6 +159,9 @@ Pure security logic is covered by `node --test` unit tests:
 - `tests/unit/validation.test.mjs` — zod input-validation primitives
 - `tests/unit/pagination.test.mjs` — limit/offset clamping + page headers
 - `tests/unit/logger.test.mjs` — secret redaction + error/DB describe
+- `tests/unit/env.test.mjs` — boot env validation (errors vs warnings)
+- `tests/unit/health.test.mjs` — readiness payload + build metadata
+- `tests/unit/metrics.test.mjs` — quantiles + bounded metric collection
 
 Run: `npm run test:unit`
 

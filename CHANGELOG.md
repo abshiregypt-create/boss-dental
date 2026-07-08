@@ -11,6 +11,31 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 4 — Enterprise Readiness
+- **Centralized env validation** — `src/lib/server/env.ts` `checkEnv()` reports
+  every misconfiguration at once (errors for functionality-breaking gaps,
+  warnings for degraded/less-secure setups) plus typed accessors
+  (`requireEnv`/`optionalEnv`/`intEnv`/`boolEnv`). `instrumentation.ts` now calls
+  `validateEnvAndLog()` through the structured logger. Additive; boot never throws.
+- **Readiness/liveness health** — `GET /api/health` adds `version`/`commit`/`env`
+  build metadata (existing `status`/`db`/`uptimeSec`/`latencyMs`/`time` preserved,
+  200/503 semantics unchanged); new `HEAD /api/health` is a DB-free liveness probe.
+  `buildHealthPayload` extracted as a pure, tested helper.
+- **In-process metrics** — `src/lib/server/metrics.ts` (bounded latency ring buffer,
+  capped route cardinality) records request counts by status class and per-route
+  p50/p95/p99. Fed automatically by `logRequest`. Exposed at owner-only
+  `GET /api/admin/metrics`; no patient or financial data.
+- **API versioning** — `x-api-version: 1` stamped on every instrumented response;
+  contract-versioning, request-correlation, error-envelope and pagination-header
+  conventions documented in `docs/API-REFERENCE.md`.
+- **Uniform observability** — `withRoute()` adopted across 34 remaining route
+  handlers (admin reads/reports/mutations incl. dynamic routes, auth, bookings,
+  track, tick) for consistent structured logging, metrics, `x-request-id` and safe
+  500 envelopes. Health probes, the Meta webhook/simulate, and high-frequency
+  WhatsApp worker-polling routes intentionally excluded. `withRoute` generalized to
+  `Promise<Response>` so binary download routes are covered; `NextResponse` callers
+  unaffected.
+
 #### Sprint 3 — Data Integrity & API Robustness
 - **Input validation** — `zod` schemas on every write endpoint via
   `src/lib/server/validate.ts` (`parseJson`, `zMoney`, `zPct`, `zReqText`,

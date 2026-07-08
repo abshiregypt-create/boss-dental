@@ -47,6 +47,12 @@ and docs. Backward compatible.
   digits used for wa.me / WhatsApp Cloud delivery (country-code insertion, trunk-0
   handling, `00` prefix stripping, bare-local numbers, custom country codes, and
   the 10-15 digit validity window). Test-only; no source change. Unit suite 109 -> 120.
+- **Regression tests for WhatsApp message templating** - added
+  `tests/unit/messages.test.mjs` (7 cases) mirroring `aheadPhrase` (the
+  patient-facing "N patients ahead" queue wording, EN + Arabic singular/plural,
+  negative-count clamping) and `trackUrl` (localhost fallback, configured
+  `APP_URL`, trailing-slash stripping). Guards the exact text patients receive.
+  Test-only; no source change. Unit suite 120 -> 127.
 
 #### Sprint 4 — Enterprise Readiness
 - **Centralized env validation** — `src/lib/server/env.ts` `checkEnv()` reports

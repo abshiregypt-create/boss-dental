@@ -42,6 +42,11 @@ and docs. Backward compatible.
   `WA_SESSION_DIR`/`CHROME_PATH` (WhatsApp Web worker), `NEXT_PUBLIC_SALES_WHATSAPP`,
   `NEXT_PUBLIC_LOGIN_USERNAME`, and the `NEXT_PUBLIC_CLINIC`/`CLINIC` slug.
   Prevents silent production misconfiguration. Template-only; no code change.
+- **Regression tests for phone normalization** - added `tests/unit/phone.test.mjs`
+  (11 cases) around `normalizePhone`, the pure function that decides the exact
+  digits used for wa.me / WhatsApp Cloud delivery (country-code insertion, trunk-0
+  handling, `00` prefix stripping, bare-local numbers, custom country codes, and
+  the 10-15 digit validity window). Test-only; no source change. Unit suite 109 -> 120.
 
 #### Sprint 4 — Enterprise Readiness
 - **Centralized env validation** — `src/lib/server/env.ts` `checkEnv()` reports

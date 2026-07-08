@@ -101,6 +101,7 @@ model TreatmentRecord {
   doctors  TreatmentDoctor[]
 
   @@index([patientId, performedAt])
+  @@index([procedureId])
 }
 
 /// A payment received from a patient. May be tied to a specific treatment (an
@@ -118,6 +119,7 @@ model Payment {
   createdAt         DateTime         @default(now())
 
   @@index([patientId, paidAt])
+  @@index([treatmentRecordId])
 }
 
 /// A booking. Drives the whole confirm -> WhatsApp -> queue flow.
@@ -157,6 +159,8 @@ model Appointment {
   @@index([status, scheduledAt])
   @@index([phone])
   @@index([doctorId])
+  @@index([patientId])
+  @@index([scheduledAt])
 }
 
 /// A WhatsApp message tied to an appointment (audit log + idempotency).

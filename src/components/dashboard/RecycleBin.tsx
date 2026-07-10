@@ -27,6 +27,8 @@ const TYPE_LABEL: Record<string, { en: string; ar: string }> = {
   file: { en: "Files", ar: "الملفات" },
   payout: { en: "Doctor payouts", ar: "صرفيات الأطباء" },
   expense: { en: "Expenses", ar: "المصروفات" },
+  supplier: { en: "Suppliers", ar: "الموردون" },
+  item: { en: "Inventory items", ar: "أصناف المخزون" },
 };
 
 const PAGE_LIMIT = 100;

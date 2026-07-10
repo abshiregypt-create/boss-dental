@@ -6,10 +6,11 @@
  * admin Recycle Bin. Writes (restore / permanent-delete) live in
  * `soft-delete-ops.ts`; this module is read-only.
  *
- * Only the eight independently-managed entities are exposed. `TreatmentDoctor`
+ * Only the ten independently-managed entities are exposed. `TreatmentDoctor`
  * (commission split) is intentionally omitted: it is a cascade-only join row
  * that always trashes and restores together with its parent treatment/doctor,
- * so it is never surfaced as its own Recycle Bin entry.
+ * so it is never surfaced as its own Recycle Bin entry. Inventory batches and
+ * stock movements are likewise cascade-only children of an inventory item.
  *
  * Every query filters `deletedAt: { not: null }`, which also opts out of the
  * soft-delete read extension's live-only scoping (see soft-delete.ts).
@@ -25,7 +26,9 @@ export type TrashType =
   | "procedure"
   | "file"
   | "payout"
-  | "expense";
+  | "expense"
+  | "supplier"
+  | "item";
 
 type TrashRegistryEntry = {
   /** PascalCase Prisma model name (matches soft-delete model registry). */
@@ -45,6 +48,8 @@ export const TRASH_REGISTRY: Readonly<Record<TrashType, TrashRegistryEntry>> = {
   file: { model: "PatientFile", delegate: "patientFile", label: "Files" },
   payout: { model: "DoctorPayout", delegate: "doctorPayout", label: "Payouts" },
   expense: { model: "ClinicExpense", delegate: "clinicExpense", label: "Expenses" },
+  supplier: { model: "Supplier", delegate: "supplier", label: "Suppliers" },
+  item: { model: "InventoryItem", delegate: "inventoryItem", label: "Inventory items" },
 };
 
 export const TRASH_TYPES = Object.keys(TRASH_REGISTRY) as TrashType[];
@@ -135,6 +140,16 @@ const VIEW: Readonly<Record<TrashType, TrashView>> = {
     select: { id: true, labelEn: true, labelAr: true, amount: true, deletedAt: true, deletedBy: true },
     label: (r) => firstText(r.labelEn, r.labelAr) || "Expense",
     detail: (r) => money(r.amount),
+  },
+  supplier: {
+    select: { id: true, nameEn: true, nameAr: true, phone: true, deletedAt: true, deletedBy: true },
+    label: (r) => firstText(r.nameEn, r.nameAr) || "Supplier",
+    detail: (r) => str(r.phone),
+  },
+  item: {
+    select: { id: true, nameEn: true, nameAr: true, sku: true, deletedAt: true, deletedBy: true },
+    label: (r) => firstText(r.nameEn, r.nameAr) || "Item",
+    detail: (r) => str(r.sku),
   },
 };
 

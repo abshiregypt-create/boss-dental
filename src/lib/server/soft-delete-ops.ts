@@ -32,6 +32,8 @@ const DELEGATE_BY_MODEL: Readonly<Record<string, string>> = {
   TreatmentDoctor: "treatmentDoctor",
   DoctorPayout: "doctorPayout",
   ClinicExpense: "clinicExpense",
+  Supplier: "supplier",
+  InventoryItem: "inventoryItem",
 };
 
 /** Inverse map for recursing into a cascade child's own children. */
@@ -40,6 +42,8 @@ const MODEL_BY_DELEGATE: Readonly<Record<CascadeChildModel, string>> = {
   payment: "Payment",
   treatmentDoctor: "TreatmentDoctor",
   doctorPayout: "DoctorPayout",
+  inventoryBatch: "InventoryBatch",
+  stockMovement: "StockMovement",
 };
 
 type IdRow = { id: string };
@@ -213,6 +217,14 @@ export const PURGE_REFERENCES: Readonly<Record<string, readonly CascadeChild[]>>
     { model: "payment", fk: "treatmentRecordId" },
   ],
   Procedure: [{ model: "treatmentRecord", fk: "procedureId" }],
+  // Inventory: warn before a permanent purge would take stock history with it.
+  // An item's batches + ledger CASCADE on force-purge; a supplier's batches only
+  // SET NULL (history survives), but we still warn since the link is lost.
+  InventoryItem: [
+    { model: "inventoryBatch", fk: "itemId" },
+    { model: "stockMovement", fk: "itemId" },
+  ],
+  Supplier: [{ model: "inventoryBatch", fk: "supplierId" }],
 };
 
 /** Reference relations that guard a purge for a model (empty if none). Pure. */

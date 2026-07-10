@@ -363,3 +363,126 @@ model ClinicExpenseOverride {
 
   @@unique([expenseId, monthKey])
 }
+
+// ---------------------------------------------------------------------------
+// Inventory (Sprint: Enterprise Inventory — foundation)
+//
+// Perpetual inventory with lot/batch tracking. Fully additive: no existing model
+// is modified. On-hand quantity is DERIVED (Σ batch.remainingQty), never stored,
+// so it cannot drift. Every stock change is written to the append-only
+// StockMovement ledger AND applied to a batch's remainingQty inside one
+// transaction. `branchId` columns are reserved (nullable) for future
+// multi-branch; today all stock is the single/default branch (null).
+// Quantities use Decimal(12,3) (supports fractional units like ml/g); money uses
+// Decimal(12,2) EGP to match the rest of the schema.
+// ---------------------------------------------------------------------------
+
+/// A vendor items are purchased from. Owner-managed, bilingual, soft-deletable
+/// (recoverable in the Recycle Bin). `active=false` archives it from pickers
+/// without deleting history.
+model Supplier {
+  id           String    @id @default(cuid())
+  nameEn       String
+  nameAr       String
+  contactName  String?
+  phone        String?
+  email        String?
+  address      String?
+  taxId        String? // commercial/tax registration number
+  paymentTerms String? // e.g. "cash", "net30"
+  notes        String?
+  active       Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
+  deletedBy    String? // User.id who soft-deleted (snapshot for the Trash view)
+
+  batches InventoryBatch[]
+
+  @@index([active, sortOrder])
+}
+
+/// A stock-keeping inventory item (consumable/material). On-hand is derived from
+/// its batches; this row holds only the catalog metadata + reorder policy.
+/// Soft-deletable; `active=false` archives it. `sku` is unique when present.
+model InventoryItem {
+  id           String    @id @default(cuid())
+  nameEn       String
+  nameAr       String
+  sku          String?   @unique
+  barcode      String? // scanned code (not unique: the same code may be reused across catalogs)
+  category     String? // free-text grouping (e.g. "anesthetic", "disposable")
+  unit         String    @default("piece") // piece | box | pack | ml | g ...
+  reorderLevel Decimal   @default(0) @db.Decimal(12, 3) // low-stock threshold: alert when on-hand < level
+  reorderQty   Decimal?  @db.Decimal(12, 3) // suggested quantity to reorder
+  active       Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
+  deletedBy    String? // User.id who soft-deleted (snapshot for the Trash view)
+
+  batches   InventoryBatch[]
+  movements StockMovement[]
+
+  @@index([active, sortOrder])
+  @@index([barcode])
+  @@index([category])
+}
+
+/// A received lot/batch of an item. Powers batch/lot tracking, expiry (FEFO),
+/// and per-lot cost for valuation. `remainingQty` is decremented as stock is
+/// consumed; a depleted batch (remainingQty=0) is retained for history.
+model InventoryBatch {
+  id           String         @id @default(cuid())
+  itemId       String
+  item         InventoryItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  supplierId   String?
+  supplier     Supplier?      @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  branchId     String? // reserved for multi-branch (null = default/main branch)
+  lotNumber    String?
+  expiryDate   DateTime? // for FEFO ordering + expiry alerts
+  unitCost     Decimal        @default(0) @db.Decimal(12, 2) // cost per unit for this lot (EGP)
+  receivedQty  Decimal        @default(0) @db.Decimal(12, 3) // original quantity received
+  remainingQty Decimal        @default(0) @db.Decimal(12, 3) // current on-hand for this lot
+  receivedAt   DateTime       @default(now())
+  notes        String?
+  createdAt    DateTime       @default(now())
+
+  movements StockMovement[]
+
+  @@index([itemId, expiryDate])
+  @@index([itemId, remainingQty])
+  @@index([expiryDate])
+  @@index([supplierId])
+}
+
+/// Append-only ledger of every stock change. `quantityDelta` is SIGNED
+/// (+increase, −decrease); an item's on-hand = Σ quantityDelta (and equals
+/// Σ batch.remainingQty). Rows are never updated or deleted — corrections are
+/// posted as new (reversing) movements.
+model StockMovement {
+  id            String          @id @default(cuid())
+  itemId        String
+  item          InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  batchId       String?
+  batch         InventoryBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  branchId      String? // reserved for multi-branch (null = default/main branch)
+  type          String // receipt | consumption | wastage | adjustment | transfer_in | transfer_out | return
+  quantityDelta Decimal         @db.Decimal(12, 3) // signed change to on-hand
+  unitCost      Decimal?        @db.Decimal(12, 2) // snapshot cost/unit at movement time
+  totalCost     Decimal?        @db.Decimal(12, 2) // snapshot |quantityDelta| × unitCost (movement valuation)
+  reason        String? // free-text reason (required by the API for wastage/adjustment)
+  referenceType String? // "PurchaseOrder" | "TreatmentRecord" | "Manual" | "Transfer"
+  referenceId   String?
+  actorId       String? // User.id who posted the movement
+  actorName     String? // snapshot of the actor's display name
+  createdAt     DateTime        @default(now())
+
+  @@index([itemId, createdAt])
+  @@index([type, createdAt])
+  @@index([batchId])
+  @@index([referenceType, referenceId])
+}

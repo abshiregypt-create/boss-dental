@@ -145,12 +145,89 @@ Delete the file (disk + DB row). `200` → `{ ok:true }` · `404` not found.
 
 ---
 
+## Admin — Inventory (auth required)
+
+Enterprise stock control for clinic consumables. **Reads** require a session;
+**writes** require owner roles (`admin`/`doctor`) and are Zod-validated and audited.
+On-hand and valuation are always **derived** from live batch quantities (never stored).
+Quantities are decimals with up to 3 places; money is EGP with 2 places.
+
+### GET `/api/admin/inventory/suppliers`
+List suppliers. `200` → `{ suppliers:[ … ] }`. Supports `?limit=&offset=` with an
+`X-Total-Count` header.
+
+### POST `/api/admin/inventory/suppliers`
+Create a supplier (owner roles). Body: `{ nameEn?, nameAr?, contactName?, phone?,
+email?, address?, taxId?, paymentTerms?, notes?, active? }` (at least one name).
+`201` → `{ supplier }` · `422` validation error.
+
+### PATCH `/api/admin/inventory/suppliers/[id]`
+Update a supplier (owner roles). `200` → `{ supplier }` · `404` not found.
+
+### DELETE `/api/admin/inventory/suppliers/[id]`
+Soft-delete a supplier (owner roles). `200` → `{ ok:true }`. Restorable from Trash
+(`type=supplier`). Existing batches keep their history (supplier link set to null).
+
+### GET `/api/admin/inventory/items`
+List items with derived `onHand`, `valuation`, and `lowStock`. Filters:
+`?search=<name|sku|barcode>`, `?low=1` (at/below reorder level), `?inactive=1`
+(include archived). `200` → `{ items:[ … ] }`.
+
+### POST `/api/admin/inventory/items`
+Create an item (owner roles). Body: `{ nameEn?, nameAr?, sku?, barcode?, category?,
+unit, reorderLevel?, reorderQty?, notes?, active? }`. `sku` must be unique across all
+rows (including trashed). `201` → `{ item }` · `409 {"error":"sku_taken"}` · `422`.
+
+### GET `/api/admin/inventory/items/[id]`
+Item detail: `{ item, batches:[ … ], movements:[ … ] }` (recent ledger).
+`404` not found.
+
+### PATCH `/api/admin/inventory/items/[id]`
+Update an item (owner roles). `sku` uniqueness re-checked (excluding self).
+`200` → `{ item }` · `409 sku_taken` · `404`.
+
+### DELETE `/api/admin/inventory/items/[id]`
+Soft-delete an item (owner roles). `200` → `{ ok:true }`. Restorable from Trash
+(`type=item`). Its stock stops counting toward valuation/expiry while trashed.
+
+### POST `/api/admin/inventory/items/[id]/receive`
+Receive stock into a new batch (owner roles). Body: `{ quantity, unitCost,
+supplierId?, lotNumber?, expiryDate?, notes? }`. Writes a `receipt` movement and
+creates the batch. `201` → `{ batch }` · `422`.
+
+### POST `/api/admin/inventory/items/[id]/adjust`
+Adjust stock (owner roles). Body branches on `type`:
+- `consumption` | `wastage` | `return`: `{ type, quantity, batchId?, reason? }` —
+  decreases stock (FEFO across batches if `batchId` omitted). `409
+  {"error":"insufficient_stock"}` if not enough on hand.
+- `adjustment`: `{ type:"adjustment", batchId, delta, reason }` — signed correction
+  of one batch's remaining quantity (`reason` required).
+
+`200` → `{ movements }` (or `{ movement }`) · `422` · `409`.
+
+### GET `/api/admin/inventory/movements`
+Paginated stock ledger, newest first. Filters `?itemId=&type=` (`limit` default 50,
+100 for the UI). `200` → `{ movements:[ { id, itemId, type, quantityDelta, unitCost,
+totalCost, reason, actorName, createdAt, item:{ nameEn, nameAr, unit } } ] }`.
+
+### GET `/api/admin/inventory/report`
+KPIs + working lists. `?days=<n>` sets the expiry window (default 30). `200` →
+`{ totalItems, totalValuation, lowStockCount, expiringCount, expiredCount,
+lowStock:[…], expiring:[…], expired:[…] }`.
+
+### GET `/api/admin/inventory/lookup?code=|barcode=|sku=`
+Resolve an item by barcode or SKU (for scanners). `200` → `{ item }` · `404`.
+
+The inventory operator UI for these endpoints is at `/dashboard/inventory`.
+
+---
+
 ## Admin - Recycle Bin / Trash (auth required)
 
 Deletes of sensitive records (patients, treatments, payments, doctors, payouts,
-clinic expenses, patient files, procedures) are **soft deletes**: the row is
-stamped `deletedAt`/`deletedBy` and hidden from every normal read, instead of
-being physically removed. The DELETE endpoints above are unchanged from a client's
+clinic expenses, patient files, procedures, suppliers, inventory items) are **soft
+deletes**: the row is stamped `deletedAt`/`deletedBy` and hidden from every normal
+read, instead of being physically removed. The DELETE endpoints above are unchanged from a client's
 perspective (still `200 { ok:true }`); the record simply becomes restorable from
 the Trash. The endpoints below manage those trashed rows.
 
@@ -159,7 +236,7 @@ List trashed records. Owner roles (`requireRole(OWNER_ROLES)`).
 - No query: overview -> `{ total, types:[ { type, label, count } ] }`
 - `?type=<type>&limit=&offset=`: items of one type ->
   `{ type, items:[ { id, label, detail, deletedAt, deletedBy } ] }`
-- `type` is one of `patient|doctor|treatment|payment|procedure|file|payout|expense`
+- `type` is one of `patient|doctor|treatment|payment|procedure|file|payout|expense|supplier|item`
 - `400 {"error":"bad_type"}` for an unknown type
 
 ### POST `/api/admin/trash/restore`

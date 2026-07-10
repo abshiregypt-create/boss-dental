@@ -167,9 +167,10 @@ high-frequency WhatsApp worker-polling routes (to avoid log/metric flooding).
 Deletes of sensitive records are recoverable rather than physical, and production
 databases are backed up on a schedule.
 
-- **Soft-delete columns** — nine sensitive models (Patient, TreatmentRecord,
+- **Soft-delete columns** — eleven sensitive models (Patient, TreatmentRecord,
   TreatmentDoctor, Payment, Doctor, DoctorPayout, ClinicExpense, PatientFile,
-  Procedure) carry nullable `deletedAt`/`deletedBy`. A live row has `deletedAt = null`.
+  Procedure, Supplier, InventoryItem) carry nullable `deletedAt`/`deletedBy`. A live
+  row has `deletedAt = null`.
 - **Automatic hiding** — a Prisma client extension (`soft-delete.ts`, wired in
   `db.ts`) injects `deletedAt: null` into top-level `findFirst/findMany/count/
   aggregate/groupBy` for those models, so trashed rows vanish from normal reads and
@@ -191,4 +192,35 @@ databases are backed up on a schedule.
   a retention count, and redacts credentials. Soft-deleted rows are ordinary rows so
   dumps include them. Scheduling, offsite copy, and a restore drill are documented in
   RUNBOOK section 5. The SQLite `backup.mjs` remains for the desktop build.
+
+## 9. Inventory subsystem
+
+Enterprise stock control for clinic consumables (`/dashboard/inventory`,
+`/api/admin/inventory/**`). Additive: four tables, no change to existing workflows.
+
+- **Data model** — `Supplier`, `InventoryItem`, `InventoryBatch`, `StockMovement`
+  (`20260709000006_inventory_core`). A batch holds a received quantity, a decreasing
+  `remainingQty`, unit cost, optional lot/expiry, and an optional supplier link. A
+  movement is one append-only ledger row (`receipt|consumption|wastage|adjustment|
+  transfer|return`) with a signed `quantityDelta`.
+- **Derived on-hand** — an item's on-hand is `Σ InventoryBatch.remainingQty` and its
+  valuation is `Σ remainingQty × unitCost`. Nothing is stored on the item, so the
+  quantity can never disagree with the ledger. Pure math lives in `inventory.ts`
+  (FEFO allocation, low-stock/expiry classification), unit-tested in
+  `tests/unit/inventory.test.mjs`.
+- **Transactional writes** — `inventory-ops.ts` performs each change in one
+  `$transaction`: append a `StockMovement` and adjust the batch(es). Decrements use a
+  conditional update (`remainingQty >= qty`) so concurrent draws cannot oversell
+  (they roll back to `insufficient_stock`, 409). Receiving picks/creates a batch;
+  consumption/wastage/return draw FEFO (earliest expiry first) unless a batch is
+  pinned; adjustment applies a signed delta to one batch with a required reason.
+- **API & UI** — nine routes (suppliers/items CRUD, receive, adjust, movements,
+  report, lookup); reads need a session, writes need owner roles and are audited. The
+  dashboard has Overview (KPIs + low-stock/expiry), Items, Suppliers, and a Movements
+  ledger, bilingual and built from the shared Modal/Field primitives.
+- **Recoverability** — `Supplier` and `InventoryItem` are soft-deletable and flow
+  through the same Recycle Bin (§8). Force-purge cascades an item's batches and ledger
+  (`onDelete: Cascade`); deleting a supplier keeps history (`SetNull`).
+
+
 

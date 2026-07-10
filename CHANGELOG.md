@@ -11,6 +11,44 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 7 - Enterprise Inventory (foundation)
+
+Approved feature sprint (priority #1 of the enterprise roadmap). Adds a complete
+stock-control module for clinic consumables. Fully additive: four new tables, zero
+`ALTER` on existing tables, no change to any existing financial number, workflow,
+API response, or screen. On-hand is always **derived** from batch quantities and
+never stored, so it cannot drift.
+
+- **Inventory schema (additive migration)** - `20260709000006_inventory_core` adds
+  `Supplier`, `InventoryItem`, `InventoryBatch`, and `StockMovement`. Quantities are
+  `Decimal(12,3)`, money `Decimal(12,2)` EGP. Item children cascade on force-purge
+  (`InventoryBatch.itemId` / `StockMovement.itemId` -> `Cascade`); supplier links
+  `SetNull` so movement history survives a supplier delete. `deletedAt`/`deletedBy`
+  on `Supplier` and `InventoryItem` for Recycle Bin support.
+- **Pure stock math** - `src/lib/server/inventory.ts` computes on-hand, valuation,
+  FEFO (first-expiry-first-out) allocation, and low-stock/expiry classification.
+  Mirrored by `tests/unit/inventory.test.mjs` (15 cases).
+- **Transactional service** - `src/lib/server/inventory-ops.ts` writes exactly one
+  append-only `StockMovement` and adjusts the affected batch's `remainingQty` in a
+  single `$transaction`. Decrements are conditional (`remainingQty >= qty`), so
+  concurrent draws can never oversell (rolls back to `insufficient_stock`, 409).
+  Supports receive, consume, waste, return, and signed batch adjustment.
+- **Inventory API (new, additive)** - nine endpoints under
+  `/api/admin/inventory/**`: suppliers CRUD, items CRUD (with derived on-hand and
+  valuation), `.../items/[id]/receive`, `.../items/[id]/adjust`, paginated
+  `.../movements` ledger, `.../report` (KPIs + low-stock/expiry lists), and
+  `.../lookup` (barcode/SKU). Reads require a session; writes require owner roles;
+  every write is validated with Zod and audited.
+- **Recycle Bin coverage** - suppliers and inventory items are now soft-deletable and
+  appear in `/dashboard/recycle-bin` with restore and admin-only permanent delete
+  (purge blocks items still holding stock/history unless forced).
+- **Inventory dashboard UI (new route)** - `/dashboard/inventory` with Overview
+  (KPIs, low-stock, expiring, expired), Items (search + low/archived filters;
+  receive, adjust, edit, delete, batch/movement detail), Suppliers, and a Movements
+  ledger. Bilingual (en/ar), reuses the shared Modal/Field primitives, standalone
+  route so no existing dashboard component changed. Write actions are hidden for
+  non-owner roles (server still enforces).
+
 #### Sprint 6 - Data safety: soft-delete, Recycle Bin, Postgres backups
 
 Approved feature sprint. Deletes of sensitive records are now recoverable, and

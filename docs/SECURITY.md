@@ -166,6 +166,23 @@ with a manifest and retention pruning, and **redacts database credentials** from
 output. RUNBOOK section 5 documents scheduling, offsite copy, and a verified restore
 drill, reducing the blast radius of data loss or ransomware.
 
+## Controls implemented (Sprint 7 — Enterprise Inventory)
+
+### 22. Authorization, validation and audit on inventory writes
+Every inventory mutation (suppliers/items CRUD, receive, adjust, delete) requires owner
+roles (`requireRole(OWNER_ROLES)`); reads require an authenticated session. All request
+bodies are Zod-validated (rejecting negative quantities/costs and malformed input with
+`422`), and each write is recorded in `AuditLog` with the acting user. The dashboard hides
+write controls from non-owner roles, but enforcement is server-side.
+
+### 23. Ledger integrity and oversell prevention
+Stock levels are derived from an append-only `StockMovement` ledger and per-batch
+`remainingQty`; they are never stored on the item, so a tampered or racing request cannot
+silently desynchronize the quantity. Decrements run inside a `$transaction` with a
+conditional update (`remainingQty >= qty`), so concurrent draws can never drive stock
+negative — the losing transaction rolls back with `insufficient_stock` (409). Soft-deleted
+suppliers/items follow the same least-privilege Recycle Bin controls (§19–20).
+
 ## Testing
 
 Pure security logic is covered by `node --test` unit tests:
@@ -189,6 +206,7 @@ Pure security logic is covered by `node --test` unit tests:
 - `tests/unit/soft-delete-cascade.test.mjs` — delete cascade child selection
 - `tests/unit/soft-delete-restore.test.mjs` — restore/purge/reference-block logic
 - `tests/unit/pg-backup.test.mjs` — dump args, URL redaction, retention pruning
+- `tests/unit/inventory.test.mjs` — on-hand/valuation, FEFO allocation, low-stock/expiry
 
 Run: `npm run test:unit`
 

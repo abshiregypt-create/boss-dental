@@ -30,6 +30,8 @@ export const SOFT_DELETABLE_MODELS: ReadonlySet<string> = new Set([
   "TreatmentDoctor",
   "DoctorPayout",
   "ClinicExpense",
+  "Supplier",
+  "InventoryItem",
 ]);
 
 /**
@@ -95,7 +97,13 @@ export function scopeArgs(args: unknown): Record<string, unknown> {
  *   - TreatmentRecord.procedureId is ON DELETE SET NULL — deleting a catalog
  *     procedure never removes treatments.
  */
-export type CascadeChildModel = "treatmentRecord" | "payment" | "treatmentDoctor" | "doctorPayout";
+export type CascadeChildModel =
+  | "treatmentRecord"
+  | "payment"
+  | "treatmentDoctor"
+  | "doctorPayout"
+  | "inventoryBatch"
+  | "stockMovement";
 export type CascadeChild = { model: CascadeChildModel; fk: string };
 
 export const SOFT_DELETE_CASCADE: Readonly<Record<string, readonly CascadeChild[]>> = {

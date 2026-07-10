@@ -5,6 +5,7 @@ import { normalizePhone } from "@/lib/server/phone";
 import { sendWhatsApp } from "@/lib/server/whatsapp";
 import { logChat } from "@/lib/server/followups";
 import { nameByPhone } from "@/lib/server/patient-names";
+import { withRoute } from "@/lib/server/http";
 
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
@@ -23,7 +24,9 @@ function looksCorrupted(text: string): boolean {
 }
 
 
-export async function GET(req: Request) {
+export const GET = withRoute("admin.chats.GET", adminChatsGET);
+
+async function adminChatsGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -91,7 +94,9 @@ export async function GET(req: Request) {
   return NextResponse.json({ conversations, totalUnread });
 }
 
-export async function POST(req: Request) {
+export const POST = withRoute("admin.chats.POST", adminChatsPOST);
+
+async function adminChatsPOST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

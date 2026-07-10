@@ -13,6 +13,30 @@ All request/response bodies are JSON unless noted (patient-file upload is `multi
 
 ---
 
+## Conventions
+
+**API version.** Instrumented routes return `x-api-version: 1`. This is the API
+*contract* version — bumped only on a breaking change to request/response shapes.
+Additive changes (new optional fields, new endpoints, new headers) keep the same
+version, so clients must ignore unknown fields and headers. The build/release
+version is reported separately by `/api/health` (`version`/`commit`).
+
+**Request correlation.** Instrumented routes return `x-request-id` (a UUID). The
+same id appears in the server's structured `api_request` log line and in the
+`{ "error": "internal_error", "requestId": "…" }` body of a `500`, so a client
+error can be traced to its server log.
+
+**Error envelope.** Errors are `{ "error": "<machine_code>" }`, optionally with a
+human `message` and structured `details`. `error` is a stable code for client
+branching; validation failures return `422 { "error":"validation_error", "details":[…] }`.
+
+**Pagination (opt-in).** List endpoints accept `?limit=` and `?offset=`. When
+neither is present the response is unchanged (full list, backward compatible).
+When applied, the body shape is identical and page metadata is returned in
+headers: `X-Total-Count`, `X-Limit`, `X-Offset`, `X-Has-More`, `X-Next-Offset`.
+
+---
+
 ## Auth
 
 ### POST `/api/auth/login`
@@ -121,6 +145,42 @@ Delete the file (disk + DB row). `200` → `{ ok:true }` · `404` not found.
 
 ---
 
+## Admin - Recycle Bin / Trash (auth required)
+
+Deletes of sensitive records (patients, treatments, payments, doctors, payouts,
+clinic expenses, patient files, procedures) are **soft deletes**: the row is
+stamped `deletedAt`/`deletedBy` and hidden from every normal read, instead of
+being physically removed. The DELETE endpoints above are unchanged from a client's
+perspective (still `200 { ok:true }`); the record simply becomes restorable from
+the Trash. The endpoints below manage those trashed rows.
+
+### GET `/api/admin/trash`
+List trashed records. Owner roles (`requireRole(OWNER_ROLES)`).
+- No query: overview -> `{ total, types:[ { type, label, count } ] }`
+- `?type=<type>&limit=&offset=`: items of one type ->
+  `{ type, items:[ { id, label, detail, deletedAt, deletedBy } ] }`
+- `type` is one of `patient|doctor|treatment|payment|procedure|file|payout|expense`
+- `400 {"error":"bad_type"}` for an unknown type
+
+### POST `/api/admin/trash/restore`
+Restore a trashed record and its co-trashed children. Owner roles.
+- Body: `{ "type": <type>, "id": string }`
+- `200` → `{ ok:true }` · `404 {"error":"not_found"}` when the id is not trashed
+- `422 {"error":"validation_error"}` on a missing/invalid body
+
+### POST `/api/admin/trash/purge`
+Permanently delete a trashed record (Super Admin / `admin` role only). Removes any
+stored file bytes and lets the database cascade run.
+- Body: `{ "type": <type>, "id": string, "force"?: boolean }`
+- `200` → `{ ok:true }`
+- `409 {"error":"purge_blocked","details":{ references }}` when the record is still
+  referenced by financial/medical history; retry with `"force": true` to override
+- `403` for non-admin roles · `404` when the id is not trashed
+
+The Recycle Bin operator UI for these endpoints is at `/dashboard/recycle-bin`.
+
+---
+
 ## WhatsApp booking agent
 
 ### GET `/api/whatsapp/webhook`
@@ -142,7 +202,21 @@ Local testing of the agent without Meta. **Only enabled when `WHATSAPP_PROVIDER=
 ## Health
 
 ### GET `/api/health`
-Liveness/readiness probe (DB connectivity + uptime). `200` → `{ status:"ok", db:"up", uptimeSec, latencyMs }` · `503` when the DB is unreachable.
+Readiness probe — pings the database. `200` → `{ status:"ok", db:"up", uptimeSec, latencyMs, version, commit, env, time }` · `503 { status:"error", db:"down", error, … }` when the DB is unreachable. `version`/`commit`/`env` are additive build metadata.
+
+### HEAD `/api/health`
+Liveness probe — confirms the process is serving without touching the database. Always `200` with an empty body. Suitable for aggressive orchestrator polling.
+
+---
+
+## Metrics
+
+### GET `/api/admin/metrics`
+Owner-only (`requireRole(OWNER_ROLES)`) in-process request metrics. Read-only; exposes no patient or financial data.
+- `200` → `{ since, uptimeSec, totals:{ requests, byClass:{ "2xx","3xx","4xx","5xx" }, errors }, routes:[ { key, method, route, count, errors, p50, p95, p99, maxMs } ] }`
+- `401` when not signed in · `403` for non-owner roles
+
+Latency figures are milliseconds over a bounded, in-memory sample window and reset on restart. For durable dashboards, scrape this endpoint or forward the structured `api_request` logs.
 
 ---
 

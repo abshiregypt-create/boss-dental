@@ -4,38 +4,39 @@ import { requireSession } from "@/lib/server/guard";
 import { normalizePhone } from "@/lib/server/phone";
 import { ensurePatient } from "@/lib/server/appointments";
 import { normalizeMethod } from "@/lib/server/operations";
+import { parseJson, z, zReqText, zOptText } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
+
+const PaymentBody = z.object({
+  phone: zReqText,
+  name: zOptText,
+  amount: z.coerce.number().positive("must be greater than 0"),
+  method: zOptText,
+  note: zOptText,
+  treatmentRecordId: z.string().trim().nullish(),
+  paidAt: z.string().nullish(),
+});
 
 /**
  * POST /api/admin/payments
  * Record a payment from a patient (general, or toward a specific treatment).
  * Body: { phone, name?, amount, method?, note?, treatmentRecordId?, paidAt? }
  */
-export async function POST(req: Request) {
+export const POST = withRoute("payments.POST", paymentsPost);
+
+async function paymentsPost(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  let body: {
-    phone?: string;
-    name?: string;
-    amount?: number;
-    method?: string;
-    note?: string;
-    treatmentRecordId?: string | null;
-    paidAt?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, PaymentBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
-  const phoneRaw = String(body.phone ?? "").trim();
-  if (!phoneRaw) return NextResponse.json({ error: "phone_required" }, { status: 400 });
-  const amount = Number(body.amount);
-  if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "bad_amount" }, { status: 400 });
+  const phoneRaw = body.phone;
+  const amount = body.amount;
 
   const to = normalizePhone(phoneRaw).digits || phoneRaw.replace(/\D/g, "");
-  const patientId = await ensurePatient(String(body.name ?? "").trim() || to, to);
+  const patientId = await ensurePatient(body.name || to, to);
   if (!patientId) return NextResponse.json({ error: "patient_failed" }, { status: 400 });
 
   // If tied to a treatment, make sure it belongs to this patient.
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
       treatmentRecordId,
       amount,
       method: normalizeMethod(body.method),
-      note: body.note ? String(body.note).trim() : null,
+      note: body.note ? body.note : null,
       paidAt: isNaN(paidAt.getTime()) ? new Date() : paidAt,
     },
   });

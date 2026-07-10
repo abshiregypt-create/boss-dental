@@ -2,39 +2,55 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { ensureProceduresSeeded } from "@/lib/server/operations";
+import { serializeProcedure } from "@/lib/server/money";
+import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
+import { withRoute } from "@/lib/server/http";
+import { parseJson, z, zOptText, zMoney } from "@/lib/server/validate";
 
 /** Admin: the operations/procedures catalog. */
-export async function GET() {
+export const GET = withRoute("procedures.GET", proceduresGet);
+
+async function proceduresGet(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
   await ensureProceduresSeeded();
+  const pg = getPagination(req, { defaultLimit: 100, maxLimit: 500 });
   const procedures = await prisma.procedure.findMany({
     orderBy: [{ active: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+    take: pg.take,
+    skip: pg.skip,
   });
-  return NextResponse.json({ procedures });
+  const total = pg.applied ? await prisma.procedure.count() : procedures.length;
+  return jsonWithPagination({ procedures: procedures.map(serializeProcedure) }, total, pg);
 }
 
-export async function POST(req: Request) {
+const ProcedureCreateBody = z
+  .object({
+    nameEn: zOptText,
+    nameAr: zOptText,
+    price: zMoney,
+    cost: z.union([z.string(), z.number()]).nullish(),
+  })
+  .refine((b) => Boolean(b.nameEn || b.nameAr), { message: "name_required", path: ["nameEn"] });
+
+export const POST = withRoute("procedures.POST", proceduresPost);
+
+async function proceduresPost(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  let body: { nameEn?: string; nameAr?: string; price?: number; cost?: number | null };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, ProcedureCreateBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
-  const nameEn = String(body.nameEn ?? "").trim();
-  const nameAr = String(body.nameAr ?? "").trim();
-  const price = Number(body.price);
-  if (!nameEn && !nameAr) return NextResponse.json({ error: "name_required" }, { status: 400 });
-  if (!Number.isFinite(price) || price < 0) return NextResponse.json({ error: "bad_price" }, { status: 400 });
+  const nameEn = body.nameEn ?? "";
+  const nameAr = body.nameAr ?? "";
+  const price = body.price;
 
   // Optional net cost (materials/lab), for clinic-profit precision. null/blank = unset.
   let cost: number | null = null;
-  if (body.cost != null && body.cost !== ("" as unknown)) {
+  if (body.cost != null && body.cost !== "") {
     const c = Number(body.cost);
     if (Number.isFinite(c) && c >= 0) cost = c;
   }
@@ -50,5 +66,5 @@ export async function POST(req: Request) {
       sortOrder: (max._max.sortOrder ?? 0) + 1,
     },
   });
-  return NextResponse.json({ procedure });
+  return NextResponse.json({ procedure: serializeProcedure(procedure) });
 }

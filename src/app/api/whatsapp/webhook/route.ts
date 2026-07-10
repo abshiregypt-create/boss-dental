@@ -42,9 +42,25 @@ type WaMessage = { from?: string; type?: string; text?: { body?: string } };
 export async function POST(req: Request) {
   const raw = await req.text();
 
-  // Verify the payload signature when an app secret is configured.
+  // Signature verification. Against Meta's Cloud API the signature is mandatory:
+  // fail closed if the app secret is missing so unsigned payloads can never be
+  // injected into the booking agent. Other providers (mock/waweb) keep the
+  // previous behaviour but still verify when a secret is configured.
+  const provider = process.env.WHATSAPP_PROVIDER || "mock";
   const appSecret = process.env.WHATSAPP_APP_SECRET;
-  if (appSecret) {
+  if (provider === "metaCloud") {
+    if (!appSecret) {
+      console.error(
+        "[wa-webhook] WHATSAPP_APP_SECRET is not set while WHATSAPP_PROVIDER=metaCloud. " +
+          "Rejecting all webhook requests to prevent unsigned payload injection.",
+      );
+      return new NextResponse("service unavailable", { status: 503 });
+    }
+    const sig = req.headers.get("x-hub-signature-256");
+    if (!signatureOk(appSecret, raw, sig)) {
+      return new NextResponse("bad signature", { status: 401 });
+    }
+  } else if (appSecret) {
     const sig = req.headers.get("x-hub-signature-256");
     if (!signatureOk(appSecret, raw, sig)) {
       return new NextResponse("bad signature", { status: 401 });

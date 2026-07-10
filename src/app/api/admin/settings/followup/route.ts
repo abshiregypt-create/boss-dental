@@ -1,25 +1,34 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/server/guard";
 import { getFollowupConfig, setFollowupConfig } from "@/lib/server/followups";
+import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 /** Admin: read or update the post-session follow-up settings (on/off + delay). */
-export async function GET() {
+export const GET = withRoute("admin.settings.followup.GET", adminSettingsFollowupGET);
+
+async function adminSettingsFollowupGET() {
   const { error } = await requireSession();
   if (error) return error;
   const config = await getFollowupConfig();
   return NextResponse.json({ config });
 }
 
-export async function PUT(req: Request) {
+const FollowupBody = z.object({
+  enabled: z.boolean().optional().catch(undefined),
+  delaySeconds: z.union([z.string(), z.number()]).nullish(),
+  delayMinutes: z.union([z.string(), z.number()]).nullish(),
+});
+
+export const PUT = withRoute("admin.settings.followup.PUT", adminSettingsFollowupPUT);
+
+async function adminSettingsFollowupPUT(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  let body: { enabled?: boolean; delaySeconds?: number; delayMinutes?: number };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, FollowupBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   // Accept delaySeconds (preferred) or legacy delayMinutes.
   let delaySeconds = Number(body.delaySeconds);

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
+import { num } from "@/lib/server/money";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin analytics: the clinic's key numbers, computed live from appointments,
@@ -25,7 +27,9 @@ function sinceFor(range: Range): Date | null {
 
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
-export async function GET(req: Request) {
+export const GET = withRoute("admin.analytics.GET", adminAnalyticsGET);
+
+async function adminAnalyticsGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -46,10 +50,10 @@ export async function GET(req: Request) {
   const inRange = (d: Date) => (since ? d >= since : true);
 
   // ---- KPIs ----
-  const collected = payments.filter((p) => inRange(p.paidAt)).reduce((s, p) => s + (p.amount || 0), 0);
-  const billedInRange = treatments.filter((t) => inRange(t.performedAt)).reduce((s, t) => s + (t.price || 0), 0);
-  const billedAll = treatments.reduce((s, t) => s + (t.price || 0), 0);
-  const paidAll = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const collected = payments.filter((p) => inRange(p.paidAt)).reduce((s, p) => s + num(p.amount), 0);
+  const billedInRange = treatments.filter((t) => inRange(t.performedAt)).reduce((s, t) => s + num(t.price), 0);
+  const billedAll = treatments.reduce((s, t) => s + num(t.price), 0);
+  const paidAll = payments.reduce((s, p) => s + num(p.amount), 0);
   const outstanding = Math.max(0, billedAll - paidAll);
   const newPatients = patients.filter((p) => inRange(p.createdAt)).length;
 
@@ -77,7 +81,7 @@ export async function GET(req: Request) {
     const key = name.toLowerCase();
     const e = procMap.get(key) ?? { name, count: 0, revenue: 0 };
     e.count += 1;
-    e.revenue += t.price || 0;
+    e.revenue += num(t.price);
     procMap.set(key, e);
   }
   const topProcedures = [...procMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 6);
@@ -93,7 +97,7 @@ export async function GET(req: Request) {
   }
   for (const p of payments) {
     const i = idx.get(monthKey(p.paidAt));
-    if (i != null) months[i].revenue += p.amount || 0;
+    if (i != null) months[i].revenue += num(p.amount);
   }
   for (const a of appts) {
     const i = idx.get(monthKey(a.scheduledAt));
@@ -104,7 +108,7 @@ export async function GET(req: Request) {
   const methodMap = new Map<string, number>();
   for (const p of payments) {
     if (!inRange(p.paidAt)) continue;
-    methodMap.set(p.method, (methodMap.get(p.method) ?? 0) + (p.amount || 0));
+    methodMap.set(p.method, (methodMap.get(p.method) ?? 0) + num(p.amount));
   }
   const methodMix = [...methodMap.entries()]
     .map(([method, amount]) => ({ method, amount }))
@@ -144,7 +148,7 @@ export async function GET(req: Request) {
     const de =
       docEarn.get(l.doctorId) ??
       { doctorId: l.doctorId, nameEn: l.doctor?.nameEn ?? "", nameAr: l.doctor?.nameAr ?? "", amount: 0, count: 0 };
-    de.amount += l.amount || 0;
+    de.amount += num(l.amount);
     de.count += 1;
     docEarn.set(l.doctorId, de);
 

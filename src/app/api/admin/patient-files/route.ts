@@ -2,21 +2,29 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
-import { ALLOWED_MIME, MAX_FILE_BYTES, safeName, writeFileBuffer } from "@/lib/server/storage";
+import { withRoute } from "@/lib/server/http";
+import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
+import { ALLOWED_MIME, MAX_FILE_BYTES, mimeMatchesContent, safeName, writeFileBuffer } from "@/lib/server/storage";
 
 const CATEGORIES = new Set(["xray", "photo", "document", "medical"]);
 
 /** List files for a patient: GET /api/admin/patient-files?patientKey=pt-xxx */
-export async function GET(req: Request) {
+export const GET = withRoute("patient-files.GET", patientFilesGet);
+
+async function patientFilesGet(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
   const patientKey = new URL(req.url).searchParams.get("patientKey");
   if (!patientKey) return NextResponse.json({ error: "missing_patientKey" }, { status: 400 });
 
+  const pg = getPagination(req, { defaultLimit: 100, maxLimit: 500 });
+  const where = { patientKey };
   const files = await prisma.patientFile.findMany({
-    where: { patientKey },
+    where,
     orderBy: { createdAt: "desc" },
+    take: pg.take,
+    skip: pg.skip,
     select: {
       id: true,
       category: true,
@@ -27,11 +35,14 @@ export async function GET(req: Request) {
       createdAt: true,
     },
   });
-  return NextResponse.json({ files });
+  const total = pg.applied ? await prisma.patientFile.count({ where }) : files.length;
+  return jsonWithPagination({ files }, total, pg);
 }
 
 /** Upload a file (multipart form-data): fields file, patientKey, category?, title?, patientName? */
-export async function POST(req: Request) {
+export const POST = withRoute("patient-files.POST", patientFilesPost);
+
+async function patientFilesPost(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -56,7 +67,17 @@ export async function POST(req: Request) {
   if (!ALLOWED_MIME.has(file.type)) return NextResponse.json({ error: "bad_type", type: file.type }, { status: 415 });
 
   const buf = Buffer.from(await file.arrayBuffer());
-  const stored = `${randomUUID()}__${safeName(file.name)}`;
+
+  // Content-based validation: the magic bytes must match the declared type,
+  // and the sanitized name must not contain traversal components.
+  if (!mimeMatchesContent(file.type, buf)) {
+    return NextResponse.json({ error: "content_mismatch", type: file.type }, { status: 415 });
+  }
+  const safe = safeName(file.name);
+  if (safe.includes("..") || safe.startsWith(".")) {
+    return NextResponse.json({ error: "invalid_filename" }, { status: 400 });
+  }
+  const stored = `${randomUUID()}__${safe}`;
   await writeFileBuffer(stored, buf);
 
   const rec = await prisma.patientFile.create({

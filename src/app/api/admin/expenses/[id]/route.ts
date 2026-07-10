@@ -1,8 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 import { normalizeExpenseKind } from "@/lib/server/expenses";
+import { softDeleteEntity } from "@/lib/server/soft-delete-ops";
 import { isValidMonthKey } from "@/lib/server/doctors";
+import { num } from "@/lib/server/money";
+import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
+
+const ExpenseUpdateBody = z.object({
+  labelEn: z.string().nullish(),
+  labelAr: z.string().nullish(),
+  kind: z.string().nullish(),
+  amount: z.union([z.string(), z.number()]).nullish(),
+  active: z.boolean().nullish(),
+  monthKey: z.string().nullish(),
+  monthAmount: z.union([z.string(), z.number()]).nullish(),
+});
 
 /**
  * PATCH /api/admin/expenses/[id]
@@ -11,25 +26,16 @@ import { isValidMonthKey } from "@/lib/server/doctors";
  *   - monthKey + numeric monthAmount → upsert that month's override.
  *   - monthKey + null monthAmount    → clear that month's override (revert to recurring).
  */
-export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+export const PATCH = withRoute("admin.expenses.id.PATCH", adminExpensesIdPATCH);
+
+async function adminExpensesIdPATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
 
-  let body: {
-    labelEn?: string;
-    labelAr?: string;
-    kind?: string;
-    amount?: number;
-    active?: boolean;
-    monthKey?: string;
-    monthAmount?: number | null;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, ExpenseUpdateBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const data: Record<string, unknown> = {};
   if (typeof body.labelEn === "string" && body.labelEn.trim()) data.labelEn = body.labelEn.trim();
@@ -59,13 +65,35 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 
   const expense = await prisma.clinicExpense.findUnique({ where: { id } });
-  return NextResponse.json({ expense });
+  await writeAudit({
+    action: "expense.update",
+    actor: session,
+    entityType: "ClinicExpense",
+    entityId: id,
+    summary: `Updated expense ${id}`,
+    metadata: { fields: Object.keys(data), monthKey: body.monthKey ?? null },
+    ip: auditIp(req),
+  });
+  return NextResponse.json({ expense: expense ? { ...expense, amount: num(expense.amount) } : null });
 }
 
-export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+export const DELETE = withRoute("admin.expenses.id.DELETE", adminExpensesIdDELETE);
+
+async function adminExpensesIdDELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
-  await prisma.clinicExpense.delete({ where: { id } });
+  // Soft-delete: the recurring expense is hidden from every month's roll-up while
+  // its month overrides stay intact for a lossless restore (they are only read
+  // through the now-hidden parent, so they never affect totals meanwhile).
+  await softDeleteEntity("ClinicExpense", id, session?.sub ?? null);
+  await writeAudit({
+    action: "expense.delete",
+    actor: session,
+    entityType: "ClinicExpense",
+    entityId: id,
+    summary: `Deleted expense ${id}`,
+    ip: auditIp(req),
+  });
   return NextResponse.json({ ok: true });
 }

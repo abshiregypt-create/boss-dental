@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { nameByPhone, phoneTail } from "@/lib/server/patient-names";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin: the post-session follow-up (متابعة) replies that still need attention.
@@ -12,7 +13,9 @@ import { nameByPhone, phoneTail } from "@/lib/server/patient-names";
  * those unread replies grouped by client so the dashboard can show one prominent
  * alert per patient. Opening the client's chat clears the alert.
  */
-export async function GET() {
+export const GET = withRoute("admin.followup-replies.GET", adminFollowuprepliesGET);
+
+async function adminFollowuprepliesGET() {
   const { error } = await requireSession();
   if (error) return error;
 

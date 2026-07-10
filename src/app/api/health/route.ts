@@ -1,30 +1,44 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { buildHealthPayload } from "@/lib/server/health";
 
 /**
- * Lightweight health probe for monitoring / uptime checks.
- * Returns 200 when the DB is reachable, 503 otherwise.
+ * Readiness probe (GET): returns 200 with build/version metadata when the DB is
+ * reachable, 503 otherwise. Backward compatible — all previously returned fields
+ * (status, db, uptimeSec, latencyMs, time) are preserved; version/commit/env are
+ * additive.
  */
 export async function GET() {
   const startedAt = Date.now();
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({
-      status: "ok",
-      db: "up",
-      uptimeSec: Math.round(process.uptime()),
-      latencyMs: Date.now() - startedAt,
-      time: new Date().toISOString(),
-    });
+    return NextResponse.json(
+      buildHealthPayload({
+        db: "up",
+        latencyMs: Date.now() - startedAt,
+        uptimeSec: Math.round(process.uptime()),
+        time: new Date().toISOString(),
+      }),
+    );
   } catch (e) {
     return NextResponse.json(
-      {
-        status: "error",
+      buildHealthPayload({
         db: "down",
-        error: e instanceof Error ? e.message : "unknown",
+        latencyMs: Date.now() - startedAt,
+        uptimeSec: Math.round(process.uptime()),
         time: new Date().toISOString(),
-      },
-      { status: 503 }
+        error: e instanceof Error ? e.message : "unknown",
+      }),
+      { status: 503 },
     );
   }
 }
+
+/**
+ * Liveness probe (HEAD): confirms the process is up and serving without touching
+ * the database. Cheap enough for aggressive orchestrator polling.
+ */
+export async function HEAD() {
+  return new NextResponse(null, { status: 200 });
+}
+

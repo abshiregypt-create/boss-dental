@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type APIRequestContext } from "@playwright/test";
 
 /**
  * Exercises the REAL WhatsApp booking agent through the local simulator
@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
  */
 const phone = "+201000000777";
 
-async function say(request, text) {
+async function say(request: APIRequestContext, text: string) {
   const res = await request.post("/api/whatsapp/simulate", { data: { phone, text } });
   expect(res.ok()).toBeTruthy();
   return res.json();
@@ -50,7 +50,7 @@ test("full WhatsApp booking conversation (day → slot → reason)", async ({ re
 
 test("cancel resets the flow", async ({ request }) => {
   const p2 = "+201000000888";
-  const say2 = async (text) =>
+  const say2 = async (text: string) =>
     (await request.post("/api/whatsapp/simulate", { data: { phone: p2, text } })).json();
 
   await say2("حجز"); // → day menu

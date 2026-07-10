@@ -16,12 +16,23 @@
 # The start command + healthcheck live in railway.json.
 
 [variables]
+# Clinic timezone. Appointment slot/day math reads the process TZ; pin it so a
+# UTC host doesn't drift from the Cairo-formatted times shown to patients.
+# (instrumentation.ts also defaults this at runtime if unset.)
+TZ = "Africa/Cairo"
 PUPPETEER_SKIP_DOWNLOAD = "true"
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
 NEXT_TELEMETRY_DISABLED = "1"
 
 [phases.install]
-cmds = ["npm ci --include=dev"]
+# The committed package-lock.json is missing a few optional transitive entries
+# (cross-platform native/optional deps), so `npm ci` fails on Linux with EUSAGE
+# ("lock file not in sync"). `npm install` reconciles the lock in-place and still
+# installs the optional native build deps that `next build` needs (lightningcss,
+# @next/swc, @tailwindcss/oxide). --include=dev because Railway builds with
+# NODE_ENV=production (npm would otherwise omit tailwind + typescript).
+# TODO: regenerate a Linux-complete lockfile in CI and switch back to `npm ci`.
+cmds = ["npm install --include=dev --no-audit --no-fund"]
 
 [phases.build]
 dependsOn = ["install"]

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { expensesForMonth } from "@/lib/server/expenses";
 import { isValidMonthKey, monthBounds, monthKeyOf, round2 } from "@/lib/server/doctors";
+import { num } from "@/lib/server/money";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * GET /api/admin/revenue?month=YYYY-MM
@@ -12,7 +14,9 @@ import { isValidMonthKey, monthBounds, monthKeyOf, round2 } from "@/lib/server/d
  *   - per-operation-type counts, revenue, materials, commissions and clinic net.
  * Net = gross − doctor commissions − materials cost − monthly expenses.
  */
-export async function GET(req: Request) {
+export const GET = withRoute("admin.revenue.GET", adminRevenueGET);
+
+async function adminRevenueGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -23,7 +27,7 @@ export async function GET(req: Request) {
   const [treatments, payments, exp] = await Promise.all([
     prisma.treatmentRecord.findMany({
       where: { performedAt: { gte: start, lt: end } },
-      include: { doctors: { include: { doctor: { select: { nameEn: true, nameAr: true } } } } },
+      include: { doctors: { where: { deletedAt: null }, include: { doctor: { select: { nameEn: true, nameAr: true } } } } },
     }),
     prisma.payment.findMany({ where: { paidAt: { gte: start, lt: end } }, select: { amount: true } }),
     expensesForMonth(month),
@@ -40,9 +44,9 @@ export async function GET(req: Request) {
   >();
 
   for (const t of treatments) {
-    const price = t.price || 0;
-    const cost = t.cost || 0;
-    const commission = t.doctors.reduce((s, d) => s + (d.amount || 0), 0);
+    const price = num(t.price);
+    const cost = num(t.cost);
+    const commission = t.doctors.reduce((s, d) => s + num(d.amount), 0);
     gross += price;
     materialsCost += cost;
     doctorsCommission += commission;
@@ -61,13 +65,13 @@ export async function GET(req: Request) {
       const cur =
         byDoctor.get(d.doctorId) ??
         { doctorId: d.doctorId, nameEn: d.doctor?.nameEn ?? "", nameAr: d.doctor?.nameAr ?? "", amount: 0, count: 0 };
-      cur.amount += d.amount || 0;
+      cur.amount += num(d.amount);
       cur.count += 1;
       byDoctor.set(d.doctorId, cur);
     }
   }
 
-  const collected = payments.reduce((s, x) => s + (x.amount || 0), 0);
+  const collected = payments.reduce((s, x) => s + num(x.amount), 0);
   const net = gross - doctorsCommission - materialsCost - exp.total;
 
   const doctors = [...byDoctor.values()]

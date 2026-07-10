@@ -10,11 +10,40 @@ export type SessionPayload = {
   email: string;
   name: string;
   role: string;
+  ver?: number; // tokenVersion at issue time; compared against User.tokenVersion to revoke
 };
+
+// Reject known-weak/placeholder secrets so a copied .env.example can never sign
+// forgeable tokens in a real deployment.
+const KNOWN_WEAK = new Set([
+  "change-me",
+  "changeme",
+  "secret",
+  "password",
+  "test",
+  "your-secret",
+  "mysecret",
+  "jwt-secret",
+  "auth-secret",
+  "12345678901234567890123456789012",
+]);
 
 function secretKey(): Uint8Array {
   const s = process.env.AUTH_SECRET;
-  if (!s) throw new Error("AUTH_SECRET is not set");
+  if (!s || s.length === 0) {
+    throw new Error(
+      "[AUTH_SECRET] Not set. Generate one with: " +
+        "node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\"",
+    );
+  }
+  if (s.length < 32) {
+    throw new Error(`[AUTH_SECRET] Too short (${s.length} chars). Must be >= 32 characters.`);
+  }
+  if (KNOWN_WEAK.has(s.toLowerCase())) {
+    throw new Error(
+      "[AUTH_SECRET] Set to a known placeholder value. Replace it with a random secret.",
+    );
+  }
   return new TextEncoder().encode(s);
 }
 

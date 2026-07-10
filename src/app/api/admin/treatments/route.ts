@@ -5,6 +5,9 @@ import { normalizePhone } from "@/lib/server/phone";
 import { ensurePatient } from "@/lib/server/appointments";
 import { computeTotals, normalizeMethod } from "@/lib/server/operations";
 import { clampPct, computeShares, type DoctorAssignmentInput } from "@/lib/server/doctors";
+import { num, numOrNull } from "@/lib/server/money";
+import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
@@ -13,7 +16,9 @@ const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
  * Returns the patient's operations, payments and money totals (billed/paid/balance).
  * Keyed by phone so it works for any patient (WhatsApp, website or manual).
  */
-export async function GET(req: Request) {
+export const GET = withRoute("admin.treatments.GET", adminTreatmentsGET);
+
+async function adminTreatmentsGET(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -38,6 +43,7 @@ export async function GET(req: Request) {
       orderBy: { performedAt: "desc" },
       include: {
         doctors: {
+          where: { deletedAt: null },
           include: { doctor: { select: { nameEn: true, nameAr: true } } },
         },
       },
@@ -52,7 +58,7 @@ export async function GET(req: Request) {
   const paidByTreatment = new Map<string, number>();
   for (const p of payments) {
     if (p.treatmentRecordId) {
-      paidByTreatment.set(p.treatmentRecordId, (paidByTreatment.get(p.treatmentRecordId) ?? 0) + p.amount);
+      paidByTreatment.set(p.treatmentRecordId, (paidByTreatment.get(p.treatmentRecordId) ?? 0) + num(p.amount));
     }
   }
 
@@ -62,10 +68,10 @@ export async function GET(req: Request) {
       procedureId: t.procedureId,
       nameEn: t.nameEn,
       nameAr: t.nameAr,
-      basePrice: t.basePrice,
-      discountPct: t.discountPct,
-      price: t.price,
-      cost: t.cost,
+      basePrice: numOrNull(t.basePrice),
+      discountPct: num(t.discountPct),
+      price: num(t.price),
+      cost: numOrNull(t.cost),
       paid: paidByTreatment.get(t.id) ?? 0,
       notes: t.notes,
       performedAt: t.performedAt.toISOString(),
@@ -73,13 +79,13 @@ export async function GET(req: Request) {
         doctorId: d.doctorId,
         nameEn: d.doctor?.nameEn ?? "",
         nameAr: d.doctor?.nameAr ?? "",
-        commissionPct: d.commissionPct,
-        amount: d.amount,
+        commissionPct: num(d.commissionPct),
+        amount: num(d.amount),
       })),
     })),
     payments: payments.map((p) => ({
       id: p.id,
-      amount: p.amount,
+      amount: num(p.amount),
       method: p.method,
       note: p.note,
       treatmentRecordId: p.treatmentRecordId,
@@ -89,6 +95,27 @@ export async function GET(req: Request) {
   });
 }
 
+const zLoose = z.union([z.string(), z.number()]).nullish();
+
+const TreatmentBody = z.object({
+  phone: zLoose,
+  name: zLoose,
+  procedureId: zLoose,
+  nameEn: zLoose,
+  nameAr: zLoose,
+  price: zLoose,
+  discountPct: zLoose,
+  cost: zLoose,
+  doctors: z
+    .array(z.object({ doctorId: zLoose, commissionPct: zLoose }).passthrough())
+    .optional()
+    .catch(undefined),
+  notes: zLoose,
+  paidNow: zLoose,
+  method: zLoose,
+  performedAt: zLoose,
+});
+
 /**
  * POST /api/admin/treatments
  * Records an operation for a patient (creating the patient by phone if needed),
@@ -96,30 +123,15 @@ export async function GET(req: Request) {
  * Body: { phone, name?, procedureId?, nameEn, nameAr, price(=list price),
  *         discountPct?, notes?, paidNow?, method?, performedAt? }
  */
-export async function POST(req: Request) {
+export const POST = withRoute("admin.treatments.POST", adminTreatmentsPOST);
+
+async function adminTreatmentsPOST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  let body: {
-    phone?: string;
-    name?: string;
-    procedureId?: string | null;
-    nameEn?: string;
-    nameAr?: string;
-    price?: number;
-    discountPct?: number;
-    cost?: number | null;
-    doctors?: { doctorId?: string; commissionPct?: number }[];
-    notes?: string;
-    paidNow?: number;
-    method?: string;
-    performedAt?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, TreatmentBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const phoneRaw = String(body.phone ?? "").trim();
   if (!phoneRaw) return NextResponse.json({ error: "phone_required" }, { status: 400 });
@@ -142,7 +154,7 @@ export async function POST(req: Request) {
     if (proc) {
       nameEn = nameEn || proc.nameEn;
       nameAr = nameAr || proc.nameAr;
-      procCost = proc.cost ?? null;
+      procCost = numOrNull(proc.cost);
     } else {
       procedureId = null; // stale id → treat as custom
     }
@@ -152,8 +164,8 @@ export async function POST(req: Request) {
   // Net cost (materials/lab) snapshot: explicit value wins, else fall back to the
   // catalog cost. null/blank clears it. Used for clinic-profit precision only.
   let cost: number | null = procCost;
-  if ("cost" in body) {
-    if (body.cost == null || body.cost === ("" as unknown)) cost = null;
+  if (body.cost !== undefined) {
+    if (body.cost == null || body.cost === "") cost = null;
     else if (Number.isFinite(Number(body.cost)) && Number(body.cost) >= 0) cost = Number(body.cost);
   }
 
@@ -176,7 +188,7 @@ export async function POST(req: Request) {
       for (const [id, a] of byId) {
         const doc = known.get(id);
         if (!doc) continue; // silently drop unknown ids
-        const pct = Number.isFinite(a.commissionPct) && a.commissionPct > 0 ? clampPct(a.commissionPct) : doc.commissionPct;
+        const pct = Number.isFinite(a.commissionPct) && a.commissionPct > 0 ? clampPct(a.commissionPct) : num(doc.commissionPct);
         assignments.push({ doctorId: id, commissionPct: pct });
       }
       const computed = computeShares(netPrice, assignments);
@@ -190,38 +202,45 @@ export async function POST(req: Request) {
   if (!patientId) return NextResponse.json({ error: "patient_failed" }, { status: 400 });
 
   const performedAt = body.performedAt ? new Date(body.performedAt) : new Date();
-
-  const treatment = await prisma.treatmentRecord.create({
-    data: {
-      patientId,
-      procedureId,
-      nameEn: nameEn || nameAr,
-      nameAr: nameAr || nameEn,
-      basePrice,
-      discountPct,
-      price: netPrice,
-      cost,
-      notes: body.notes ? String(body.notes).trim() : null,
-      performedAt: isNaN(performedAt.getTime()) ? new Date() : performedAt,
-      doctors: shares.length
-        ? { create: shares.map((s) => ({ doctorId: s.doctorId, commissionPct: s.commissionPct, amount: s.amount })) }
-        : undefined,
-    },
-  });
-
-  // Optional initial payment (full or partial), capped at the net price.
   const paidNow = Number(body.paidNow);
-  if (Number.isFinite(paidNow) && paidNow > 0) {
-    await prisma.payment.create({
+  const hasPayment = Number.isFinite(paidNow) && paidNow > 0;
+
+  // Create the treatment (with its doctor splits) and the optional initial payment
+  // atomically: a crash between the two writes must never leave a billed operation
+  // with a silently dropped payment (or vice-versa).
+  const treatment = await prisma.$transaction(async (tx) => {
+    const created = await tx.treatmentRecord.create({
       data: {
         patientId,
-        treatmentRecordId: treatment.id,
-        amount: Math.min(paidNow, netPrice),
-        method: normalizeMethod(body.method),
-        paidAt: new Date(),
+        procedureId,
+        nameEn: nameEn || nameAr,
+        nameAr: nameAr || nameEn,
+        basePrice,
+        discountPct,
+        price: netPrice,
+        cost,
+        notes: body.notes ? String(body.notes).trim() : null,
+        performedAt: isNaN(performedAt.getTime()) ? new Date() : performedAt,
+        doctors: shares.length
+          ? { create: shares.map((s) => ({ doctorId: s.doctorId, commissionPct: s.commissionPct, amount: s.amount })) }
+          : undefined,
       },
     });
-  }
+
+    if (hasPayment) {
+      await tx.payment.create({
+        data: {
+          patientId,
+          treatmentRecordId: created.id,
+          amount: Math.min(paidNow, netPrice),
+          method: normalizeMethod(body.method),
+          paidAt: new Date(),
+        },
+      });
+    }
+
+    return created;
+  });
 
   return NextResponse.json({ ok: true, id: treatment.id });
 }

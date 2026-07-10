@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireSession } from "@/lib/server/guard";
+import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
+import { writeAudit, auditIp } from "@/lib/server/audit";
 import { round2 } from "@/lib/server/doctors";
+import { num } from "@/lib/server/money";
+import { parseJson, z } from "@/lib/server/validate";
+import { withRoute } from "@/lib/server/http";
 
 /** GET /api/admin/doctors/[id]/payouts — payouts made to a doctor + running totals. */
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const GET = withRoute("admin.doctors.id.payouts.GET", adminDoctorsIdPayoutsGET);
+
+async function adminDoctorsIdPayoutsGET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error } = await requireSession();
   if (error) return error;
   const { id } = await ctx.params;
@@ -17,13 +23,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     prisma.treatmentDoctor.aggregate({ where: { doctorId: id }, _sum: { amount: true } }),
   ]);
 
-  const totalPaid = round2(payouts.reduce((s, p) => s + (p.amount || 0), 0));
-  const totalEarned = round2(earnedAgg._sum.amount || 0);
+  const totalPaid = round2(payouts.reduce((s, p) => s + num(p.amount), 0));
+  const totalEarned = round2(num(earnedAgg._sum.amount));
 
   return NextResponse.json({
     payouts: payouts.map((p) => ({
       id: p.id,
-      amount: p.amount,
+      amount: num(p.amount),
       method: p.method,
       reference: p.reference,
       note: p.note,
@@ -33,21 +39,28 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   });
 }
 
+const PayoutBody = z.object({
+  amount: z.union([z.string(), z.number()]).nullish(),
+  method: z.union([z.string(), z.number()]).nullish(),
+  reference: z.union([z.string(), z.number()]).nullish(),
+  note: z.union([z.string(), z.number()]).nullish(),
+  paidAt: z.union([z.string(), z.number()]).nullish(),
+});
+
 /** POST /api/admin/doctors/[id]/payouts — record a payment made to the doctor. */
-export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireSession();
+export const POST = withRoute("admin.doctors.id.payouts.POST", adminDoctorsIdPayoutsPOST);
+
+async function adminDoctorsIdPayoutsPOST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { error, session } = await requireRole(OWNER_ROLES);
   if (error) return error;
   const { id } = await ctx.params;
 
   const doctor = await prisma.doctor.findUnique({ where: { id }, select: { id: true } });
   if (!doctor) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  let body: { amount?: number; method?: string; reference?: string; note?: string; paidAt?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, PayoutBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
   const amount = round2(Number(body.amount));
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -74,5 +87,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     },
   });
 
-  return NextResponse.json({ ok: true, payout: { ...payout, paidAt: payout.paidAt.toISOString() } });
+  await writeAudit({
+    action: "payout.create",
+    actor: session,
+    entityType: "DoctorPayout",
+    entityId: payout.id,
+    summary: `Recorded payout of ${amount} to doctor ${id} via ${method}`,
+    metadata: { doctorId: id, amount, method },
+    ip: auditIp(req),
+  });
+
+  return NextResponse.json({ ok: true, payout: { ...payout, amount: num(payout.amount), paidAt: payout.paidAt.toISOString() } });
 }

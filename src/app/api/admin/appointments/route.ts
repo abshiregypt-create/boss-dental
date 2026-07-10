@@ -4,34 +4,54 @@ import { requireSession } from "@/lib/server/guard";
 import { stageOf, minutesUntil, ensurePatient } from "@/lib/server/appointments";
 import { normalizePhone } from "@/lib/server/phone";
 import { generateCode } from "@/lib/server/code";
+import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
+import { withRoute } from "@/lib/server/http";
+import {
+  parseJson,
+  z,
+  zReqText,
+  zOptText,
+  zRequiredDateString,
+} from "@/lib/server/validate";
 
 /** Admin: list recent appointments with their WhatsApp message log + live stage. */
-export async function GET(req: Request) {
+export const GET = withRoute("appointments.GET", appointmentsGet);
+
+async function appointmentsGet(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
   const status = new URL(req.url).searchParams.get("status") || undefined;
   const now = new Date();
+  const pg = getPagination(req, { defaultLimit: 100, maxLimit: 500 });
+  const where = status ? { status } : undefined;
 
   const appts = await prisma.appointment.findMany({
-    where: status ? { status } : undefined,
+    where,
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: pg.applied ? pg.take : 100,
+    skip: pg.applied ? pg.skip : undefined,
     include: {
       messages: { orderBy: { createdAt: "asc" } },
       doctor: { select: { id: true, nameEn: true, nameAr: true } },
     },
   });
 
-  return NextResponse.json({
-    appointments: appts.map((a) => ({
-      ...a,
-      doctorNameEn: a.doctor?.nameEn ?? null,
-      doctorNameAr: a.doctor?.nameAr ?? null,
-      stage: stageOf(a, now),
-      minutesUntil: Math.round(minutesUntil(a, now)),
-    })),
-  });
+  const total = pg.applied ? await prisma.appointment.count({ where }) : appts.length;
+
+  return jsonWithPagination(
+    {
+      appointments: appts.map((a) => ({
+        ...a,
+        doctorNameEn: a.doctor?.nameEn ?? null,
+        doctorNameAr: a.doctor?.nameAr ?? null,
+        stage: stageOf(a, now),
+        minutesUntil: Math.round(minutesUntil(a, now)),
+      })),
+    },
+    total,
+    pg
+  );
 }
 
 /**
@@ -45,40 +65,39 @@ export async function GET(req: Request) {
  * Body: { name, phone, scheduledAt, durationMin?, serviceId?, serviceLabelEn?,
  *         serviceLabelAr?, complaint?, doctorId?, patientId?, createAccount? }
  */
-export async function POST(req: Request) {
+const AppointmentBody = z.object({
+  name: zReqText,
+  phone: zReqText,
+  scheduledAt: zRequiredDateString,
+  durationMin: z.union([z.string(), z.number()]).nullish(),
+  serviceId: zOptText,
+  serviceLabelEn: zOptText,
+  serviceLabelAr: zOptText,
+  complaint: zOptText,
+  doctorId: z.string().trim().nullish(),
+  patientId: z.string().trim().nullish(),
+  createAccount: z.boolean().optional().catch(undefined),
+  lang: z.string().optional().catch(undefined),
+});
+
+export const POST = withRoute("appointments.POST", appointmentsPost);
+
+async function appointmentsPost(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 
-  let body: {
-    name?: string;
-    phone?: string;
-    scheduledAt?: string;
-    durationMin?: number;
-    serviceId?: string;
-    serviceLabelEn?: string;
-    serviceLabelAr?: string;
-    complaint?: string;
-    doctorId?: string | null;
-    patientId?: string | null;
-    createAccount?: boolean;
-    lang?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const parsed = await parseJson(req, AppointmentBody);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
 
-  const name = String(body.name ?? "").trim();
-  const phoneRaw = String(body.phone ?? "").trim();
-  if (!name || !phoneRaw) return NextResponse.json({ error: "name_phone_required" }, { status: 400 });
+  const name = body.name;
+  const phoneRaw = body.phone;
 
-  const when = new Date(String(body.scheduledAt ?? ""));
-  if (Number.isNaN(when.getTime())) return NextResponse.json({ error: "bad_date" }, { status: 400 });
+  const when = new Date(body.scheduledAt);
 
-  const serviceId = String(body.serviceId ?? "checkup").trim() || "checkup";
-  const serviceLabelEn = String(body.serviceLabelEn ?? serviceId).trim() || serviceId;
-  const serviceLabelAr = String(body.serviceLabelAr ?? serviceLabelEn).trim() || serviceLabelEn;
+  const serviceId = (body.serviceId || "checkup").trim() || "checkup";
+  const serviceLabelEn = (body.serviceLabelEn || serviceId).trim() || serviceId;
+  const serviceLabelAr = (body.serviceLabelAr || serviceLabelEn).trim() || serviceLabelEn;
 
   // Validate the doctor if one was chosen.
   let doctorId: string | null = body.doctorId ? String(body.doctorId) : null;
@@ -112,6 +131,7 @@ export async function POST(req: Request) {
     code = generateCode();
   }
 
+  const durationNum = Number(body.durationMin);
   const appt = await prisma.appointment.create({
     data: {
       code,
@@ -121,8 +141,8 @@ export async function POST(req: Request) {
       serviceLabelEn,
       serviceLabelAr,
       scheduledAt: when,
-      durationMin: Number(body.durationMin) > 0 ? Math.round(Number(body.durationMin)) : 30,
-      complaint: body.complaint ? String(body.complaint).trim() : null,
+      durationMin: durationNum > 0 ? Math.round(durationNum) : 30,
+      complaint: body.complaint ? body.complaint : null,
       lang: body.lang === "ar" ? "ar" : "en",
       status: "confirmed",
       confirmedAt: new Date(),

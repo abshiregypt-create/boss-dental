@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { processInbound } from "@/lib/server/wa-runtime";
+import { requireSession } from "@/lib/server/guard";
 
 /**
  * Local simulator for the WhatsApp booking agent — lets you test the whole
@@ -8,16 +9,23 @@ import { processInbound } from "@/lib/server/wa-runtime";
  *   POST /api/whatsapp/simulate  { "phone": "+201000000000", "text": "حجز" }
  *   -> { replies: [ "...bot reply..." ], bookingCode?: "ABC123" }
  *
- * Guarded: only enabled when WHATSAPP_PROVIDER is "mock" (the default dev/local
- * setting). The moment you switch to the live "metaCloud" provider, this route
- * returns 404 so it can never be hit in production.
+ * Access rules (fail-closed for live providers):
+ *   - provider "mock" (default dev/local): open, for frictionless local testing.
+ *   - WA_SIMULATE_ENABLED=1: allowed but requires an authenticated session.
+ *   - otherwise (metaCloud / waweb / wa without the flag): 404, so it can never
+ *     be reached against a live WhatsApp line in production.
  */
 export async function POST(req: Request) {
-  // Disabled only for the official Meta provider (production). Allowed for the
-  // local/unofficial providers (mock, waweb, wa) so the flow stays testable.
   const provider = process.env.WHATSAPP_PROVIDER || "mock";
-  if (provider === "metaCloud") {
+  const explicitlyEnabled = process.env.WA_SIMULATE_ENABLED === "1";
+
+  if (provider !== "mock" && !explicitlyEnabled) {
     return new NextResponse("not found", { status: 404 });
+  }
+  // When enabled outside the mock provider, require an authenticated session.
+  if (provider !== "mock") {
+    const { error } = await requireSession();
+    if (error) return error;
   }
 
   let body: { phone?: string; text?: string };

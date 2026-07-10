@@ -77,15 +77,46 @@ robocopy private-uploads backups\uploads-YYYYMMDD /E
 ```
 
 ### PostgreSQL (production)
+
+**Automated tool (recommended):** `scripts/pg-backup.mjs` wraps `pg_dump` with
+timestamped filenames, retention and an optional integrity check. It reads
+`BACKUP_DATABASE_URL` (falling back to `DATABASE_URL`) and writes custom-format
+dumps to `BACKUP_DIR` (default `./backups/postgres`).
+
 ```bash
-pg_dump "$DATABASE_URL" > backups/bdic-YYYYMMDD-HHMM.sql      # backup
-psql "$DATABASE_URL" < backups/bdic-YYYYMMDD-HHMM.sql         # restore
+npm run db:pg-backup                 # one snapshot -> backups/postgres/cliniva-<ts>.dump
+npm run db:pg-backup -- --keep 30    # keep the 30 newest, prune older ones
+npm run db:pg-backup -- --verify     # also run `pg_restore --list` on the new dump
+```
+
+- The dump is `-Fc` (custom, compressed) and includes **soft-deleted rows** — the
+  Recycle Bin survives a restore. Each dump gets a `.manifest.json` sidecar.
+- Requires the PostgreSQL client tools (`pg_dump`/`pg_restore`) on `PATH`. The
+  script refuses to run against a SQLite URL (use the SQLite flow above instead).
+
+**Restore** a custom-format dump into a target database:
+```bash
+# Into a fresh/empty DB (recommended): create it, then restore.
+createdb cliniva_restore
+pg_restore --no-owner --no-privileges -d "$RESTORE_DATABASE_URL" backups/postgres/cliniva-<ts>.dump
+
+# Into an existing DB, replacing objects (DANGER — take a fresh backup first):
+pg_restore --clean --if-exists --no-owner --no-privileges -d "$DATABASE_URL" backups/postgres/cliniva-<ts>.dump
+```
+
+**Manual one-liners** (if you prefer plain SQL dumps):
+```bash
+pg_dump "$DATABASE_URL" > backups/cliniva-YYYYMMDD-HHMM.sql      # backup
+psql "$DATABASE_URL" < backups/cliniva-YYYYMMDD-HHMM.sql         # restore
 ```
 
 **Golden rules**
 - **Always back up immediately before** any `db:deploy` / migration / bulk edit.
-- Keep the last N daily backups off-machine.
-- Test a restore at least once before go-live.
+- **Schedule** daily backups with retention and copy them **off-machine**
+  (cron/Task Scheduler): `npm run db:pg-backup -- --keep 30 --verify`, then sync
+  `backups/postgres/` to object storage (e.g. a free-tier S3/R2 bucket) or another host.
+- **Test a restore** into a staging DB at least once before go-live, and
+  periodically after (a backup you have never restored is not a backup).
 
 ---
 

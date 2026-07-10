@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { lastOutboundByKind } from "@/lib/server/wa-send";
+import { num } from "@/lib/server/money";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin receivables: patients who still owe money (billed − paid > 0), so the
@@ -11,7 +13,9 @@ import { lastOutboundByKind } from "@/lib/server/wa-send";
  */
 const tail = (p: string) => (p || "").replace(/\D/g, "").slice(-9);
 
-export async function GET() {
+export const GET = withRoute("admin.receivables.GET", adminReceivablesGET);
+
+async function adminReceivablesGET() {
   const { error } = await requireSession();
   if (error) return error;
 
@@ -26,12 +30,12 @@ export async function GET() {
   const billed = new Map<string, number>();
   const lastTreatment = new Map<string, Date>();
   for (const t of treatments) {
-    billed.set(t.patientId, (billed.get(t.patientId) ?? 0) + (t.price || 0));
+    billed.set(t.patientId, (billed.get(t.patientId) ?? 0) + num(t.price));
     const cur = lastTreatment.get(t.patientId);
     if (!cur || t.performedAt > cur) lastTreatment.set(t.patientId, t.performedAt);
   }
   const paid = new Map<string, number>();
-  for (const p of payments) paid.set(p.patientId, (paid.get(p.patientId) ?? 0) + (p.amount || 0));
+  for (const p of payments) paid.set(p.patientId, (paid.get(p.patientId) ?? 0) + num(p.amount));
 
   // Last appointment per phone tail (a second signal for "last visit").
   const lastApptByTail = new Map<string, Date>();

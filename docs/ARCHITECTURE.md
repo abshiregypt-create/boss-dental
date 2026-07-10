@@ -136,3 +136,59 @@ only metadata is in the database.
 | Secrets | `.env` (git-ignored) | server env / secrets manager |
 
 See **RUNBOOK.md** for deploy + backup procedures and **DATA-MODEL.md** for the schema.
+
+## 7. Observability & operational endpoints
+
+Cross-cutting operational concerns live in `src/lib/server/`:
+
+- **Config validation** — `env.ts` `checkEnv()` inspects the environment at boot;
+  `instrumentation.ts` logs every error/warning through the structured logger
+  before the scheduler starts. Typed accessors (`intEnv`, `boolEnv`, …) standardise
+  reads.
+- **Structured logging** — `logger.ts` emits JSON-Lines with credential redaction.
+  `http.ts` `withRoute()` wraps handlers to log one `api_request` line per request
+  (method, route, status, duration, `x-request-id`, best-effort user id) and to
+  convert uncaught errors into a safe 500.
+- **Metrics** — `metrics.ts` aggregates request counts by status class and per-route
+  latency quantiles in memory (bounded); surfaced at owner-only
+  `GET /api/admin/metrics`.
+- **Health** — `GET /api/health` is a DB-backed readiness probe with build metadata;
+  `HEAD /api/health` is a DB-free liveness probe for orchestrators.
+- **API contract** — every instrumented response carries `x-api-version`; see
+  **API-REFERENCE.md** for the versioning and pagination conventions.
+
+Excluded from `withRoute` by design: health probes, the Meta webhook/simulate, and
+high-frequency WhatsApp worker-polling routes (to avoid log/metric flooding).
+
+---
+
+## 8. Data safety: soft-delete, Recycle Bin, backups
+
+Deletes of sensitive records are recoverable rather than physical, and production
+databases are backed up on a schedule.
+
+- **Soft-delete columns** — nine sensitive models (Patient, TreatmentRecord,
+  TreatmentDoctor, Payment, Doctor, DoctorPayout, ClinicExpense, PatientFile,
+  Procedure) carry nullable `deletedAt`/`deletedBy`. A live row has `deletedAt = null`.
+- **Automatic hiding** — a Prisma client extension (`soft-delete.ts`, wired in
+  `db.ts`) injects `deletedAt: null` into top-level `findFirst/findMany/count/
+  aggregate/groupBy` for those models, so trashed rows vanish from normal reads and
+  every roll-up without touching call sites. Trash views opt out with
+  `deletedAt: { not: null }`. Nested includes on soft-deletable relations filter
+  explicitly. Pure helpers are unit-tested (the extension can't be exercised without
+  a live client, so end-to-end scoping is verified on CI Postgres).
+- **Cascade on delete** — DELETE routes stamp `deletedAt`/`deletedBy` in a
+  `$transaction` that soft-deletes exactly the children the DB `onDelete: Cascade`
+  would have removed, so financial totals stay identical. Every delete/restore/purge
+  writes an `AuditLog` entry. Write-side cascade + restore + purge logic lives in
+  `soft-delete-ops.ts`; the Trash read registry is `trash.ts`.
+- **Recycle Bin** — `GET/POST /api/admin/trash*` expose list/restore/purge (see
+  API-REFERENCE.md); `/dashboard/recycle-bin` is the operator UI (standalone route,
+  middleware-protected). Restore revives co-trashed children; purge is Super Admin
+  only and blocks records still referenced by history unless forced.
+- **Backups** — `npm run db:pg-backup` (`scripts/pg-backup.mjs`, pure core in
+  `scripts/lib/pg-backup-core.mjs`) runs `pg_dump -Fc`, writes a manifest, prunes to
+  a retention count, and redacts credentials. Soft-deleted rows are ordinary rows so
+  dumps include them. Scheduling, offsite copy, and a restore drill are documented in
+  RUNBOOK section 5. The SQLite `backup.mjs` remains for the desktop build.
+

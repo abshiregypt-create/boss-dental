@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/server/guard";
 import { isValidMonthKey, monthBounds, monthKeyOf, round2 } from "@/lib/server/doctors";
 import { settleStatus, monthKeysForYear } from "@/lib/server/earnings";
+import { num } from "@/lib/server/money";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * GET /api/admin/doctors/[id]/earnings?month=YYYY-MM&year=YYYY
@@ -16,7 +18,9 @@ import { settleStatus, monthKeysForYear } from "@/lib/server/earnings";
  * Preserves the legacy `totals` + `months` + `operations` shape (used by the
  * existing doctor profile view) and adds `summary`, `yearly`, `payouts`.
  */
-export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
+export const GET = withRoute("admin.doctors.id.earnings.GET", adminDoctorsIdEarningsGET);
+
+async function adminDoctorsIdEarningsGET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { error } = await requireSession();
   if (error) return error;
   const { id } = await ctx.params;
@@ -37,8 +41,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
           include: {
             patient: { select: { id: true, name: true, phone: true } },
             procedure: { select: { nameEn: true, nameAr: true } },
-            doctors: { select: { amount: true } },
-            payments: { select: { amount: true, paidAt: true } },
+            doctors: { where: { deletedAt: null }, select: { amount: true } },
+            payments: { where: { deletedAt: null }, select: { amount: true, paidAt: true } },
           },
         },
       },
@@ -88,14 +92,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     .map((l) => {
       const t = l.treatmentRecord;
       const performedAt = t.performedAt;
-      const price = t.price || 0;
-      const cost = t.cost || 0;
-      const opCommission = t.doctors.reduce((s, d) => s + (d.amount || 0), 0);
-      const paid = t.payments.reduce((s, p) => s + (p.amount || 0), 0);
+      const price = num(t.price);
+      const cost = num(t.cost);
+      const opCommission = t.doctors.reduce((s, d) => s + num(d.amount), 0);
+      const paid = t.payments.reduce((s, p) => s + num(p.amount), 0);
       const payStatus = settleStatus(paid, price);
       const lastPayment = t.payments.reduce<Date | null>((acc, p) => (!acc || p.paidAt > acc ? p.paidAt : acc), null);
 
-      allEarned += l.amount || 0;
+      allEarned += num(l.amount);
       allCount += 1;
       lifetimeRevenue += price;
       lifetimeMaterials += cost;
@@ -103,7 +107,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       const mk = monthKeyOf(performedAt);
       const mi = idx.get(mk);
       if (mi != null) {
-        months[mi].earned += l.amount || 0;
+        months[mi].earned += num(l.amount);
         months[mi].count += 1;
       }
       const yi = yIdx.get(mk);
@@ -111,15 +115,15 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         const row = yearly[yi];
         row.operations += 1;
         row.revenue += price;
-        row.doctorEarnings += l.amount || 0;
+        row.doctorEarnings += num(l.amount);
         row.materials += cost;
       }
-      if (mk === curMonth) curMonthEarned += l.amount || 0;
-      if (mk === prevMonth) prevMonthEarned += l.amount || 0;
+      if (mk === curMonth) curMonthEarned += num(l.amount);
+      if (mk === prevMonth) prevMonthEarned += num(l.amount);
 
       const inMonth = bounds ? performedAt >= bounds.start && performedAt < bounds.end : false;
       if (inMonth) {
-        monthEarned += l.amount || 0;
+        monthEarned += num(l.amount);
         monthCount += 1;
       }
       return {
@@ -135,8 +139,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         patientPhone: t.patient?.phone ?? null,
         price,
         cost,
-        commissionPct: l.commissionPct,
-        amount: l.amount,
+        commissionPct: num(l.commissionPct),
+        amount: num(l.amount),
         clinicEarnings: round2(price - opCommission - cost),
         paymentStatus: payStatus,
         paymentDate: payStatus === "paid" && lastPayment ? lastPayment.toISOString() : null,
@@ -151,7 +155,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // Fold payouts into the yearly "paid" column
   for (const p of payouts) {
     const yi = yIdx.get(monthKeyOf(p.paidAt));
-    if (yi != null) yearly[yi].paid += p.amount || 0;
+    if (yi != null) yearly[yi].paid += num(p.amount);
   }
   for (const row of yearly) {
     row.clinicEarnings = round2(row.revenue - row.doctorEarnings - row.materials);
@@ -162,7 +166,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     row.paid = round2(row.paid);
   }
 
-  const paidTotal = round2(payouts.reduce((s, p) => s + (p.amount || 0), 0));
+  const paidTotal = round2(payouts.reduce((s, p) => s + num(p.amount), 0));
   const earnedTotal = round2(allEarned);
   const pending = round2(Math.max(0, earnedTotal - paidTotal));
   const clinicProfitGenerated = round2(lifetimeRevenue - earnedTotal - lifetimeMaterials);
@@ -179,7 +183,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       photoUrl: doctor.photoUrl,
       phone: doctor.phone,
       email: doctor.email,
-      commissionPct: doctor.commissionPct,
+      commissionPct: num(doctor.commissionPct),
       active: doctor.active,
       notes: doctor.notes,
     },
@@ -206,7 +210,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     yearly,
     payouts: payouts.map((p) => ({
       id: p.id,
-      amount: p.amount,
+      amount: num(p.amount),
       method: p.method,
       reference: p.reference,
       note: p.note,

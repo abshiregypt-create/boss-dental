@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/server/guard";
 import { normalizePhone } from "@/lib/server/phone";
 import { sendProactive } from "@/lib/server/wa-send";
 import { site } from "@/lib/site";
+import { withRoute } from "@/lib/server/http";
 
 /**
  * Admin: send a proactive WhatsApp message to a patient — either a payment
@@ -50,7 +51,9 @@ function buildMessage(type: "payment" | "recall", name: string, balance: number,
     : `Hi ${nm} 🌟\nThis is ${clinic}. It's been a while since your last visit 🦷\nNow's a great time for a check-up. Want us to book you in? Reply "book" and we'll sort it out. 💙`;
 }
 
-export async function POST(req: Request) {
+export const POST = withRoute("admin.reminders.send.POST", adminRemindersSendPOST);
+
+async function adminRemindersSendPOST(req: Request) {
   const { error } = await requireSession();
   if (error) return error;
 

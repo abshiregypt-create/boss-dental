@@ -5,13 +5,19 @@ import { useLang } from "@/lib/language";
 
 type SwitchBranch = { id: string; nameEn: string; nameAr: string; code: string };
 
+/** Sentinel matching the server's ALL_BRANCHES cookie value (owner-only view). */
+const ALL_BRANCHES = "__all__";
+
 const selectCls =
   "rounded-lg border border-primary/15 bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary disabled:opacity-50";
 
 /**
- * Active-branch switcher (multi-branch Phase 2). Lets a staff member choose the
- * branch new records are stamped against; the choice is stored in the
- * `bdic_branch` cookie via /api/admin/active-branch.
+ * Active-branch switcher (multi-branch Phase 2 + 3). Lets a staff member choose
+ * the branch new records are stamped against AND which branch's data the scoped
+ * screens show; the choice is stored in the `bdic_branch` cookie via
+ * /api/admin/active-branch. Owners additionally get an "All branches" option that
+ * shows every branch's data at once. On a successful switch the page reloads so
+ * all branch-scoped views refresh with the new scope.
  *
  * Renders nothing when the clinic has fewer than two selectable branches, so a
  * single-branch clinic's screens look exactly as before.
@@ -20,6 +26,7 @@ export function BranchSwitcher({ compact = false }: { compact?: boolean }) {
   const { tr, lang } = useLang();
   const [branches, setBranches] = useState<SwitchBranch[]>([]);
   const [activeId, setActiveId] = useState<string>("");
+  const [canSelectAll, setCanSelectAll] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -30,7 +37,9 @@ export function BranchSwitcher({ compact = false }: { compact?: boolean }) {
       .then((j) => {
         if (!alive || !j) return;
         setBranches(Array.isArray(j.branches) ? j.branches : []);
-        setActiveId(typeof j.branchId === "string" ? j.branchId : "");
+        // `selection` reflects the owner all-branches view; fall back to branchId.
+        setActiveId(typeof j.selection === "string" ? j.selection : typeof j.branchId === "string" ? j.branchId : "");
+        setCanSelectAll(Boolean(j.canSelectAll));
       })
       .catch(() => {
         /* leave empty — switcher stays hidden */
@@ -45,6 +54,8 @@ export function BranchSwitcher({ compact = false }: { compact?: boolean }) {
   const label = (b: SwitchBranch) =>
     `${lang === "ar" ? b.nameAr || b.nameEn : b.nameEn || b.nameAr} (${b.code})`;
 
+  const allLabel = tr({ en: "All branches", ar: "كل الفروع" });
+
   const onChange = async (nextId: string) => {
     const prev = activeId;
     setActiveId(nextId);
@@ -57,21 +68,23 @@ export function BranchSwitcher({ compact = false }: { compact?: boolean }) {
         body: JSON.stringify({ branchId: nextId }),
       });
       if (res.ok) {
-        const chosen = branches.find((b) => b.id === nextId);
+        // Reload so every branch-scoped view (schedule, inventory, reports)
+        // re-fetches under the new scope. The confirmation toast below is a
+        // best-effort flash before the reload takes over.
         setNotice(
-          tr({
-            en: `Now working in ${chosen ? label(chosen) : "the selected branch"}. New records are saved to it.`,
-            ar: `أنت تعمل الآن في ${chosen ? label(chosen) : "الفرع المحدد"}. تُحفظ السجلات الجديدة فيه.`,
-          }),
+          nextId === ALL_BRANCHES
+            ? tr({ en: "Showing all branches…", ar: "عرض كل الفروع…" })
+            : tr({ en: "Switching branch…", ar: "جارٍ تبديل الفرع…" }),
         );
+        window.location.reload();
       } else {
         setActiveId(prev);
         setNotice(tr({ en: "Could not switch branch.", ar: "تعذر تبديل الفرع." }));
+        setSaving(false);
       }
     } catch {
       setActiveId(prev);
       setNotice(tr({ en: "Could not switch branch.", ar: "تعذر تبديل الفرع." }));
-    } finally {
       setSaving(false);
     }
   };
@@ -99,6 +112,7 @@ export function BranchSwitcher({ compact = false }: { compact?: boolean }) {
           disabled={saving}
           onChange={(e) => onChange(e.target.value)}
         >
+          {canSelectAll && <option value={ALL_BRANCHES}>{allLabel}</option>}
           {branches.map((b) => (
             <option key={b.id} value={b.id}>
               {label(b)}
@@ -130,6 +144,7 @@ export function BranchSwitcher({ compact = false }: { compact?: boolean }) {
           disabled={saving}
           onChange={(e) => onChange(e.target.value)}
         >
+          {canSelectAll && <option value={ALL_BRANCHES}>{allLabel}</option>}
           {branches.map((b) => (
             <option key={b.id} value={b.id}>
               {label(b)}

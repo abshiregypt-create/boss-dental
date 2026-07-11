@@ -11,6 +11,41 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 14 - Multi-Branch scoped reads + per-branch WhatsApp (Phase 3)
+
+Each branch now has its **own schedule, inventory and WhatsApp number**, while
+**patients and doctors stay shared** across the whole clinic. Backward compatible:
+a single-branch clinic (only `branch_main`) sees byte-identical data because the
+default-branch scope also includes every legacy/unstamped (`branchId = NULL`) row,
+and the branch switcher stays hidden until a 2nd branch exists.
+
+- **Branch read-scope layer** - `src/lib/server/branch-context.ts`:
+  `resolveBranchScope({ role })` turns the `bdic_branch` cookie + caller role into
+  a `BranchScope` (`{ mode:"all" }` for an owner viewing all branches, otherwise a
+  single branch), and `branchWhereFilter(scope)` builds the Prisma `where`
+  fragment. The default branch's filter is `{ OR:[{branchId},{branchId:null}] }`
+  so unstamped legacy rows stay visible; a secondary branch is filtered to exactly
+  its own rows. Non-owners can never reach the all-branches view even by forging
+  the cookie. New pure logic is unit-tested in `tests/unit/branch-scope.test.mjs`.
+- **Scoped schedule** - `GET /api/admin/appointments` now filters by the active
+  branch (the dashboard schedule, calendar and online-bookings views all read this
+  endpoint), merged via `AND` so the status filter is preserved.
+- **Scoped inventory** - `GET /api/admin/inventory/items`, `/report`, `/movements`
+  and `/purchase-orders` now filter items/batches/movements/POs by the active
+  branch. Item lists and valuation, low-stock/expiry reports, the movement ledger
+  and purchase orders are all per-branch.
+- **Per-branch WhatsApp number** - `Branch.whatsappNumber` column (additive
+  migration `20260712020000_branch_whatsapp`) shown + editable on the Branches
+  screen. The single shared booking bot files new appointments into one chosen
+  branch via the `whatsapp.branchId` setting (owner-managed on the WhatsApp screen,
+  new `GET/POST /api/admin/whatsapp/branch`); bot slot-availability is computed
+  against only that branch's schedule. Full multi-session QR linking is a later
+  sprint.
+- **Owner "All branches" view + reload** - the header branch switcher gains an
+  "All branches" option for owners and reloads the page after a switch so every
+  scoped view refreshes. Shared: patients have no `branchId`; doctors keep a home
+  branch but remain visible/selectable everywhere.
+
 #### Sprint 13 - Multi-Branch support (write stamping + switcher / Phase 2)
 
 Builds on the Sprint 12 foundation: new records now record which branch they

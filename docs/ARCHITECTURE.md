@@ -411,5 +411,49 @@ their working branch. Still **backward compatible**: everything defaults to
   otherwise a "Working in" `<select>` persists the choice and confirms it. Bilingual
   EN/AR. A global header mount waits until the WIP dashboard nav is editable.
 
+### 11.2 Scoped reads + per-branch WhatsApp (Sprint 14, Phase 3)
+
+Phase 3 makes each branch show its **own schedule and inventory**, and gives each
+branch its **own WhatsApp number**, while **patients and doctors stay shared**.
+Still backward compatible: a single-branch clinic sees identical data because the
+default-branch scope also matches legacy/unstamped (`branchId = NULL`) rows.
+
+- **Read-scope layer** — `branch-context.ts` adds `resolveBranchScope({ role })`
+  and `branchWhereFilter(scope)`. The cookie + role map to a `BranchScope`:
+  owner + `__all__` cookie → `{ mode:"all" }` (no filter); empty/`branch_main`
+  cookie → the main branch **including NULL rows**; any other cookie → that single
+  branch only (validated via `chooseActiveBranchId`). `branchWhereFilter` returns
+  `{}` for "all", `{ OR:[{branchId},{branchId:null}] }` for the default branch, and
+  `{ branchId }` for a secondary branch. It is always merged into an existing
+  `where` via **`AND`** so it never clobbers a search/status `OR`. Non-owners can
+  never reach the all-branches view even by forging the cookie. Pure decision +
+  filter logic is mirrored + unit-tested in `tests/unit/branch-scope.test.mjs`.
+- **Scoped schedule** — `GET /api/admin/appointments` applies the filter (the
+  dashboard schedule, calendar and online-bookings screens all read it). The
+  single-appointment `[code]` route stays unscoped (direct lookup by unique code).
+- **Scoped inventory** — `listItemsWithStock`, `inventoryReport` and `listPos` take
+  an optional `branchFilter`; the items/report/movements/purchase-orders routes pass
+  `branchWhereFilter(resolveBranchScope(...))`. Items + valuation, low-stock/expiry,
+  the movement ledger and POs are all per-branch. Batches are filtered by their own
+  `branchId` (stock belongs to the branch that holds it).
+- **Per-branch WhatsApp** — `Branch.whatsappNumber` (additive migration
+  `20260712020000_branch_whatsapp`) stores each branch's display number. The single
+  shared bot is a single linked number, so it files new appointments into one
+  branch chosen via the `whatsapp.branchId` `Setting` (`whatsappBookingBranchId()` /
+  `setWhatsappBookingBranchId()`); `GET/POST /api/admin/whatsapp/branch` reads/writes
+  it (owner write, audited). `wa-runtime.ts` computes bot slot availability against
+  only the host branch's schedule and stamps the booking with it. Full multi-session
+  QR linking (a number per branch) is a later sprint.
+- **Owner "All branches" + reload** — `BranchSwitcher.tsx` renders an "All branches"
+  option for owners (driven by `canSelectAll` + `selection` from the active-branch
+  GET) and calls `window.location.reload()` after a successful switch so every
+  scoped view re-fetches under the new scope.
+- **Shared entities** — patients carry no `branchId` (shared per the multi-branch
+  spec); doctors keep a home `branchId` but are **not** scoped on read, so they stay
+  visible and bookable across every branch.
+- **Roadmap** — Phase 4: staff/doctor home-branch assignment, a "shared patients"
+  toggle, per-branch intake routing (website/WhatsApp), branch scheduling, and
+  optional `NOT NULL` tightening once every row is stamped.
+
 
 

@@ -9,6 +9,7 @@ type Branch = {
   nameAr: string;
   code: string;
   phone: string | null;
+  whatsappNumber: string | null;
   address: string | null;
   active: boolean;
   sortOrder: number;
@@ -23,6 +24,7 @@ type FormState = {
   nameAr: string;
   code: string;
   phone: string;
+  whatsappNumber: string;
   address: string;
   sortOrder: string;
   active: boolean;
@@ -37,6 +39,7 @@ const emptyForm: FormState = {
   nameAr: "",
   code: "",
   phone: "",
+  whatsappNumber: "",
   address: "",
   sortOrder: "0",
   active: true,
@@ -168,6 +171,7 @@ export function BranchesManager() {
                 <th className="px-3 py-2 text-start font-medium">{tr({ en: "Name", ar: "الاسم" })}</th>
                 <th className="px-3 py-2 text-start font-medium">{tr({ en: "Code", ar: "الرمز" })}</th>
                 <th className="px-3 py-2 text-start font-medium">{tr({ en: "Phone", ar: "الهاتف" })}</th>
+                <th className="px-3 py-2 text-start font-medium">{tr({ en: "WhatsApp", ar: "واتساب" })}</th>
                 <th className="px-3 py-2 text-start font-medium">{tr({ en: "Status", ar: "الحالة" })}</th>
                 {canWrite && <th className="px-3 py-2 text-end font-medium">{tr({ en: "Actions", ar: "إجراءات" })}</th>}
               </tr>
@@ -186,6 +190,7 @@ export function BranchesManager() {
                   </td>
                   <td className="px-3 py-2 font-mono text-ink/80">{b.code}</td>
                   <td className="px-3 py-2 text-ink/80">{b.phone || "—"}</td>
+                  <td className="px-3 py-2 text-ink/80" dir="ltr">{b.whatsappNumber || "—"}</td>
                   <td className="px-3 py-2">
                     {b.active ? (
                       <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-600">
@@ -277,6 +282,7 @@ function BranchModal({
           nameAr: branch.nameAr,
           code: branch.code,
           phone: branch.phone ?? "",
+          whatsappNumber: branch.whatsappNumber ?? "",
           address: branch.address ?? "",
           sortOrder: String(branch.sortOrder),
           active: branch.active,
@@ -303,6 +309,7 @@ function BranchModal({
       nameAr: form.nameAr.trim() || form.nameEn.trim(),
       code: form.code.trim(),
       phone: form.phone.trim() || null,
+      whatsappNumber: form.whatsappNumber.trim() || null,
       address: form.address.trim() || null,
       notes: form.notes.trim() || null,
       sortOrder: Number(form.sortOrder) || 0,
@@ -365,6 +372,16 @@ function BranchModal({
           <label className="text-sm">
             <span className="mb-1 block text-ink/70">{tr({ en: "Phone", ar: "الهاتف" })}</span>
             <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block text-ink/70">{tr({ en: "WhatsApp number", ar: "رقم واتساب" })}</span>
+            <input
+              className={inputCls}
+              value={form.whatsappNumber}
+              onChange={(e) => set("whatsappNumber", e.target.value)}
+              placeholder="+20…"
+              dir="ltr"
+            />
           </label>
           <label className="text-sm">
             <span className="mb-1 block text-ink/70">{tr({ en: "Address", ar: "العنوان" })}</span>

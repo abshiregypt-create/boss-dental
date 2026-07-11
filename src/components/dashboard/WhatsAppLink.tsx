@@ -11,8 +11,17 @@ type Status = {
   at: number;
 };
 
+type WaBranch = {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  code: string;
+  whatsappNumber: string | null;
+  isDefault: boolean;
+};
+
 export function WhatsAppLink() {
-  const { tr } = useLang();
+  const { tr, lang } = useLang();
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +39,55 @@ export function WhatsAppLink() {
     const id = setInterval(load, 4000); // QR rotates ~every 20s; poll often
     return () => clearInterval(id);
   }, [load]);
+
+  // Booking-branch routing: only relevant once the clinic has 2+ branches.
+  const [branches, setBranches] = useState<WaBranch[]>([]);
+  const [bookingBranchId, setBookingBranchId] = useState<string>("");
+  const [canWrite, setCanWrite] = useState(false);
+  const [savingBranch, setSavingBranch] = useState(false);
+  const [branchNotice, setBranchNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setCanWrite(j?.user?.role === "admin" || j?.user?.role === "doctor"))
+      .catch(() => setCanWrite(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/whatsapp/branch", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!j) return;
+        setBranches(j.branches ?? []);
+        setBookingBranchId(j.branchId ?? "");
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveBookingBranch = useCallback(
+    async (branchId: string) => {
+      setSavingBranch(true);
+      setBranchNotice(null);
+      try {
+        const res = await fetch("/api/admin/whatsapp/branch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ branchId }),
+        });
+        if (res.ok) {
+          const j = await res.json();
+          setBookingBranchId(j.branchId ?? branchId);
+          setBranchNotice(tr({ en: "Saved.", ar: "تم الحفظ." }));
+        } else {
+          setBranchNotice(tr({ en: "Could not save.", ar: "تعذر الحفظ." }));
+        }
+      } finally {
+        setSavingBranch(false);
+      }
+    },
+    [tr],
+  );
 
   const state = status?.state ?? "offline";
 
@@ -113,6 +171,41 @@ export function WhatsAppLink() {
           </div>
         )}
       </div>
+
+      {branches.length >= 2 && (
+        <div className="rounded-2xl border border-primary/15 bg-surface p-5">
+          <h3 className="text-sm font-bold text-ink">
+            {tr({ en: "Bookings from the bot go to", ar: "حجوزات البوت تذهب إلى" })}
+          </h3>
+          <p className="mt-1 text-xs text-muted">
+            {tr({
+              en: "The bot uses one linked number, so choose which branch its new appointments are saved to.",
+              ar: "يستخدم البوت رقمًا واحدًا مرتبطًا، لذا اختر الفرع الذي تُحفظ فيه مواعيده الجديدة.",
+            })}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <select
+              className="rounded-lg border border-primary/15 bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary disabled:opacity-60"
+              value={bookingBranchId}
+              disabled={!canWrite || savingBranch}
+              onChange={(e) => saveBookingBranch(e.target.value)}
+            >
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {(lang === "ar" ? b.nameAr || b.nameEn : b.nameEn || b.nameAr) +
+                    (b.whatsappNumber ? ` — ${b.whatsappNumber}` : "")}
+                </option>
+              ))}
+            </select>
+            {branchNotice && <span className="text-xs text-muted">{branchNotice}</span>}
+          </div>
+          {!canWrite && (
+            <p className="mt-2 text-xs text-muted">
+              {tr({ en: "Only owners can change this.", ar: "يمكن للمالكين فقط تغيير هذا." })}
+            </p>
+          )}
+        </div>
+      )}
 
       <p className="text-center text-xs text-muted">
         {tr({

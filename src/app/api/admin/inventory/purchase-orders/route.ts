@@ -5,7 +5,7 @@ import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { withRoute, errorJson } from "@/lib/server/http";
 import { parseJson, z, zMoney, zDateString } from "@/lib/server/validate";
 import { createPo, listPos } from "@/lib/server/purchase-orders-ops";
-import { resolveActiveBranchId } from "@/lib/server/branch-context";
+import { resolveActiveBranchId, resolveBranchScope, branchWhereFilter } from "@/lib/server/branch-context";
 
 /**
  * Purchase orders collection.
@@ -18,15 +18,17 @@ import { resolveActiveBranchId } from "@/lib/server/branch-context";
 export const GET = withRoute("admin.inventory.purchaseOrders.GET", poListGet);
 
 async function poListGet(req: Request) {
-  const { error } = await requireSession();
+  const { error, session } = await requireSession();
   if (error) return error;
 
   const sp = new URL(req.url).searchParams;
   const pg = getPagination(req, { defaultLimit: 100, maxLimit: 200 });
+  const scope = await resolveBranchScope({ role: session?.role });
   const { purchaseOrders, total } = await listPos(
     { status: sp.get("status"), supplierId: sp.get("supplierId"), search: sp.get("search") },
     pg.take,
     pg.skip,
+    branchWhereFilter(scope),
   );
   return jsonWithPagination({ purchaseOrders }, total, pg);
 }

@@ -122,6 +122,7 @@ export async function listItemsWithStock(
   filter: ItemFilter,
   take: number | undefined,
   skip: number | undefined,
+  branchFilter: Record<string, unknown> = {},
 ): Promise<{ items: Array<Record<string, unknown>>; total: number }> {
   const where: Record<string, unknown> = {};
   if (!filter.includeInactive) where.active = true;
@@ -135,6 +136,9 @@ export async function listItemsWithStock(
       { category: { contains: q, mode: "insensitive" } },
     ];
   }
+  // Restrict to the active branch's own items (owners viewing all pass `{}`).
+  // Combined via AND so it never clobbers the search `OR` above.
+  if (Object.keys(branchFilter).length) where.AND = [branchFilter];
   const [items, total] = await Promise.all([
     prisma.inventoryItem.findMany({
       where,
@@ -200,11 +204,18 @@ export async function getItemDetail(
 }
 
 /** Aggregate inventory report: totals + low-stock, expiring and expired lists. */
-export async function inventoryReport(expiringDays = 30): Promise<Record<string, unknown>> {
+export async function inventoryReport(
+  expiringDays = 30,
+  branchFilter: Record<string, unknown> = {},
+): Promise<Record<string, unknown>> {
+  const itemWhere = Object.keys(branchFilter).length ? { active: true, AND: [branchFilter] } : { active: true };
+  const batchWhere = Object.keys(branchFilter).length
+    ? { remainingQty: { gt: 0 }, item: { deletedAt: null }, AND: [branchFilter] }
+    : { remainingQty: { gt: 0 }, item: { deletedAt: null } };
   const [items, batches] = await Promise.all([
-    prisma.inventoryItem.findMany({ where: { active: true }, select: { id: true, nameEn: true, nameAr: true, unit: true, reorderLevel: true } }),
+    prisma.inventoryItem.findMany({ where: itemWhere, select: { id: true, nameEn: true, nameAr: true, unit: true, reorderLevel: true } }),
     prisma.inventoryBatch.findMany({
-      where: { remainingQty: { gt: 0 }, item: { deletedAt: null } },
+      where: batchWhere,
       select: { itemId: true, remainingQty: true, unitCost: true, expiryDate: true, lotNumber: true, id: true, item: { select: { nameEn: true, nameAr: true, unit: true } } },
     }),
   ]);

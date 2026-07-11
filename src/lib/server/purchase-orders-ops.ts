@@ -190,11 +190,15 @@ export async function listPos(
   filter: PoFilter,
   take: number | undefined,
   skip: number | undefined,
+  branchFilter: Record<string, unknown> = {},
 ): Promise<{ purchaseOrders: Array<Record<string, unknown>>; total: number }> {
   const where: Record<string, unknown> = {};
   if (filter.status && isPoStatus(filter.status)) where.status = filter.status;
   if (filter.supplierId) where.supplierId = filter.supplierId;
   if (filter.search && filter.search.trim()) where.code = { contains: filter.search.trim(), mode: "insensitive" };
+  // Restrict to the active branch's own orders; merge via AND so it never
+  // clobbers the status/supplier/search filters above.
+  if (Object.keys(branchFilter).length) where.AND = [branchFilter];
   const [rows, total] = await Promise.all([
     prisma.purchaseOrder.findMany({ where, orderBy: { createdAt: "desc" }, take, skip, include: PO_INCLUDE }),
     prisma.purchaseOrder.count({ where }),

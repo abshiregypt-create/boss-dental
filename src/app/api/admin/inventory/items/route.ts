@@ -6,7 +6,7 @@ import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { withRoute, errorJson } from "@/lib/server/http";
 import { parseJson, z, zOptText } from "@/lib/server/validate";
 import { listItemsWithStock, serializeItem } from "@/lib/server/inventory-ops";
-import { resolveActiveBranchId } from "@/lib/server/branch-context";
+import { resolveActiveBranchId, resolveBranchScope, branchWhereFilter } from "@/lib/server/branch-context";
 
 /** Truthy query flag: `1`, `true`, `yes` (case-insensitive) all enable. */
 function flag(v: string | null): boolean {
@@ -23,15 +23,17 @@ function flag(v: string | null): boolean {
 export const GET = withRoute("admin.inventory.items.GET", itemsGet);
 
 async function itemsGet(req: Request) {
-  const { error } = await requireSession();
+  const { error, session } = await requireSession();
   if (error) return error;
 
   const sp = new URL(req.url).searchParams;
   const pg = getPagination(req, { defaultLimit: 200, maxLimit: 500 });
+  const scope = await resolveBranchScope({ role: session?.role });
   const { items, total } = await listItemsWithStock(
     { search: sp.get("search"), includeInactive: flag(sp.get("inactive")), lowOnly: flag(sp.get("low")) },
     pg.take,
     pg.skip,
+    branchWhereFilter(scope),
   );
   return jsonWithPagination({ items }, total, pg);
 }

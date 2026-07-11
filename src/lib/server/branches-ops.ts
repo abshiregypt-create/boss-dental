@@ -58,6 +58,7 @@ type RawBranch = {
   nameAr: string;
   code: string;
   phone: string | null;
+  whatsappNumber: string | null;
   address: string | null;
   active: boolean;
   sortOrder: number;
@@ -73,6 +74,7 @@ export function serializeBranch(b: RawBranch) {
     nameAr: b.nameAr,
     code: b.code,
     phone: b.phone,
+    whatsappNumber: b.whatsappNumber,
     address: b.address,
     active: b.active,
     sortOrder: b.sortOrder,
@@ -88,6 +90,7 @@ type BranchInput = {
   nameAr?: string | null;
   code?: string | null;
   phone?: string | null;
+  whatsappNumber?: string | null;
   address?: string | null;
   notes?: string | null;
   sortOrder?: number | null;
@@ -100,6 +103,7 @@ const SELECT = {
   nameAr: true,
   code: true,
   phone: true,
+  whatsappNumber: true,
   address: true,
   active: true,
   sortOrder: true,
@@ -167,6 +171,7 @@ export async function createBranch(p: {
         nameAr,
         code,
         phone: normalizeOptionalText(p.input.phone, 40),
+        whatsappNumber: normalizeOptionalText(p.input.whatsappNumber, 40),
         address: normalizeOptionalText(p.input.address, 300),
         notes: normalizeOptionalText(p.input.notes, 1000),
         sortOrder: normalizeSortOrder(p.input.sortOrder),
@@ -205,6 +210,7 @@ export async function updateBranch(p: {
   if (p.input.nameEn !== undefined) data.nameEn = normalizeName(p.input.nameEn) || normalizeName(p.input.nameAr);
   if (p.input.nameAr !== undefined) data.nameAr = normalizeName(p.input.nameAr) || normalizeName(p.input.nameEn);
   if (p.input.phone !== undefined) data.phone = normalizeOptionalText(p.input.phone, 40);
+  if (p.input.whatsappNumber !== undefined) data.whatsappNumber = normalizeOptionalText(p.input.whatsappNumber, 40);
   if (p.input.address !== undefined) data.address = normalizeOptionalText(p.input.address, 300);
   if (p.input.notes !== undefined) data.notes = normalizeOptionalText(p.input.notes, 1000);
   if (p.input.sortOrder !== undefined) data.sortOrder = normalizeSortOrder(p.input.sortOrder);

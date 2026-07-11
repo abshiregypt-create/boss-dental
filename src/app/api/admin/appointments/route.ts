@@ -6,6 +6,7 @@ import { normalizePhone } from "@/lib/server/phone";
 import { generateCode } from "@/lib/server/code";
 import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { withRoute } from "@/lib/server/http";
+import { resolveActiveBranchId, resolveBranchScope, branchWhereFilter } from "@/lib/server/branch-context";
 import {
   parseJson,
   z,
@@ -18,13 +19,20 @@ import {
 export const GET = withRoute("appointments.GET", appointmentsGet);
 
 async function appointmentsGet(req: Request) {
-  const { error } = await requireSession();
+  const { error, session } = await requireSession();
   if (error) return error;
 
   const status = new URL(req.url).searchParams.get("status") || undefined;
   const now = new Date();
   const pg = getPagination(req, { defaultLimit: 100, maxLimit: 500 });
-  const where = status ? { status } : undefined;
+
+  // Scope the schedule to the active branch (owners can view all branches).
+  const scope = await resolveBranchScope({ role: session.role });
+  const branchFilter = branchWhereFilter(scope);
+  const and: Record<string, unknown>[] = [];
+  if (status) and.push({ status });
+  if (Object.keys(branchFilter).length) and.push(branchFilter);
+  const where = and.length ? { AND: and } : undefined;
 
   const appts = await prisma.appointment.findMany({
     where,
@@ -148,6 +156,7 @@ async function appointmentsPost(req: Request) {
       confirmedAt: new Date(),
       doctorId,
       patientId,
+      branchId: await resolveActiveBranchId(),
     },
   });
 

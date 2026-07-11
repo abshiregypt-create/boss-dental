@@ -15,6 +15,8 @@ import {
 import { createBooking } from "./appointments";
 import { logChat } from "./followups";
 import { activeClinic } from "@/lib/clinics";
+import { whatsappBookingBranchId, branchWhereFilter } from "./branch-context";
+import { DEFAULT_BRANCH_ID } from "./branches";
 
 const VALID_STATES: WaState[] = ["idle", "day", "slot", "why", "name", "followup"];
 
@@ -67,8 +69,28 @@ function nextOpenDays(now: Date, lang: "ar" | "en", count = OPEN_DAYS_COUNT): Da
   return days;
 }
 
+/**
+ * A Prisma `branchId` filter for the branch the WhatsApp bot books into, so slot
+ * availability is computed only against that branch's schedule (the main branch
+ * also includes legacy/unstamped rows). Keeps one branch's bookings from
+ * blocking another branch's times. Delegates to the shared scope helper so the
+ * "default branch also sees null rows" rule stays in one place.
+ */
+function waBranchFilter(hostBranchId: string): Record<string, unknown> {
+  return branchWhereFilter({
+    mode: "one",
+    branchId: hostBranchId,
+    includeNull: hostBranchId === DEFAULT_BRANCH_ID,
+  });
+}
+
 /** Free 30-min slots for a given day, excluding already-booked times. */
-async function computeDaySlots(dateISO: string, now: Date, lang: "ar" | "en"): Promise<SlotOption[]> {
+async function computeDaySlots(
+  dateISO: string,
+  now: Date,
+  lang: "ar" | "en",
+  branchFilter: Record<string, unknown>,
+): Promise<SlotOption[]> {
   const day = new Date(dateISO);
   if (day.getDay() === CLOSED_WEEKDAY) return [];
   const dayStart = startOfDay(day);
@@ -77,8 +99,13 @@ async function computeDaySlots(dateISO: string, now: Date, lang: "ar" | "en"): P
 
   const appts = await prisma.appointment.findMany({
     where: {
-      status: { in: ["pending", "confirmed"] },
-      scheduledAt: { gte: dayStart, lt: dayEnd },
+      AND: [
+        {
+          status: { in: ["pending", "confirmed"] },
+          scheduledAt: { gte: dayStart, lt: dayEnd },
+        },
+        branchFilter,
+      ],
     },
     select: { scheduledAt: true, durationMin: true },
   });
@@ -211,16 +238,21 @@ export async function processInbound(
   // Resolve a good patient name (returning patient → contact name → phone label).
   const resolvedName = await resolvePatientName(phone, name, lang);
 
+  // The single WhatsApp bot books into one configured branch; scope availability
+  // and the new booking to it so branches keep separate schedules.
+  const hostBranchId = await whatsappBookingBranchId();
+  const branchFilter = waBranchFilter(hostBranchId);
+
   // Build availability context the agent needs.
   const openDays = nextOpenDays(now, lang);
   const slotsByDate: Record<string, SlotOption[]> = {};
   // Only compute slots we might show: all open days when about to list, or the
   // chosen day when in "slot". Computing all is cheap (<=6 small queries).
   for (const d of openDays) {
-    slotsByDate[d.dateISO] = await computeDaySlots(d.dateISO, now, lang);
+    slotsByDate[d.dateISO] = await computeDaySlots(d.dateISO, now, lang, branchFilter);
   }
   if (conv.draft.dateISO && !slotsByDate[conv.draft.dateISO]) {
-    slotsByDate[conv.draft.dateISO] = await computeDaySlots(conv.draft.dateISO, now, lang);
+    slotsByDate[conv.draft.dateISO] = await computeDaySlots(conv.draft.dateISO, now, lang, branchFilter);
   }
 
   const clinic = activeClinic();
@@ -258,6 +290,7 @@ export async function processInbound(
       complaint: b.reason ?? null,
       lang: b.lang,
       waChatId: chatId ?? null,
+      branchId: hostBranchId,
     });
     bookingCode = appt.code;
   }

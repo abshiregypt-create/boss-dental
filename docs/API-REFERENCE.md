@@ -197,27 +197,30 @@ The printable document at `/dashboard/prescriptions/[id]/print` shows a "Cancell
 
 ## Admin — Branches (auth required)
 
-Multi-branch **foundation** (Sprint 12). Branches are physical locations of one
+Multi-branch (Sprints 12–14). Branches are physical locations of one
 clinic within one database. **Reads** require a session; **writes** require owner
 roles (`admin`/`doctor`) and are Zod-validated and audited. `code` is globally
 unique (a clash returns `409 code_taken`). The seeded default branch (`branch_main`,
 code `MAIN`) can be edited but **not deleted** (`400 default_branch`). Deletes are
 **soft deletes** (Recycle Bin); because every `branchId` link is ON DELETE SET NULL,
-a branch's records are never removed with it. As of Sprint 13 (Phase 2), new
-operational records **are** stamped with the caller's active branch (see the
-Active branch endpoints below); reads are still not scoped by branch (that is a
-later phase), so single-branch clinics behave exactly as before.
+a branch's records are never removed with it. New operational records are stamped
+with the caller's active branch (Sprint 13), and as of Sprint 14 the schedule and
+inventory **reads are scoped** to the active branch (owners can pick "All
+branches"). The default-branch scope also includes legacy/unstamped (`NULL`) rows,
+so single-branch clinics behave exactly as before. Patients and doctors stay
+shared clinic-wide.
 
 ### GET `/api/admin/branches`
 List branches, active-first then by `sortOrder`/name. `?search=` matches name/code;
 `?includeInactive=1` also returns archived branches (soft-deleted rows always hidden).
-`200` → `{ branches:[ { id, nameEn, nameAr, code, phone, address, active, sortOrder,
-notes, isDefault, createdAt, updatedAt } ] }`
+`200` → `{ branches:[ { id, nameEn, nameAr, code, phone, whatsappNumber, address,
+active, sortOrder, notes, isDefault, createdAt, updatedAt } ] }`
 
 ### POST `/api/admin/branches`
-Create a branch (owner). Body: `{ nameEn?, nameAr?, code, phone?, address?, notes?,
-sortOrder?, active? }` (at least one name; a valid 1–16 char alphanumeric `code`).
-`200` → `{ branch }` · `400 invalid_code`/`name_required` · `409 code_taken`
+Create a branch (owner). Body: `{ nameEn?, nameAr?, code, phone?, whatsappNumber?,
+address?, notes?, sortOrder?, active? }` (at least one name; a valid 1–16 char
+alphanumeric `code`). `200` → `{ branch }` · `400 invalid_code`/`name_required` ·
+`409 code_taken`
 
 ### GET `/api/admin/branches/[id]`
 One branch. `200` → `{ branch }` · `404` not found.
@@ -233,17 +236,32 @@ and become unassigned.
 
 ### GET `/api/admin/active-branch`
 The current staff member's working branch — the branch new records are stamped
-against (multi-branch Phase 2). Resolved from the `bdic_branch` cookie, falling
-back to the default branch. Any signed-in staff. `200` → `{ branchId, branches:[
-{ id, nameEn, nameAr, code } ] }` where `branches` is the selectable (active,
-non-deleted) list.
+against and (Sprint 14) the branch whose schedule/inventory the scoped screens
+show. Resolved from the `bdic_branch` cookie, falling back to the default branch.
+Any signed-in staff. `200` → `{ branchId, selection, branches:[ { id, nameEn,
+nameAr, code } ], canSelectAll }` where `branches` is the selectable (active,
+non-deleted) list, `selection` is what the switcher highlights (a branch id, or
+`__all__` for the owner all-branches view), and `canSelectAll` is true for owners.
 
 ### POST `/api/admin/active-branch`
 Set the working branch (any signed-in staff — a per-user preference, not
-owner-only). Body: `{ branchId }`. The target must be an active, non-deleted
-branch; on success the `bdic_branch` cookie is written (httpOnly, 1-year) and a
-`branch.select` audit row recorded. `200` → `{ ok:true, branchId }` ·
-`404 branch_not_found`
+owner-only). Body: `{ branchId }`, where `branchId` is an active, non-deleted
+branch id, or the sentinel `__all__` for the owner-only all-branches view (a
+non-owner sending `__all__` gets `403 forbidden`). On success the `bdic_branch`
+cookie is written (httpOnly, 1-year) and a `branch.select` audit row recorded.
+`200` → `{ ok:true, branchId }` · `404 branch_not_found` · `403 forbidden`
+
+### GET `/api/admin/whatsapp/branch`
+Which branch the single shared WhatsApp booking bot files new appointments into.
+Any signed-in staff. `200` → `{ branchId, branches:[ { id, nameEn, nameAr, code,
+whatsappNumber, isDefault } ] }` (`branchId` is the resolved host branch; the list
+carries each branch's own display WhatsApp number).
+
+### POST `/api/admin/whatsapp/branch`
+Point the bot at a branch (owner). Body: `{ branchId }` (validated against the
+selectable branches; an unknown id collapses to the default). Persists the
+`whatsapp.branchId` setting and audits `whatsapp.branch.set`. `200` →
+`{ branchId }` (the id actually stored).
 
 ---
 

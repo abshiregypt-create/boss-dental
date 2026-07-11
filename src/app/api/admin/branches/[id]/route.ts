@@ -31,6 +31,7 @@ const BranchUpdateBody = z.object({
   nameAr: z.string().trim().min(1).optional(),
   code: z.string().trim().min(1).optional(),
   phone: z.string().trim().nullish(),
+  whatsappNumber: z.string().trim().nullish(),
   address: z.string().trim().nullish(),
   notes: z.string().trim().nullish(),
   sortOrder: z.coerce.number().optional(),

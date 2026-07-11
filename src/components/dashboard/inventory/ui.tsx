@@ -39,6 +39,21 @@ export const MOVEMENT_LABEL: Record<MovementType, Bi> = {
   return: { en: "Return", ar: "مرتجع" },
 };
 
+export const PO_STATUS_LABEL: Record<import("./types").PoStatus, Bi> = {
+  draft: { en: "Draft", ar: "مسودة" },
+  submitted: { en: "Submitted", ar: "مُرسل" },
+  partially_received: { en: "Partially received", ar: "مستلم جزئياً" },
+  received: { en: "Received", ar: "مستلم" },
+  cancelled: { en: "Cancelled", ar: "ملغى" },
+};
+
+export function poStatusTone(s: import("./types").PoStatus): "muted" | "warn" | "danger" | "ok" {
+  if (s === "received") return "ok";
+  if (s === "partially_received") return "warn";
+  if (s === "cancelled") return "danger";
+  return "muted";
+}
+
 export const UNIT_OPTIONS = ["piece", "box", "pack", "bottle", "tube", "ml", "g", "kg", "pair", "set"];
 
 export const btnPrimary =

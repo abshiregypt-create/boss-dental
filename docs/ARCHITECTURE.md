@@ -222,5 +222,35 @@ Enterprise stock control for clinic consumables (`/dashboard/inventory`,
   through the same Recycle Bin (§8). Force-purge cascades an item's batches and ledger
   (`onDelete: Cascade`); deleting a supplier keeps history (`SetNull`).
 
+### 9.1 Purchase orders & goods receiving
+
+Supplier ordering on top of the stock foundation (`20260709000007_purchase_orders`,
+Purchase Orders tab of `/dashboard/inventory`). Additive: two tables, no `ALTER` on
+existing tables.
+
+- **Data model** — `PurchaseOrder` (code `PO-YYYY-NNNN`, status, currency, supplier
+  link, expected/ordered/received dates, notes, soft-delete columns) and
+  `PurchaseOrderLine` (item link, English/Arabic name snapshots, `orderedQty`,
+  `receivedQty`, `unitCost`). Lines cascade with their PO; item/supplier links
+  `SetNull` so a later delete keeps order history. `Supplier.purchaseOrders` and
+  `InventoryItem.poLines` are Prisma-level back-relations only (no new columns).
+- **Lifecycle** — `draft → submitted → partially_received → received`, plus a
+  terminal `cancelled`. Lines are editable only while `draft`; the header while
+  `draft` or `submitted`. Pure guards + value roll-ups (ordered/received/remaining)
+  live in `purchase-orders.ts`, unit-tested in `tests/unit/purchase-orders.test.mjs`.
+- **Shared receive path** — receiving reuses the Sprint 7 stock-receipt helper
+  `postReceipt(tx, …)` (extracted from `receiveStock`), so a PO receipt and a manual
+  receipt create identical batches + `receipt` movements; PO receipts are tagged
+  `referenceType:"PurchaseOrder"` + the PO id. `receivePoLines` validates the whole
+  payload up front (rejecting over-receipt, even across repeated lines) and then, in
+  one `$transaction`, posts every receipt, advances each line's `receivedQty`, and
+  recomputes the header status.
+- **API & UI** — collection + item routes plus `submit`/`cancel`/`receive` actions;
+  reads need a session, writes need owner roles and are audited. The dashboard tab
+  lists POs (status/search filters), a create modal (supplier + line picker), and a
+  detail modal with lifecycle actions and a goods-receiving modal.
+- **Recoverability** — a PO is soft-deletable through the Recycle Bin (§8); trashing
+  it never touches received stock, batches, or movements.
+
 
 

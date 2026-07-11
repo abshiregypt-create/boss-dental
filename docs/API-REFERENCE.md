@@ -218,16 +218,58 @@ lowStock:[…], expiring:[…], expired:[…] }`.
 ### GET `/api/admin/inventory/lookup?code=|barcode=|sku=`
 Resolve an item by barcode or SKU (for scanners). `200` → `{ item }` · `404`.
 
-The inventory operator UI for these endpoints is at `/dashboard/inventory`.
+### GET `/api/admin/inventory/purchase-orders`
+List purchase orders, newest first. Filters `?status=&supplierId=&search=` (search
+matches the PO code). Opt-in pagination (`?limit=` default 100, max 200; `?offset=`).
+`200` → `{ purchaseOrders:[ { id, code, status, supplierId, supplierName, currency,
+expectedAt, orderedAt, receivedAt, notes, lines:[ { id, itemId, descriptionEn,
+descriptionAr, orderedQty, receivedQty, unitCost, sortOrder } ], lineCount,
+receivedLineCount, orderedValue, receivedValue, remainingValue } ] }`.
+
+### POST `/api/admin/inventory/purchase-orders`
+Create a draft (owner roles). Body `{ supplierId?, branchId?, currency?, notes?,
+expectedAt?, lines?:[ { itemId, orderedQty>0, unitCost? } ] }`; each line's item name
+is snapshotted. `200` → `{ purchaseOrder }` · `404` (unknown supplier/item) · `422`.
+
+### GET `/api/admin/inventory/purchase-orders/[id]`
+Full detail. `200` → `{ purchaseOrder }` · `404`.
+
+### PATCH `/api/admin/inventory/purchase-orders/[id]`
+Edit header (draft or submitted) and/or replace lines (draft only) — owner roles.
+Omitted fields are unchanged. `200` → `{ purchaseOrder }` · `409` (`po_not_editable`
+/ `po_lines_locked`) · `404` · `422`.
+
+### DELETE `/api/admin/inventory/purchase-orders/[id]`
+Soft-delete the order document (owner roles) → Recycle Bin. Received stock, batches,
+and movements are untouched. `200` → `{ ok: true }` · `404`.
+
+### POST `/api/admin/inventory/purchase-orders/[id]/submit`
+Draft → submitted (owner roles); requires ≥ 1 line; stamps `orderedAt`. `200` →
+`{ purchaseOrder }` · `409` (`po_not_submittable` / `po_empty`) · `404`.
+
+### POST `/api/admin/inventory/purchase-orders/[id]/cancel`
+Cancel a draft / submitted / partially-received PO (owner roles). Never reverses
+already-received stock. `200` → `{ purchaseOrder }` · `409` (`po_not_cancellable`) · `404`.
+
+### POST `/api/admin/inventory/purchase-orders/[id]/receive`
+Receive goods against a submitted / partially-received PO (owner roles). Body
+`{ receipts:[ { lineId, quantity>0, lotNumber?, expiryDate?, unitCost? } ] }`. Each
+receipt creates an inventory batch + `receipt` movement (tagged
+`referenceType:"PurchaseOrder"`) atomically, advances the line's `receivedQty`, and
+recomputes the header status. `200` → `{ purchaseOrder }` · `400` (`over_receipt`) ·
+`409` (`po_not_receivable`) · `404` · `422`.
+
+The inventory operator UI for these endpoints is at `/dashboard/inventory`
+(Purchase Orders tab included).
 
 ---
 
 ## Admin - Recycle Bin / Trash (auth required)
 
 Deletes of sensitive records (patients, treatments, payments, doctors, payouts,
-clinic expenses, patient files, procedures, suppliers, inventory items) are **soft
-deletes**: the row is stamped `deletedAt`/`deletedBy` and hidden from every normal
-read, instead of being physically removed. The DELETE endpoints above are unchanged from a client's
+clinic expenses, patient files, procedures, suppliers, inventory items, purchase
+orders) are **soft deletes**: the row is stamped `deletedAt`/`deletedBy` and hidden
+from every normal read, instead of being physically removed. The DELETE endpoints above are unchanged from a client's
 perspective (still `200 { ok:true }`); the record simply becomes restorable from
 the Trash. The endpoints below manage those trashed rows.
 
@@ -236,7 +278,7 @@ List trashed records. Owner roles (`requireRole(OWNER_ROLES)`).
 - No query: overview -> `{ total, types:[ { type, label, count } ] }`
 - `?type=<type>&limit=&offset=`: items of one type ->
   `{ type, items:[ { id, label, detail, deletedAt, deletedBy } ] }`
-- `type` is one of `patient|doctor|treatment|payment|procedure|file|payout|expense|supplier|item`
+- `type` is one of `patient|doctor|treatment|payment|procedure|file|payout|expense|supplier|item|purchase_order`
 - `400 {"error":"bad_type"}` for an unknown type
 
 ### POST `/api/admin/trash/restore`

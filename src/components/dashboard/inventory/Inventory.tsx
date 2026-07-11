@@ -6,9 +6,10 @@ import { useLang } from "@/lib/language";
 import { ItemsTab } from "./ItemsTab";
 import { MovementsTab } from "./MovementsTab";
 import { OverviewTab } from "./OverviewTab";
+import { PurchaseOrdersTab } from "./PurchaseOrdersTab";
 import { SuppliersTab } from "./SuppliersTab";
 
-type TabKey = "overview" | "items" | "suppliers" | "movements";
+type TabKey = "overview" | "items" | "purchase-orders" | "suppliers" | "movements";
 type Notice = { kind: "ok" | "error"; text: string };
 
 const OWNER_ROLES = new Set(["admin", "doctor"]);
@@ -39,6 +40,7 @@ export function Inventory() {
   const tabs: { key: TabKey; label: { en: string; ar: string } }[] = [
     { key: "overview", label: { en: "Overview", ar: "نظرة عامة" } },
     { key: "items", label: { en: "Items", ar: "الأصناف" } },
+    { key: "purchase-orders", label: { en: "Purchase Orders", ar: "أوامر الشراء" } },
     { key: "suppliers", label: { en: "Suppliers", ar: "الموردون" } },
     { key: "movements", label: { en: "Movements", ar: "الحركات" } },
   ];
@@ -95,6 +97,7 @@ export function Inventory() {
 
         {tab === "overview" && <OverviewTab notify={notify} />}
         {tab === "items" && <ItemsTab notify={notify} canWrite={canWrite} />}
+        {tab === "purchase-orders" && <PurchaseOrdersTab notify={notify} canWrite={canWrite} />}
         {tab === "suppliers" && <SuppliersTab notify={notify} canWrite={canWrite} />}
         {tab === "movements" && <MovementsTab notify={notify} />}
       </div>

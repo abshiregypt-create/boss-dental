@@ -11,6 +11,56 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 8 - Enterprise Inventory: Purchase Orders + Goods Receiving
+
+Approved feature sprint (inventory backlog #1). Adds supplier purchase orders and
+goods receiving on top of the Sprint 7 stock foundation. Fully additive: two new
+tables, zero `ALTER` on existing tables, no change to any existing financial number,
+workflow, API response, or screen. Receiving reuses the exact audited stock-receipt
+path from Sprint 7, so a PO receipt and a manual receipt create identical batches
+and ledger movements.
+
+- **Purchase-order schema (additive migration)** - `20260709000007_purchase_orders`
+  adds `PurchaseOrder` (code `PO-YYYY-NNNN` unique, status, currency, supplier link,
+  expected/ordered/received dates, notes, `deletedAt`/`deletedBy`) and
+  `PurchaseOrderLine` (item link, English/Arabic name snapshots, `orderedQty` and
+  `receivedQty` `Decimal(12,3)`, `unitCost` `Decimal(12,2)`). Lines cascade with
+  their PO; item/supplier links `SetNull` so history survives a later delete. No
+  column added to any existing table (`Supplier.purchaseOrders` /
+  `InventoryItem.poLines` are Prisma-level back-relations only).
+- **Pure PO math** - `src/lib/server/purchase-orders.ts` owns the lifecycle guards
+  (`draft -> submitted -> partially_received -> received`, plus `cancelled`) and the
+  ordered/received/remaining value roll-ups. Mirrored by
+  `tests/unit/purchase-orders.test.mjs` (16 cases).
+- **Shared receive path** - `postReceipt(tx, ...)` was extracted from `receiveStock`
+  in `inventory-ops.ts` so manual receiving and PO receiving post the batch +
+  `receipt` movement through one atomic helper. Manual-receive behavior is
+  byte-identical; PO receipts are tagged `referenceType: "PurchaseOrder"` +
+  the PO id for traceability.
+- **PO service** - `src/lib/server/purchase-orders-ops.ts`: create (optional lines,
+  each item name snapshotted), header/line edit (lines locked once submitted),
+  submit, cancel (never reverses received stock), and receive. Receiving validates
+  every line up front (belongs to the PO, item exists, quantity > 0, and no line -
+  even across repeats in one payload - exceeds what was ordered -> `over_receipt`,
+  400), then in ONE `$transaction` posts each receipt, advances each line's
+  `receivedQty`, and recomputes the header status. One audit row per action.
+- **PO API (new, additive)** - `/api/admin/inventory/purchase-orders` (GET list with
+  `status`/`supplierId`/`search`; POST create), `.../[id]` (GET/PATCH/DELETE - DELETE
+  soft-deletes the order document only, never received stock), and the action routes
+  `.../[id]/submit`, `.../[id]/cancel`, `.../[id]/receive`. Reads require a session;
+  writes require owner roles; all inputs Zod-validated and audited.
+- **Recycle Bin coverage** - purchase orders are soft-deletable and appear in
+  `/dashboard/recycle-bin` (restore + admin-only permanent delete). Trashing a PO
+  never touches batches, movements, or on-hand.
+- **Purchase Orders dashboard UI** - a new "Purchase Orders" tab in
+  `/dashboard/inventory`: list (code, supplier, status, received/total lines,
+  ordered value; PO-code search + status filter), a create modal (supplier + line
+  picker with per-line quantity/cost and an estimated total), and a detail modal
+  with lifecycle actions (submit / cancel / delete) and a goods-receiving modal
+  (per-line quantity, lot number, expiry, unit cost). Bilingual (en/ar), reuses the
+  shared Modal/Field primitives; write actions hidden for non-owner roles (server
+  still enforces).
+
 #### Sprint 7 - Enterprise Inventory (foundation)
 
 Approved feature sprint (priority #1 of the enterprise roadmap). Adds a complete

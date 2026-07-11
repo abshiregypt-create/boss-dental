@@ -398,7 +398,8 @@ model Supplier {
   deletedAt    DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
   deletedBy    String? // User.id who soft-deleted (snapshot for the Trash view)
 
-  batches InventoryBatch[]
+  batches        InventoryBatch[]
+  purchaseOrders PurchaseOrder[]
 
   @@index([active, sortOrder])
 }
@@ -424,8 +425,9 @@ model InventoryItem {
   deletedAt    DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
   deletedBy    String? // User.id who soft-deleted (snapshot for the Trash view)
 
-  batches   InventoryBatch[]
-  movements StockMovement[]
+  batches        InventoryBatch[]
+  movements      StockMovement[]
+  poLines        PurchaseOrderLine[]
 
   @@index([active, sortOrder])
   @@index([barcode])
@@ -485,4 +487,59 @@ model StockMovement {
   @@index([type, createdAt])
   @@index([batchId])
   @@index([referenceType, referenceId])
+}
+
+/// A purchase order to a supplier: a header plus line items. Submitting sends it
+/// to the supplier; receiving a line creates inventory batches (reusing the
+/// receive path, tagged referenceType="PurchaseOrder") and advances the status
+/// to partially_received / received. Soft-deletable (Recycle Bin) — trashing the
+/// PO document never touches already-received stock. Money Decimal(12,2),
+/// quantities Decimal(12,3).
+model PurchaseOrder {
+  id            String    @id @default(cuid())
+  code          String    @unique // human PO number, e.g. PO-2026-0001
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  branchId      String? // reserved for multi-branch (null = default/main branch)
+  status        String    @default("draft") // draft | submitted | partially_received | received | cancelled
+  currency      String    @default("EGP")
+  notes         String?
+  expectedAt    DateTime? // expected delivery date
+  orderedAt     DateTime? // when submitted to the supplier
+  receivedAt    DateTime? // when fully received
+  createdBy     String? // User.id who created it
+  createdByName String? // snapshot of the creator's display name
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
+  deletedBy     String? // User.id who soft-deleted (snapshot for the Trash view)
+
+  lines PurchaseOrderLine[]
+
+  @@index([status, createdAt])
+  @@index([supplierId])
+}
+
+/// One line of a purchase order: an item, ordered quantity, unit cost, and how
+/// much has been received so far (receivedQty <= orderedQty, enforced in the
+/// service). Cascade-only child of its PO (no independent soft-delete); the item
+/// link is SET NULL so deleting a catalog item keeps the order history, with the
+/// item name snapshotted into description* at order time.
+model PurchaseOrderLine {
+  id              String         @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  itemId          String?
+  item            InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  descriptionEn   String? // snapshot of the item name at order time
+  descriptionAr   String?
+  orderedQty      Decimal        @db.Decimal(12, 3)
+  receivedQty     Decimal        @default(0) @db.Decimal(12, 3)
+  unitCost        Decimal        @default(0) @db.Decimal(12, 2)
+  sortOrder       Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([purchaseOrderId])
+  @@index([itemId])
 }

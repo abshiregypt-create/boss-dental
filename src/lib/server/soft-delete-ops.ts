@@ -34,6 +34,7 @@ const DELEGATE_BY_MODEL: Readonly<Record<string, string>> = {
   ClinicExpense: "clinicExpense",
   Supplier: "supplier",
   InventoryItem: "inventoryItem",
+  PurchaseOrder: "purchaseOrder",
 };
 
 /** Inverse map for recursing into a cascade child's own children. */

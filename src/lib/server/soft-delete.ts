@@ -32,6 +32,7 @@ export const SOFT_DELETABLE_MODELS: ReadonlySet<string> = new Set([
   "ClinicExpense",
   "Supplier",
   "InventoryItem",
+  "PurchaseOrder",
 ]);
 
 /**

@@ -1,4 +1,4 @@
-import type { Item, ItemDetail, Movement, Report, Supplier } from "./types";
+import type { Item, ItemDetail, Movement, PurchaseOrder, Report, Supplier } from "./types";
 
 /** Error carrying the server's machine `code` + human message for the toast. */
 export class ApiError extends Error {
@@ -66,4 +66,21 @@ export const api = {
     req<{ movements: Movement[] }>(
       `/api/admin/inventory/movements${qs({ itemId: opts.itemId, type: opts.type, limit: opts.limit ? String(opts.limit) : "100" })}`,
     ),
+
+  listPurchaseOrders: (opts: { status?: string; supplierId?: string; search?: string } = {}) =>
+    req<{ purchaseOrders: PurchaseOrder[] }>(`/api/admin/inventory/purchase-orders${qs(opts)}`),
+  purchaseOrder: (id: string) =>
+    req<{ purchaseOrder: PurchaseOrder }>(`/api/admin/inventory/purchase-orders/${id}`),
+  createPurchaseOrder: (data: Record<string, unknown>) =>
+    req<{ purchaseOrder: PurchaseOrder }>(`/api/admin/inventory/purchase-orders`, { method: "POST", body: JSON.stringify(data) }),
+  updatePurchaseOrder: (id: string, data: Record<string, unknown>) =>
+    req<{ purchaseOrder: PurchaseOrder }>(`/api/admin/inventory/purchase-orders/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deletePurchaseOrder: (id: string) =>
+    req<{ ok: true }>(`/api/admin/inventory/purchase-orders/${id}`, { method: "DELETE" }),
+  submitPurchaseOrder: (id: string) =>
+    req<{ purchaseOrder: PurchaseOrder }>(`/api/admin/inventory/purchase-orders/${id}/submit`, { method: "POST", body: "{}" }),
+  cancelPurchaseOrder: (id: string) =>
+    req<{ purchaseOrder: PurchaseOrder }>(`/api/admin/inventory/purchase-orders/${id}/cancel`, { method: "POST", body: "{}" }),
+  receivePurchaseOrder: (id: string, data: Record<string, unknown>) =>
+    req<{ purchaseOrder: PurchaseOrder }>(`/api/admin/inventory/purchase-orders/${id}/receive`, { method: "POST", body: JSON.stringify(data) }),
 };

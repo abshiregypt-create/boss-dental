@@ -29,6 +29,7 @@ const TYPE_LABEL: Record<string, { en: string; ar: string }> = {
   expense: { en: "Expenses", ar: "المصروفات" },
   supplier: { en: "Suppliers", ar: "الموردون" },
   item: { en: "Inventory items", ar: "أصناف المخزون" },
+  purchase_order: { en: "Purchase orders", ar: "أوامر الشراء" },
 };
 
 const PAGE_LIMIT = 100;

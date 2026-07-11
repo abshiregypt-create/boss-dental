@@ -14,6 +14,17 @@ function createPrismaClient() {
 
 export type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
 
+// The client handed to an interactive `prisma.$transaction((tx) => …)` callback.
+// Because our singleton is `$extends`-ed with the soft-delete extension, that
+// callback client is NOT the base `Prisma.TransactionClient` — it is the
+// extended client minus the connection-management methods. Helpers that receive
+// a transaction client (e.g. postReceipt, nextPoCode) must type it as this so
+// the extended `tx` is assignable.
+export type TxClient = Omit<
+  ExtendedPrismaClient,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
+>;
+
 // Reuse a single client across hot-reloads / serverless invocations.
 const globalForPrisma = globalThis as unknown as { prisma?: ExtendedPrismaClient };
 

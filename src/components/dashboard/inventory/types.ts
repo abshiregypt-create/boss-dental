@@ -83,3 +83,43 @@ export type Report = {
   expiring: ReportBatchRow[];
   expired: ReportBatchRow[];
 };
+
+export type PoStatus = "draft" | "submitted" | "partially_received" | "received" | "cancelled";
+
+export type PoLine = {
+  id: string;
+  purchaseOrderId: string;
+  itemId: string | null;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  orderedQty: number;
+  receivedQty: number;
+  unitCost: number;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PurchaseOrder = {
+  id: string;
+  code: string;
+  supplierId: string | null;
+  supplierName: string | null;
+  branchId: string | null;
+  status: PoStatus;
+  currency: string;
+  notes: string | null;
+  expectedAt: string | null;
+  orderedAt: string | null;
+  receivedAt: string | null;
+  createdBy: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lines: PoLine[];
+  lineCount: number;
+  receivedLineCount: number;
+  orderedValue: number;
+  receivedValue: number;
+  remainingValue: number;
+};

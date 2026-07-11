@@ -18,6 +18,8 @@
  * `if (!r.ok) return errorJson(r.code, r.status, ...)` without throwing.
  */
 import { prisma } from "@/lib/db";
+import type { TxClient } from "@/lib/db";
+import type { InventoryBatch } from "@prisma/client";
 import { num, type DecimalLike } from "@/lib/server/money";
 import { writeAudit } from "@/lib/server/audit";
 import type { SessionPayload } from "@/lib/server/auth";
@@ -244,6 +246,68 @@ export async function lookupItem(code: string): Promise<OpResult<Record<string, 
 // Writes (transactional)
 // ---------------------------------------------------------------------------
 
+/**
+ * Post a goods receipt onto an existing transaction: create one InventoryBatch
+ * and append the matching `receipt` StockMovement (the two writes that together
+ * add stock). Extracted so both manual receiving ({@link receiveStock}) and
+ * purchase-order receiving share ONE atomic code path — the caller owns the
+ * transaction and any surrounding writes (e.g. advancing a PO line + status).
+ *
+ * `referenceType`/`referenceId` tag the movement's provenance: "Manual" (the
+ * default) for ad-hoc receiving, or "PurchaseOrder" + the PO id when receiving
+ * against an order. Returns the created batch plus the normalized qty/cost so
+ * the caller can write its audit row without re-rounding.
+ */
+export async function postReceipt(
+  tx: TxClient,
+  p: {
+    itemId: string;
+    supplierId?: string | null;
+    lotNumber?: string | null;
+    expiryDate?: Date | null;
+    unitCost: number;
+    quantity: number;
+    branchId?: string | null;
+    notes?: string | null;
+    actor: Actor;
+    referenceType?: string | null;
+    referenceId?: string | null;
+  },
+): Promise<{ batch: InventoryBatch; qty: number; cost: number }> {
+  const qty = round3(p.quantity);
+  const cost = round2(p.unitCost);
+  const batch = await tx.inventoryBatch.create({
+    data: {
+      itemId: p.itemId,
+      supplierId: p.supplierId ?? null,
+      branchId: p.branchId ?? null,
+      lotNumber: p.lotNumber ?? null,
+      expiryDate: p.expiryDate ?? null,
+      unitCost: cost,
+      receivedQty: qty,
+      remainingQty: qty,
+      notes: p.notes ?? null,
+    },
+  });
+  await tx.stockMovement.create({
+    data: {
+      itemId: p.itemId,
+      batchId: batch.id,
+      branchId: p.branchId ?? null,
+      type: "receipt",
+      quantityDelta: qty,
+      unitCost: cost,
+      totalCost: round2(qty * cost),
+      reason: p.notes ?? null,
+      referenceType: p.referenceType ?? "Manual",
+      referenceId: p.referenceId ?? null,
+      actorId: p.actor.sub,
+      actorName: p.actor.name,
+    },
+  });
+  return { batch, qty, cost };
+}
+
 /** Receive stock: create a batch and append a `receipt` movement. */
 export async function receiveStock(p: {
   itemId: string;
@@ -265,39 +329,20 @@ export async function receiveStock(p: {
     const s = await prisma.supplier.findFirst({ where: { id: p.supplierId }, select: { id: true } });
     if (!s) return fail("supplier_not_found", 404, "supplier not found");
   }
-  const qty = round3(p.quantity);
-  const cost = round2(p.unitCost);
-  const batch = await prisma.$transaction(async (tx) => {
-    const b = await tx.inventoryBatch.create({
-      data: {
-        itemId: item.id,
-        supplierId: p.supplierId ?? null,
-        branchId: p.branchId ?? null,
-        lotNumber: p.lotNumber ?? null,
-        expiryDate: p.expiryDate ?? null,
-        unitCost: cost,
-        receivedQty: qty,
-        remainingQty: qty,
-        notes: p.notes ?? null,
-      },
-    });
-    await tx.stockMovement.create({
-      data: {
-        itemId: item.id,
-        batchId: b.id,
-        branchId: p.branchId ?? null,
-        type: "receipt",
-        quantityDelta: qty,
-        unitCost: cost,
-        totalCost: round2(qty * cost),
-        reason: p.notes ?? null,
-        referenceType: "Manual",
-        actorId: p.actor.sub,
-        actorName: p.actor.name,
-      },
-    });
-    return b;
-  });
+  const { batch, qty, cost } = await prisma.$transaction((tx) =>
+    postReceipt(tx, {
+      itemId: item.id,
+      supplierId: p.supplierId ?? null,
+      lotNumber: p.lotNumber ?? null,
+      expiryDate: p.expiryDate ?? null,
+      unitCost: p.unitCost,
+      quantity: p.quantity,
+      branchId: p.branchId ?? null,
+      notes: p.notes ?? null,
+      actor: p.actor,
+      referenceType: "Manual",
+    }),
+  );
   await writeAudit({
     action: "inventory.receive",
     actor: p.actor,

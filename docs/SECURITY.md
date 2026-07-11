@@ -166,7 +166,7 @@ with a manifest and retention pruning, and **redacts database credentials** from
 output. RUNBOOK section 5 documents scheduling, offsite copy, and a verified restore
 drill, reducing the blast radius of data loss or ransomware.
 
-## Controls implemented (Sprint 7 — Enterprise Inventory)
+## Controls implemented (Sprint 7–8 — Enterprise Inventory)
 
 ### 22. Authorization, validation and audit on inventory writes
 Every inventory mutation (suppliers/items CRUD, receive, adjust, delete) requires owner
@@ -182,6 +182,18 @@ silently desynchronize the quantity. Decrements run inside a `$transaction` with
 conditional update (`remainingQty >= qty`), so concurrent draws can never drive stock
 negative — the losing transaction rolls back with `insufficient_stock` (409). Soft-deleted
 suppliers/items follow the same least-privilege Recycle Bin controls (§19–20).
+
+### 24. Purchase-order authorization and receive integrity (Sprint 8)
+Every purchase-order mutation (create, edit, submit, cancel, delete, receive) requires
+owner roles; reads require an authenticated session, and each write is Zod-validated and
+audited. Receiving is gated by the server-side lifecycle guards (only `submitted` /
+`partially_received` POs can receive) and rejects over-receipt — a line can never be
+received beyond its ordered quantity, even when the same line is repeated within one
+payload (`over_receipt`, 400), validated before any write. All receipts for a request are
+applied in a single `$transaction` through the same audited stock-receipt path as manual
+receiving, so a partial failure leaves neither phantom stock nor an advanced
+`receivedQty`. Deleting a PO is a soft delete of the order document only; received stock,
+batches, and ledger movements are never reversed.
 
 ## Testing
 
@@ -207,6 +219,7 @@ Pure security logic is covered by `node --test` unit tests:
 - `tests/unit/soft-delete-restore.test.mjs` — restore/purge/reference-block logic
 - `tests/unit/pg-backup.test.mjs` — dump args, URL redaction, retention pruning
 - `tests/unit/inventory.test.mjs` — on-hand/valuation, FEFO allocation, low-stock/expiry
+- `tests/unit/purchase-orders.test.mjs` — PO lifecycle guards + ordered/received/remaining roll-ups
 
 Run: `npm run test:unit`
 

@@ -16,7 +16,7 @@ const selectCls =
  * Renders nothing when the clinic has fewer than two selectable branches, so a
  * single-branch clinic's screens look exactly as before.
  */
-export function BranchSwitcher() {
+export function BranchSwitcher({ compact = false }: { compact?: boolean }) {
   const { tr, lang } = useLang();
   const [branches, setBranches] = useState<SwitchBranch[]>([]);
   const [activeId, setActiveId] = useState<string>("");
@@ -75,6 +75,47 @@ export function BranchSwitcher() {
       setSaving(false);
     }
   };
+
+  if (compact) {
+    return (
+      <div className="relative flex items-center gap-1.5">
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden
+          className="hidden h-4 w-4 text-muted sm:block"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M3 21h18M6 21V8l6-4 6 4v13M10 21v-5h4v5" />
+        </svg>
+        <select
+          id="branch-switcher"
+          aria-label={tr({ en: "Working branch", ar: "فرع العمل" })}
+          className="max-w-[10rem] rounded-lg border border-primary/20 bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink outline-none focus:border-primary disabled:opacity-50 sm:max-w-[14rem] sm:text-sm"
+          value={activeId}
+          disabled={saving}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {label(b)}
+            </option>
+          ))}
+        </select>
+        {notice && (
+          <p
+            role="status"
+            className="absolute end-0 top-full z-40 mt-1 max-w-[16rem] rounded-md bg-emerald-600 px-2 py-1 text-xs text-white shadow-lg"
+          >
+            {notice}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-1">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useLang } from "@/lib/language";
 import { t } from "@/lib/content";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { BranchSwitcher } from "./BranchSwitcher";
 import { DaySchedule } from "./DaySchedule";
 import { BookingRequests } from "./BookingRequests";
 import { PatientsSection } from "./PatientsSection";
@@ -707,6 +708,7 @@ export function DoctorDashboard() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <BranchSwitcher compact />
             <LanguageToggle />
             <button
               onClick={toggleTheme}

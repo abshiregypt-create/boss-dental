@@ -32,6 +32,7 @@ const TYPE_LABEL: Record<string, { en: string; ar: string }> = {
   purchase_order: { en: "Purchase orders", ar: "أوامر الشراء" },
   medication: { en: "Medications", ar: "الأدوية" },
   prescription: { en: "Prescriptions", ar: "الروشتات" },
+  branch: { en: "Branches", ar: "الفروع" },
 };
 
 const PAGE_LIMIT = 100;

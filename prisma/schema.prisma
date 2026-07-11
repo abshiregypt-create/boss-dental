@@ -18,7 +18,11 @@ model User {
   name         String
   role         String   @default("doctor") // doctor | admin | staff
   tokenVersion Int      @default(1) // bumped on logout / password change to revoke old JWTs
+  branchId     String? // multi-branch: staff member's home branch (null = unassigned)
+  branch       Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
   createdAt    DateTime @default(now())
+
+  @@index([branchId])
 }
 
 /// Append-only audit trail for sensitive/destructive actions (RBAC-gated routes,
@@ -107,8 +111,12 @@ model TreatmentRecord {
   payments Payment[]
   doctors  TreatmentDoctor[]
 
+  branchId String? // multi-branch: location this operation was performed at (null = unassigned)
+  branch   Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
   @@index([patientId, performedAt])
   @@index([procedureId])
+  @@index([branchId])
 }
 
 /// A payment received from a patient. May be tied to a specific treatment (an
@@ -126,9 +134,12 @@ model Payment {
   createdAt         DateTime         @default(now())
   deletedAt         DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
   deletedBy         String? // User.id who soft-deleted (snapshot for the Trash view)
+  branchId          String? // multi-branch: location this payment was taken at (null = unassigned)
+  branch            Branch?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
   @@index([patientId, paidAt])
   @@index([treatmentRecordId])
+  @@index([branchId])
 }
 
 /// A booking. Drives the whole confirm -> WhatsApp -> queue flow.
@@ -160,6 +171,8 @@ model Appointment {
   patient   Patient?  @relation(fields: [patientId], references: [id])
   doctorId  String? // optional: which doctor this visit is booked with
   doctor    Doctor?   @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  branchId  String? // multi-branch: location this visit belongs to (null = unassigned)
+  branch    Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
   messages  Message[]
 
   createdAt DateTime @default(now())
@@ -170,6 +183,7 @@ model Appointment {
   @@index([doctorId])
   @@index([patientId])
   @@index([scheduledAt])
+  @@index([branchId])
 }
 
 /// A WhatsApp message tied to an appointment (audit log + idempotency).
@@ -292,7 +306,11 @@ model Doctor {
   payouts       DoctorPayout[]
   prescriptions Prescription[]
 
+  branchId String? // multi-branch: doctor's home branch (null = unassigned)
+  branch   Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
   @@index([active, sortOrder])
+  @@index([branchId])
 }
 
 /// Join row: a doctor assigned to a treatment/operation, with the commission/// percentage and earned amount SNAPSHOT at the time it was recorded (so later
@@ -329,8 +347,11 @@ model DoctorPayout {
   createdAt DateTime  @default(now())
   deletedAt DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
   deletedBy String? // User.id who soft-deleted (snapshot for the Trash view)
+  branchId  String? // multi-branch: location this payout was recorded at (null = unassigned)
+  branch    Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
   @@index([doctorId, paidAt])
+  @@index([branchId])
 }
 
 /// A recurring monthly clinic expense (rent, electricity, or a custom type) that
@@ -348,8 +369,12 @@ model ClinicExpense {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
   deletedBy String? // User.id who soft-deleted (snapshot for the Trash view)
+  branchId  String? // multi-branch: location this expense belongs to (null = unassigned)
+  branch    Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
   overrides ClinicExpenseOverride[]
+
+  @@index([branchId])
 }
 
 /// Overrides the amount of a recurring ClinicExpense for one specific month
@@ -373,8 +398,9 @@ model ClinicExpenseOverride {
 // is modified. On-hand quantity is DERIVED (Σ batch.remainingQty), never stored,
 // so it cannot drift. Every stock change is written to the append-only
 // StockMovement ledger AND applied to a batch's remainingQty inside one
-// transaction. `branchId` columns are reserved (nullable) for future
-// multi-branch; today all stock is the single/default branch (null).
+// transaction. `branchId` links each item/batch/movement to a Branch (Sprint 12
+// multi-branch foundation, ON DELETE SET NULL); existing stock was backfilled to
+// the default branch, and the column stays nullable until write-stamping lands.
 // Quantities use Decimal(12,3) (supports fractional units like ml/g); money uses
 // Decimal(12,2) EGP to match the rest of the schema.
 // ---------------------------------------------------------------------------
@@ -431,9 +457,13 @@ model InventoryItem {
   movements StockMovement[]
   poLines   PurchaseOrderLine[]
 
+  branchId String? // multi-branch: location that stocks this item (null = unassigned)
+  branch   Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
   @@index([active, sortOrder])
   @@index([barcode])
   @@index([category])
+  @@index([branchId])
 }
 
 /// A received lot/batch of an item. Powers batch/lot tracking, expiry (FEFO),
@@ -445,7 +475,8 @@ model InventoryBatch {
   item         InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
   supplierId   String?
   supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  branchId     String? // reserved for multi-branch (null = default/main branch)
+  branchId     String? // multi-branch: location that holds this lot (null = unassigned)
+  branch       Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
   lotNumber    String?
   expiryDate   DateTime? // for FEFO ordering + expiry alerts
   unitCost     Decimal       @default(0) @db.Decimal(12, 2) // cost per unit for this lot (EGP)
@@ -461,6 +492,7 @@ model InventoryBatch {
   @@index([itemId, remainingQty])
   @@index([expiryDate])
   @@index([supplierId])
+  @@index([branchId])
 }
 
 /// Append-only ledger of every stock change. `quantityDelta` is SIGNED
@@ -473,7 +505,8 @@ model StockMovement {
   item          InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
   batchId       String?
   batch         InventoryBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
-  branchId      String? // reserved for multi-branch (null = default/main branch)
+  branchId      String? // multi-branch: location this movement occurred at (null = unassigned)
+  branch        Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
   type          String // receipt | consumption | wastage | adjustment | transfer_in | transfer_out | return
   quantityDelta Decimal         @db.Decimal(12, 3) // signed change to on-hand
   unitCost      Decimal?        @db.Decimal(12, 2) // snapshot cost/unit at movement time
@@ -489,6 +522,7 @@ model StockMovement {
   @@index([type, createdAt])
   @@index([batchId])
   @@index([referenceType, referenceId])
+  @@index([branchId])
 }
 
 /// A purchase order to a supplier: a header plus line items. Submitting sends it
@@ -502,7 +536,8 @@ model PurchaseOrder {
   code          String    @unique // human PO number, e.g. PO-2026-0001
   supplierId    String?
   supplier      Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  branchId      String? // reserved for multi-branch (null = default/main branch)
+  branchId      String? // multi-branch: location this order is for (null = unassigned)
+  branch        Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
   status        String    @default("draft") // draft | submitted | partially_received | received | cancelled
   currency      String    @default("EGP")
   notes         String?
@@ -520,6 +555,7 @@ model PurchaseOrder {
 
   @@index([status, createdAt])
   @@index([supplierId])
+  @@index([branchId])
 }
 
 /// One line of a purchase order: an item, ordered quantity, unit cost, and how
@@ -602,9 +638,13 @@ model Prescription {
 
   items PrescriptionItem[]
 
+  branchId String? // multi-branch: location this prescription was issued at (null = unassigned)
+  branch   Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
   @@index([patientId, issuedAt])
   @@index([doctorId])
   @@index([status, issuedAt])
+  @@index([branchId])
 }
 
 /// One medication line of a prescription. The item link is SET NULL so deleting a
@@ -633,4 +673,43 @@ model PrescriptionItem {
 
   @@index([prescriptionId])
   @@index([medicationId])
+}
+
+/// A physical clinic location (branch). Multi-branch foundation: operational and
+/// financial records (appointments, treatments, payments, payouts, expenses,
+/// inventory items/batches/movements, purchase orders, prescriptions) plus staff
+/// and doctors carry an optional `branchId` so one clinic can run several
+/// locations from a single database. Shared catalogs (patients, procedures,
+/// medications, suppliers, settings) stay clinic-wide. Soft-deletable (Recycle
+/// Bin); every `branchId` link is ON DELETE SET NULL, so removing a branch never
+/// deletes its records — they simply become unassigned.
+model Branch {
+  id        String    @id @default(cuid())
+  nameEn    String
+  nameAr    String
+  code      String    @unique // short branch code, e.g. MAIN, DT2
+  phone     String?
+  address   String?
+  active    Boolean   @default(true)
+  sortOrder Int       @default(0)
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
+  deletedBy String? // User.id who soft-deleted (snapshot for the Trash view)
+
+  appointments     Appointment[]
+  treatmentRecords TreatmentRecord[]
+  payments         Payment[]
+  doctorPayouts    DoctorPayout[]
+  clinicExpenses   ClinicExpense[]
+  inventoryItems   InventoryItem[]
+  inventoryBatches InventoryBatch[]
+  stockMovements   StockMovement[]
+  purchaseOrders   PurchaseOrder[]
+  prescriptions    Prescription[]
+  users            User[]
+  doctors          Doctor[]
+
+  @@index([active, sortOrder])
 }

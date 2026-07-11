@@ -11,6 +11,46 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 12 - Multi-Branch support (foundation / Phase 1)
+
+Additive foundation for running one clinic as several physical locations from a
+single database. One new table, an OPTIONAL `branchId` on twelve tables, and a
+management screen. No existing financial number, workflow, API response, or screen
+changed: `branchId` is nullable and NOT yet stamped on writes or read for scoping
+(deferred to later phases), so behaviour is byte-identical to before.
+
+- **Schema** - migration `20260712000009_branches` (ADD only): new `Branch` table
+  (bilingual name, unique `code`, phone/address, `active`, `sortOrder`, soft-delete
+  columns) plus a nullable `branchId` foreign key (ON DELETE SET NULL) on
+  `User`, `Doctor`, `Appointment`, `TreatmentRecord`, `Payment`, `DoctorPayout`,
+  `ClinicExpense`, `InventoryItem`, `InventoryBatch`, `StockMovement`,
+  `PurchaseOrder` and `Prescription`. The three inventory tables already carried a
+  reserved `branchId` column (from earlier sprints) so they only gain the FK + index.
+- **Backfill** - the migration seeds a single default branch (`branch_main`, code
+  `MAIN`) and assigns every existing scoped row to it; the column stays nullable so
+  nothing is forced. The seed (`prisma/seed.mjs`) idempotently upserts the same
+  default branch.
+- **Non-destructive by design** - every `branchId` link is ON DELETE SET NULL, so
+  deleting a branch never removes its records — they simply become unassigned.
+- **Pure helpers** - `src/lib/server/branches.ts` (`normalizeBranchCode`,
+  `isValidBranchCode`, name/optional-text/sort-order normalizers, `isDefaultBranch`,
+  deterministic `sortBranches`), mirrored + unit-tested in
+  `tests/unit/branches.test.mjs` (+10 tests).
+- **Service** - `src/lib/server/branches-ops.ts` (`OpResult`; list/get/create/
+  update/soft-delete with globally-unique code enforcement + P2002 guard; the
+  default branch is protected from deletion).
+- **API (additive)** - `GET/POST /api/admin/branches`, `GET/PATCH/DELETE
+  /api/admin/branches/[id]`. Reads = any signed-in staff; writes = owner roles
+  (`admin`/`doctor`), Zod-validated and audited.
+- **Soft-delete** - `Branch` joins the Recycle Bin registries (`soft-delete.ts`,
+  `soft-delete-ops.ts`, `trash.ts`, `RecycleBin.tsx`) as the `branch` type.
+- **UI** - new `/dashboard/branches` screen (`BranchesManager.tsx`): list with
+  active/default badges + create/edit/delete modals, bilingual EN/AR, write actions
+  owner-gated. Reached by direct URL (not wired into the WIP dashboard nav yet).
+- **Verification** - `tsc` 0, ESLint 0, **221/221** unit tests, `next build`
+  registers both API routes + the page. Live migration apply, backfill and FK
+  behaviour verified on Railway (no local Postgres).
+
 #### Sprint 11 - Electronic Prescriptions
 
 Additive clinical feature: issue, print and track patient prescriptions from a

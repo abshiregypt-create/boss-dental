@@ -77,6 +77,23 @@ async function main() {
     },
   });
 
+  // Multi-branch foundation (Sprint 12): guarantee the default branch exists so
+  // the migration's backfill target is always present. Idempotent: never rotates
+  // an existing branch's editable fields (name/phone/address), only ensures the
+  // row + its stable code. Matches the id/code the migration seeds.
+  await prisma.branch.upsert({
+    where: { id: "branch_main" },
+    update: {},
+    create: {
+      id: "branch_main",
+      nameEn: "Main Branch",
+      nameAr: "الفرع الرئيسي",
+      code: "MAIN",
+      active: true,
+      sortOrder: 0,
+    },
+  });
+
   // Never print a configured secret to logs. Show only a locally-generated dev
   // password so a fresh checkout can sign in.
   if (generated) {

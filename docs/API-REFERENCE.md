@@ -195,6 +195,42 @@ The printable document at `/dashboard/prescriptions/[id]/print` shows a "Cancell
 
 ---
 
+## Admin — Branches (auth required)
+
+Multi-branch **foundation** (Sprint 12). Branches are physical locations of one
+clinic within one database. **Reads** require a session; **writes** require owner
+roles (`admin`/`doctor`) and are Zod-validated and audited. `code` is globally
+unique (a clash returns `409 code_taken`). The seeded default branch (`branch_main`,
+code `MAIN`) can be edited but **not deleted** (`400 default_branch`). Deletes are
+**soft deletes** (Recycle Bin); because every `branchId` link is ON DELETE SET NULL,
+a branch's records are never removed with it. Note: this phase does not yet stamp
+`branchId` on operational writes nor scope reads by branch.
+
+### GET `/api/admin/branches`
+List branches, active-first then by `sortOrder`/name. `?search=` matches name/code;
+`?includeInactive=1` also returns archived branches (soft-deleted rows always hidden).
+`200` → `{ branches:[ { id, nameEn, nameAr, code, phone, address, active, sortOrder,
+notes, isDefault, createdAt, updatedAt } ] }`
+
+### POST `/api/admin/branches`
+Create a branch (owner). Body: `{ nameEn?, nameAr?, code, phone?, address?, notes?,
+sortOrder?, active? }` (at least one name; a valid 1–16 char alphanumeric `code`).
+`200` → `{ branch }` · `400 invalid_code`/`name_required` · `409 code_taken`
+
+### GET `/api/admin/branches/[id]`
+One branch. `200` → `{ branch }` · `404` not found.
+
+### PATCH `/api/admin/branches/[id]`
+Update a branch (owner). Same fields as POST (all optional). `200` → `{ branch }` ·
+`404` not found · `409 code_taken`
+
+### DELETE `/api/admin/branches/[id]`
+Soft-delete a branch (owner) → Recycle Bin. `200` → `{ ok:true }` · `400 default_branch`
+(the default branch is protected) · `404` not found. Its records keep their history
+and become unassigned.
+
+---
+
 ## Admin — Inventory (auth required)
 
 Enterprise stock control for clinic consumables. **Reads** require a session;

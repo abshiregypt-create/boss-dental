@@ -326,4 +326,45 @@ medication orders against a reusable catalog. Three additive tables (`Medication
   auto-opens the browser print dialog. Bilingual EN/AR; writes owner-gated.
 
 
+## 11. Multi-branch foundation
+
+Multi-branch support (Sprint 12, **Phase 1 = foundation only**) lets one clinic run
+several physical locations from a single database. It is deliberately **additive and
+behaviour-neutral**: the plumbing exists, but nothing stamps or reads `branchId` yet.
+
+- **Model** — a new `Branch` table (bilingual name, unique `code`, phone/address,
+  `active`, `sortOrder`, soft-delete columns). An **optional** `branchId` foreign key
+  (ON DELETE SET NULL) is added to the operational/financial + staff tables: `User`,
+  `Doctor`, `Appointment`, `TreatmentRecord`, `Payment`, `DoctorPayout`,
+  `ClinicExpense`, `InventoryItem`, `InventoryBatch`, `StockMovement`, `PurchaseOrder`,
+  `Prescription`. Shared catalogs (`Patient`, `Procedure`, `Medication`, `Supplier`,
+  `Setting`) stay clinic-wide. Migration `20260712000009_branches` is ADD-only; the
+  three inventory tables already carried a reserved `branchId` column, so they only
+  gain the FK + index.
+- **Default branch** — the migration seeds `branch_main` (code `MAIN`) and backfills
+  every existing scoped row to it; `prisma/seed.mjs` idempotently upserts the same row.
+  Columns stay **nullable** (no NOT NULL), so nothing is forced and behaviour is
+  identical to before. Because the FKs are SET NULL, deleting a branch never deletes
+  its records — they become unassigned.
+- **Pure core** — `src/lib/server/branches.ts` holds `normalizeBranchCode`,
+  `isValidBranchCode` (1–16 alphanumeric, may include `-`/`_`), name/optional-text/
+  sort-order normalizers, the `isDefaultBranch` guard, and a deterministic
+  `sortBranches` (active-first, then sortOrder/name/id). Unit-tested via a mirror in
+  `tests/unit/branches.test.mjs`.
+- **Service** — `src/lib/server/branches-ops.ts` (OpResult pattern): list/get/create/
+  update/soft-delete. `code` is unique across live + trashed rows (checked proactively
+  and guarded by a P2002 catch → `409`); the default branch is protected from deletion.
+- **Endpoints** — `/api/admin/branches` (+`/[id]`). Reads = any signed-in staff;
+  writes = owner roles, Zod-validated + audited.
+- **Soft-delete** — `Branch` is registered in the soft-delete / Recycle Bin
+  infrastructure (`branch` trash type). It has no cascade children (all `branchId`
+  links are SET NULL), so no purge-reference guard is needed.
+- **UI** — `/dashboard/branches` (`BranchesManager.tsx`): a list with active/default
+  badges plus create/edit/delete modals. Bilingual EN/AR; writes owner-gated; reached
+  by direct URL (not wired into the WIP dashboard nav yet).
+- **Roadmap** — later phases add write-stamping of `branchId` + a branch switcher
+  (Phase 2), branch-scoped reads/reports (Phase 3), and staff/doctor assignment plus a
+  "shared patients" toggle and branch scheduling (Phase 4).
+
+
 

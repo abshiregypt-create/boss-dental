@@ -31,7 +31,8 @@ export type TrashType =
   | "item"
   | "purchase_order"
   | "medication"
-  | "prescription";
+  | "prescription"
+  | "branch";
 
 type TrashRegistryEntry = {
   /** PascalCase Prisma model name (matches soft-delete model registry). */
@@ -56,6 +57,7 @@ export const TRASH_REGISTRY: Readonly<Record<TrashType, TrashRegistryEntry>> = {
   purchase_order: { model: "PurchaseOrder", delegate: "purchaseOrder", label: "Purchase orders" },
   medication: { model: "Medication", delegate: "medication", label: "Medications" },
   prescription: { model: "Prescription", delegate: "prescription", label: "Prescriptions" },
+  branch: { model: "Branch", delegate: "branch", label: "Branches" },
 };
 
 export const TRASH_TYPES = Object.keys(TRASH_REGISTRY) as TrashType[];
@@ -171,6 +173,11 @@ const VIEW: Readonly<Record<TrashType, TrashView>> = {
     select: { id: true, code: true, patientName: true, deletedAt: true, deletedBy: true },
     label: (r) => firstText(r.code) || "Prescription",
     detail: (r) => str(r.patientName),
+  },
+  branch: {
+    select: { id: true, nameEn: true, nameAr: true, code: true, deletedAt: true, deletedBy: true },
+    label: (r) => firstText(r.nameEn, r.nameAr) || "Branch",
+    detail: (r) => str(r.code),
   },
 };
 

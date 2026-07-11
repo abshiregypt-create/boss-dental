@@ -11,6 +11,44 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 11 - Electronic Prescriptions
+
+Additive clinical feature: issue, print and track patient prescriptions from a
+reusable medication catalog. Three new tables, zero ALTER on existing tables; no
+existing financial number, workflow, API response, or screen changed.
+
+- **Schema** - migration `20260711000008_prescriptions` (ADD only): `Medication`
+  (bilingual catalog template with default dosage/frequency/duration/instructions),
+  `Prescription` (code `RX-YYYY-NNNN`, patient + doctor snapshots, status
+  `issued`/`cancelled`, diagnosis/notes) and `PrescriptionItem` (per-line medication
+  snapshot + dosage/frequency/duration/refills/quantity/instructions). Patient and
+  Doctor gain a `prescriptions` Prisma back-relation only (no new columns).
+- **Snapshots** - each prescription line snapshots the medication name/strength/form
+  at issue time, so editing or deleting a catalog medication never rewrites past
+  prescriptions.
+- **Pure helpers** - `src/lib/server/prescriptions.ts` (status guards, `clampRefills`
+  0-12, `clampDurationDays` 1-365, `buildRxCode`, a safe no-op `checkInteractions`
+  stub), mirrored + unit-tested in `tests/unit/prescriptions.test.mjs` (+6 tests).
+- **Service** - `src/lib/server/prescriptions-ops.ts` (medication CRUD; prescription
+  create/list-by-phone/get/cancel/soft-delete; `RX-YYYY-NNNN` allocation with a
+  P2002 retry). Patient resolved/created by phone (mirrors treatments).
+- **API (additive)** - `GET/POST /api/admin/medications`, `PATCH/DELETE
+  /api/admin/medications/[id]`, `GET(?phone=)/POST /api/admin/prescriptions`,
+  `GET/DELETE /api/admin/prescriptions/[id]`, `POST /api/admin/prescriptions/[id]/cancel`.
+  Reads = any signed-in staff; writes = owner roles (`admin`/`doctor`), Zod-validated
+  and audited.
+- **Soft-delete** - `Medication` and `Prescription` join the Recycle Bin
+  (`medication`/`prescription` trash types, bilingual); purging a referenced
+  medication is blocked unless forced by Super Admin.
+- **UI** - a "Prescriptions" section on each patient (list with per-row print / cancel
+  / delete, plus a "New prescription" modal: medication picker from the catalog with
+  inline "save to library", per-line dosage/frequency/duration/refills/instructions,
+  optional prescribing doctor, diagnosis/notes). Bilingual EN/AR; write actions
+  owner-gated. A standalone printable page at `/dashboard/prescriptions/[id]/print`
+  renders a clean clinic-branded document and auto-opens the print dialog.
+- **Verification** - tsc 0, eslint 0, **211/211 unit tests** (was 205), `next build`
+  registers all 5 new API routes + the print page.
+
 #### Sprint 10 - Analytics: Inventory Consumption
 
 Additive, read-only analytics for the new inventory subsystem (Sprints 7-9), which

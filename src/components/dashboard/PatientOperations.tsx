@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLang } from "@/lib/language";
 import { formatMoney } from "@/lib/patients";
+import { PatientPrescriptions } from "./PatientPrescriptions";
 
 export type Procedure = { id: string; nameEn: string; nameAr: string; price: number; cost: number | null; active: boolean };
 export type DoctorLite = { id: string; nameEn: string; nameAr: string; commissionPct: number; active: boolean };
@@ -101,7 +102,8 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
   };
 
   return (
-    <section className="rounded-2xl border border-primary/12 bg-surface-2 p-4">
+    <div className="space-y-4">
+      <section className="rounded-2xl border border-primary/12 bg-surface-2 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
           <svg viewBox="0 0 24 24" className="h-4 w-4 text-primary" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M12 11v6M9 14h6" /></svg>
@@ -261,6 +263,8 @@ export function PatientOperations({ phone, name }: { phone: string; name: string
         />
       )}
     </section>
+      <PatientPrescriptions phone={phone} name={name} />
+    </div>
   );
 }
 

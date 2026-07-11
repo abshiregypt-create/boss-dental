@@ -145,6 +145,56 @@ Delete the file (disk + DB row). `200` → `{ ok:true }` · `404` not found.
 
 ---
 
+## Admin — Prescriptions & medications (auth required)
+
+Electronic prescriptions issued against a reusable medication catalog. **Reads**
+(list/detail, used by the printable page) require a session; **writes** require owner
+roles (`admin`/`doctor`) and are Zod-validated and audited. Each prescription line
+**snapshots** the medication name/strength/form at issue time, so editing or deleting
+a catalog medication never rewrites past prescriptions. Deletes are **soft deletes**
+(Recycle Bin). Prescriptions are keyed by patient phone, like treatments.
+
+### GET `/api/admin/medications`
+List catalog medications. `?search=` matches name/strength; `?includeInactive=1`
+also returns deactivated entries (soft-deleted rows are always hidden).
+`200` → `{ medications:[ … ] }`
+
+### POST `/api/admin/medications`
+Add a catalog medication (owner). Body: `{ nameEn?, nameAr?, form?, strength?, route?,
+defaultDosage?, defaultFrequency?, defaultDurationDays?, defaultInstructions?, notes?,
+active? }` (at least one name). `200` → `{ medication }`
+
+### PATCH `/api/admin/medications/[id]`
+Update a catalog medication (owner). Same fields as POST. `200` → `{ medication }` · `404` not found.
+
+### DELETE `/api/admin/medications/[id]`
+Soft-delete a catalog medication (owner). `200` → `{ ok:true }`. Restorable from the Trash.
+
+### GET `/api/admin/prescriptions?phone=<phone>`
+List a patient's prescriptions, newest first (soft-deleted hidden). `phone` required
+(`400 phone_required`). Supports `?limit=&offset=` + `X-Total-Count`.
+`200` → `{ prescriptions:[ { id, code, patientName, doctorName, status, diagnosis,
+notes, issuedAt, items:[ … ], itemCount } ] }`
+
+### POST `/api/admin/prescriptions`
+Issue a prescription (owner). The patient is looked up / created by phone. Body:
+`{ phone, name?, doctorId?, appointmentId?, diagnosis?, notes?, items:[ { medicationId?,
+nameEn?, nameAr?, strength?, form?, dosage?, frequency?, durationDays?, quantity?,
+refills?, instructions? } ] }` (≥1 item; a catalog `medicationId` snapshots its
+name/strength/form, otherwise `nameEn`/`nameAr` are used). `200` → `{ prescription }`
+
+### GET `/api/admin/prescriptions/[id]`
+Full prescription detail (used by the printable page). `200` → `{ prescription }` · `404` not found.
+
+### DELETE `/api/admin/prescriptions/[id]`
+Soft-delete a prescription document (owner). `200` → `{ ok:true }`. Restorable from the Trash.
+
+### POST `/api/admin/prescriptions/[id]/cancel`
+Mark a prescription `cancelled` (owner). `200` → `{ prescription }` · `404` not found.
+The printable document at `/dashboard/prescriptions/[id]/print` shows a "Cancelled" watermark.
+
+---
+
 ## Admin — Inventory (auth required)
 
 Enterprise stock control for clinic consumables. **Reads** require a session;
@@ -290,7 +340,7 @@ The inventory operator UI for these endpoints is at `/dashboard/inventory`
 
 Deletes of sensitive records (patients, treatments, payments, doctors, payouts,
 clinic expenses, patient files, procedures, suppliers, inventory items, purchase
-orders) are **soft deletes**: the row is stamped `deletedAt`/`deletedBy` and hidden
+orders, medications, prescriptions) are **soft deletes**: the row is stamped `deletedAt`/`deletedBy` and hidden
 from every normal read, instead of being physically removed. The DELETE endpoints above are unchanged from a client's
 perspective (still `200 { ok:true }`); the record simply becomes restorable from
 the Trash. The endpoints below manage those trashed rows.
@@ -300,7 +350,7 @@ List trashed records. Owner roles (`requireRole(OWNER_ROLES)`).
 - No query: overview -> `{ total, types:[ { type, label, count } ] }`
 - `?type=<type>&limit=&offset=`: items of one type ->
   `{ type, items:[ { id, label, detail, deletedAt, deletedBy } ] }`
-- `type` is one of `patient|doctor|treatment|payment|procedure|file|payout|expense|supplier|item|purchase_order`
+- `type` is one of `patient|doctor|treatment|payment|procedure|file|payout|expense|supplier|item|purchase_order|medication|prescription`
 - `400 {"error":"bad_type"}` for an unknown type
 
 ### POST `/api/admin/trash/restore`

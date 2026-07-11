@@ -33,6 +33,8 @@ export const SOFT_DELETABLE_MODELS: ReadonlySet<string> = new Set([
   "Supplier",
   "InventoryItem",
   "PurchaseOrder",
+  "Medication",
+  "Prescription",
 ]);
 
 /**
@@ -104,7 +106,8 @@ export type CascadeChildModel =
   | "treatmentDoctor"
   | "doctorPayout"
   | "inventoryBatch"
-  | "stockMovement";
+  | "stockMovement"
+  | "prescriptionItem";
 export type CascadeChild = { model: CascadeChildModel; fk: string };
 
 export const SOFT_DELETE_CASCADE: Readonly<Record<string, readonly CascadeChild[]>> = {

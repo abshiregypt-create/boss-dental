@@ -43,20 +43,21 @@ model AuditLog {
 
 /// A person who has booked at least once.
 model Patient {
-  id           String            @id @default(cuid())
-  name         String
-  phone        String
-  email        String?
-  gender       String? // male | female
-  source       String            @default("booking") // booking | manual
-  notes        String?
-  medical      Json? // { bloodType, allergies, conditions, medications, notes }
-  createdAt    DateTime          @default(now())
-  deletedAt    DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
-  deletedBy    String? // User.id who soft-deleted (snapshot for the Trash view)
-  appointments Appointment[]
-  treatments   TreatmentRecord[]
-  payments     Payment[]
+  id            String            @id @default(cuid())
+  name          String
+  phone         String
+  email         String?
+  gender        String? // male | female
+  source        String            @default("booking") // booking | manual
+  notes         String?
+  medical       Json? // { bloodType, allergies, conditions, medications, notes }
+  createdAt     DateTime          @default(now())
+  deletedAt     DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
+  deletedBy     String? // User.id who soft-deleted (snapshot for the Trash view)
+  appointments  Appointment[]
+  treatments    TreatmentRecord[]
+  payments      Payment[]
+  prescriptions Prescription[]
 
   @@index([phone])
 }
@@ -286,9 +287,10 @@ model Doctor {
   deletedAt     DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
   deletedBy     String? // User.id who soft-deleted (snapshot for the Trash view)
 
-  treatments   TreatmentDoctor[]
-  appointments Appointment[]
-  payouts      DoctorPayout[]
+  treatments    TreatmentDoctor[]
+  appointments  Appointment[]
+  payouts       DoctorPayout[]
+  prescriptions Prescription[]
 
   @@index([active, sortOrder])
 }
@@ -425,9 +427,9 @@ model InventoryItem {
   deletedAt    DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
   deletedBy    String? // User.id who soft-deleted (snapshot for the Trash view)
 
-  batches        InventoryBatch[]
-  movements      StockMovement[]
-  poLines        PurchaseOrderLine[]
+  batches   InventoryBatch[]
+  movements StockMovement[]
+  poLines   PurchaseOrderLine[]
 
   @@index([active, sortOrder])
   @@index([barcode])
@@ -438,20 +440,20 @@ model InventoryItem {
 /// and per-lot cost for valuation. `remainingQty` is decremented as stock is
 /// consumed; a depleted batch (remainingQty=0) is retained for history.
 model InventoryBatch {
-  id           String         @id @default(cuid())
+  id           String        @id @default(cuid())
   itemId       String
-  item         InventoryItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item         InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
   supplierId   String?
-  supplier     Supplier?      @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   branchId     String? // reserved for multi-branch (null = default/main branch)
   lotNumber    String?
   expiryDate   DateTime? // for FEFO ordering + expiry alerts
-  unitCost     Decimal        @default(0) @db.Decimal(12, 2) // cost per unit for this lot (EGP)
-  receivedQty  Decimal        @default(0) @db.Decimal(12, 3) // original quantity received
-  remainingQty Decimal        @default(0) @db.Decimal(12, 3) // current on-hand for this lot
-  receivedAt   DateTime       @default(now())
+  unitCost     Decimal       @default(0) @db.Decimal(12, 2) // cost per unit for this lot (EGP)
+  receivedQty  Decimal       @default(0) @db.Decimal(12, 3) // original quantity received
+  remainingQty Decimal       @default(0) @db.Decimal(12, 3) // current on-hand for this lot
+  receivedAt   DateTime      @default(now())
   notes        String?
-  createdAt    DateTime       @default(now())
+  createdAt    DateTime      @default(now())
 
   movements StockMovement[]
 
@@ -542,4 +544,93 @@ model PurchaseOrderLine {
 
   @@index([purchaseOrderId])
   @@index([itemId])
+}
+
+/// The clinic's reusable medication library (paracetamol, amoxicillin…). A
+/// prescription line may pick from this catalog and SNAPSHOTS the name/strength/
+/// form at issue time so later catalog edits never rewrite an issued prescription.
+/// Soft-deletable (Recycle Bin); a deleted medication keeps prescription history
+/// because lines snapshot the name and the link is SET NULL.
+model Medication {
+  id                  String    @id @default(cuid())
+  nameEn              String
+  nameAr              String
+  form                String? // tablet | capsule | syrup | injection | cream | drops | …
+  strength            String? // e.g. "500 mg", "250 mg/5 ml"
+  route               String? // oral | topical | IV | IM | …
+  defaultDosage       String? // e.g. "1 tablet"
+  defaultFrequency    String? // e.g. "twice daily" / "بعد الأكل بساعة"
+  defaultDurationDays Int? // typical course length in days
+  defaultInstructions String?
+  notes               String?
+  active              Boolean   @default(true)
+  sortOrder           Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
+  deletedBy           String? // User.id who soft-deleted (snapshot for the Trash view)
+
+  items PrescriptionItem[]
+
+  @@index([active, sortOrder])
+}
+
+/// An electronic prescription issued to a patient (header). Patient name and the
+/// prescribing doctor's name are snapshotted so the printed document is stable
+/// even if the patient/doctor is later edited or removed. Status is `issued` or
+/// `cancelled`; soft-delete moves it to the Recycle Bin without losing history.
+model Prescription {
+  id            String    @id @default(cuid())
+  code          String    @unique // human RX number, e.g. RX-2026-0001
+  patientId     String
+  patient       Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientName   String // snapshot of the patient name at issue time
+  doctorId      String? // optional: the prescribing doctor
+  doctor        Doctor?   @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  doctorName    String? // snapshot of the doctor name at issue time
+  appointmentId String? // optional soft link to the visit (no FK; mirrors TreatmentRecord)
+  status        String    @default("issued") // issued | cancelled
+  diagnosis     String?
+  notes         String?
+  issuedAt      DateTime  @default(now())
+  createdBy     String? // User.id who created it
+  createdByName String? // snapshot of the creator's display name
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // soft-delete: non-null = hidden from normal queries (Recycle Bin)
+  deletedBy     String? // User.id who soft-deleted (snapshot for the Trash view)
+
+  items PrescriptionItem[]
+
+  @@index([patientId, issuedAt])
+  @@index([doctorId])
+  @@index([status, issuedAt])
+}
+
+/// One medication line of a prescription. The item link is SET NULL so deleting a
+/// catalog medication keeps the prescription intact (name/strength/form are
+/// snapshotted at issue time). Cascade child of its Prescription (a permanent
+/// purge removes the lines with the document).
+model PrescriptionItem {
+  id             String       @id @default(cuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicationId   String? // catalog link (null if custom or catalog entry was deleted)
+  medication     Medication?  @relation(fields: [medicationId], references: [id], onDelete: SetNull)
+  nameEn         String // snapshot of the medication name at issue time
+  nameAr         String
+  strength       String? // snapshot, e.g. "500 mg"
+  form           String? // snapshot, e.g. "tablet"
+  dosage         String? // e.g. "1 tablet"
+  frequency      String? // e.g. "3× daily"
+  durationDays   Int? // course length in days
+  quantity       String? // dispense quantity as free text, e.g. "20 tablets"
+  refills        Int          @default(0) // number of allowed repeats
+  instructions   String? // free-text directions (sig)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([prescriptionId])
+  @@index([medicationId])
 }

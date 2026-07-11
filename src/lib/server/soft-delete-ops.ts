@@ -35,6 +35,8 @@ const DELEGATE_BY_MODEL: Readonly<Record<string, string>> = {
   Supplier: "supplier",
   InventoryItem: "inventoryItem",
   PurchaseOrder: "purchaseOrder",
+  Medication: "medication",
+  Prescription: "prescription",
 };
 
 /** Inverse map for recursing into a cascade child's own children. */
@@ -45,6 +47,7 @@ const MODEL_BY_DELEGATE: Readonly<Record<CascadeChildModel, string>> = {
   doctorPayout: "DoctorPayout",
   inventoryBatch: "InventoryBatch",
   stockMovement: "StockMovement",
+  prescriptionItem: "PrescriptionItem",
 };
 
 type IdRow = { id: string };
@@ -226,6 +229,10 @@ export const PURGE_REFERENCES: Readonly<Record<string, readonly CascadeChild[]>>
     { model: "stockMovement", fk: "itemId" },
   ],
   Supplier: [{ model: "inventoryBatch", fk: "supplierId" }],
+  // Medication -> PrescriptionItem is ON DELETE SET NULL: a purge severs the
+  // catalog link on issued prescription lines (their name/strength/form are
+  // snapshotted, so the printout survives) — warn unless a Super Admin forces it.
+  Medication: [{ model: "prescriptionItem", fk: "medicationId" }],
 };
 
 /** Reference relations that guard a purge for a model (empty if none). Pure. */

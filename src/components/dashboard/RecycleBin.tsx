@@ -30,6 +30,8 @@ const TYPE_LABEL: Record<string, { en: string; ar: string }> = {
   supplier: { en: "Suppliers", ar: "الموردون" },
   item: { en: "Inventory items", ar: "أصناف المخزون" },
   purchase_order: { en: "Purchase orders", ar: "أوامر الشراء" },
+  medication: { en: "Medications", ar: "الأدوية" },
+  prescription: { en: "Prescriptions", ar: "الروشتات" },
 };
 
 const PAGE_LIMIT = 100;

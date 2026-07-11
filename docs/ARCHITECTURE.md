@@ -289,5 +289,41 @@ schema change, no writes (`analytics-inventory.ts`, "Inventory consumption" pane
   the UI fetches it independently of the main analytics call, so one failing never
   blanks the other. Session-gated read (any signed-in staff).
 
+## 10. Prescriptions subsystem
+
+Electronic prescriptions (Sprint 11) let doctors issue, print and track patient
+medication orders against a reusable catalog. Three additive tables (`Medication`,
+`Prescription`, `PrescriptionItem`); no existing table altered.
+
+- **Catalog vs. document** — `Medication` is a reusable bilingual template (default
+  dosage/frequency/duration/instructions). A `Prescription` is an issued document with
+  a `code` (`RX-YYYY-NNNN`), patient + doctor **snapshots**, `status`
+  (`issued`/`cancelled`) and `diagnosis`/`notes`. Each `PrescriptionItem` **snapshots**
+  the medication name/strength/form at issue time, so editing or deleting a catalog
+  medication never rewrites past prescriptions (mirrors how purchase-order lines snapshot
+  item names).
+- **Pure core** — `src/lib/server/prescriptions.ts` holds the status guards,
+  `clampRefills` (0–12), `clampDurationDays` (1–365), `buildRxCode`, and a safe no-op
+  `checkInteractions` stub (a future drug-interaction hook that currently returns none).
+  Unit-tested via a mirror in `tests/unit/prescriptions.test.mjs`.
+- **Service** — `src/lib/server/prescriptions-ops.ts` (OpResult pattern): medication
+  CRUD plus prescription create/list-by-phone/get/cancel/soft-delete. Codes are
+  allocated by counting existing rows for the year (across live + trashed, so numbers
+  never collide) with a P2002 unique-violation retry. Patients are resolved/created by
+  phone via `ensurePatient` (identical to treatments).
+- **Endpoints** — `/api/admin/medications` (+`/[id]`) and `/api/admin/prescriptions`
+  (+`/[id]`, `/[id]/cancel`). Reads = any signed-in staff (the printable page uses the
+  detail read); writes = owner roles, Zod-validated + audited.
+- **Soft-delete** — `Medication` and `Prescription` are registered in the soft-delete /
+  Recycle Bin infrastructure (`medication`/`prescription` trash types). `PrescriptionItem`
+  is a cascade-only child (no `deletedAt`), like `PurchaseOrderLine`. Purging a
+  medication still referenced by a prescription line is blocked unless a Super Admin forces it.
+- **UI** — a "Prescriptions" section per patient in `PatientOperations.tsx` (via the
+  self-contained `PatientPrescriptions.tsx`): list + issue modal (catalog picker with
+  inline "save to library", per-line editor, optional doctor, diagnosis/notes). The
+  printable document lives at `/dashboard/prescriptions/[id]/print` — a standalone client
+  page (root layout only, no dashboard chrome) that renders a clinic-branded sheet and
+  auto-opens the browser print dialog. Bilingual EN/AR; writes owner-gated.
+
 
 

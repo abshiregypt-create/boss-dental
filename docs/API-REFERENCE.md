@@ -228,6 +228,15 @@ unit, onHand, onOrder, reorderLevel, reorderQty, suggestedQty, lastUnitCost,
 lastPurchaseAt, lastSupplier:{ id, nameEn, nameAr }|null } ] }`. `suggestedQty` is
 `0` when an open PO already covers the level (don't double-order). Read-only.
 
+### GET `/api/admin/analytics/inventory?range=30d|90d|12m|all`
+Inventory consumption analytics derived from the append-only `StockMovement` ledger
+(read-only; any signed-in staff). `range` mirrors the Analytics dashboard selector
+(default `12m`; `all` drops the time bound). `200` → `{ range, consumptionValue,
+consumptionQty, wastageValue, wastageQty, topConsumed:[ { itemId, nameEn, nameAr,
+unit, qty, value } ], topWasted:[ … ] }`. A movement's value is its snapshot
+`totalCost` when present, else `|quantityDelta| × unitCost`, always non-negative.
+Separate from `GET /api/admin/analytics`, whose response is unchanged.
+
 ### GET `/api/admin/inventory/lookup?code=|barcode=|sku=`
 Resolve an item by barcode or SKU (for scanners). `200` → `{ item }` · `404`.
 

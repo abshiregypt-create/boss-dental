@@ -271,5 +271,23 @@ Read-only reporting derived from the data above — no schema change, no writes
 - **Access** — both endpoints are session-gated reads (any signed-in staff); nothing
   here mutates stock or ledger.
 
+### 9.3 Inventory consumption analytics
+
+Read-only roll-up of the `StockMovement` ledger for the Analytics dashboard — no
+schema change, no writes (`analytics-inventory.ts`, "Inventory consumption" panel in
+`AnalyticsSection.tsx`).
+
+- **Endpoint** — `GET /api/admin/analytics/inventory?range=30d|90d|12m|all` fetches
+  `consumption`/`wastage` movements in the window (indexed by `@@index([type,
+  createdAt])`), then `summarizeConsumption()` folds them into consumed vs wasted
+  totals (value + quantity) plus the top items by value. `range` mirrors the dashboard
+  selector via `normalizeRange`/`rangeStart`; `all` drops the `createdAt` bound.
+- **Value convention** — `movementValue()` uses a movement's snapshot `totalCost` when
+  present, else `|quantityDelta| × unitCost`, always non-negative and rounded. The math
+  is pure and unit-tested (`tests/unit/analytics-inventory.test.mjs`).
+- **Isolation** — a separate route so `GET /api/admin/analytics` stays byte-identical;
+  the UI fetches it independently of the main analytics call, so one failing never
+  blanks the other. Session-gated read (any signed-in staff).
+
 
 

@@ -24,6 +24,17 @@ type Analytics = {
   doctorProcedures: { doctorId: string; nameEn: string; nameAr: string; items: { name: string; count: number }[] }[];
 };
 
+type ConsumedItem = { itemId: string; nameEn: string; nameAr: string; unit: string; qty: number; value: number };
+type InventoryAnalytics = {
+  range: string;
+  consumptionValue: number;
+  consumptionQty: number;
+  wastageValue: number;
+  wastageQty: number;
+  topConsumed: ConsumedItem[];
+  topWasted: ConsumedItem[];
+};
+
 const RANGES = [
   { id: "30d", label: { en: "30 days", ar: "٣٠ يوم" } },
   { id: "90d", label: { en: "90 days", ar: "٩٠ يوم" } },
@@ -61,6 +72,7 @@ export function AnalyticsSection() {
   const { tr, lang } = useLang();
   const [range, setRange] = useState("12m");
   const [data, setData] = useState<Analytics | null>(null);
+  const [inv, setInv] = useState<InventoryAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,6 +81,18 @@ export function AnalyticsSection() {
       const res = await fetch(`/api/admin/analytics?range=${range}`, { cache: "no-store" });
       if (res.ok && alive) setData((await res.json()) as Analytics);
       if (alive) setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [range]);
+
+  // Inventory consumption — independent, non-blocking fetch keyed on the same range.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const res = await fetch(`/api/admin/analytics/inventory?range=${range}`, { cache: "no-store" });
+      if (res.ok && alive) setInv((await res.json()) as InventoryAnalytics);
     })();
     return () => {
       alive = false;
@@ -240,6 +264,44 @@ export function AnalyticsSection() {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {inv && (inv.consumptionValue > 0 || inv.wastageValue > 0 || inv.topConsumed.length > 0) && (
+            <div className="rounded-2xl border border-primary/12 bg-surface p-5">
+              <h3 className="text-sm font-bold text-ink">{tr({ en: "Inventory consumption", ar: "استهلاك المخزون" })}</h3>
+              <p className="mt-0.5 text-xs text-muted">{tr({ en: "Stock used and wasted in this range, valued at cost.", ar: "المخزون المستخدم والمهدر في هذه الفترة، مُقيَّم بالتكلفة." })}</p>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-primary/10 p-3">
+                  <p className="text-xs text-muted">{tr({ en: "Consumed", ar: "مستهلك" })}</p>
+                  <p className="mt-0.5 text-xl font-extrabold text-ink">{formatMoney(inv.consumptionValue, lang)}</p>
+                  <p className="text-[11px] text-muted">{inv.consumptionQty} {tr({ en: "units", ar: "وحدة" })}</p>
+                </div>
+                <div className="rounded-xl border border-primary/10 p-3">
+                  <p className="text-xs text-muted">{tr({ en: "Wasted", ar: "مهدر" })}</p>
+                  <p className="mt-0.5 text-xl font-extrabold" style={{ color: inv.wastageValue > 0 ? "#e11d48" : undefined }}>{formatMoney(inv.wastageValue, lang)}</p>
+                  <p className="text-[11px] text-muted">{inv.wastageQty} {tr({ en: "units", ar: "وحدة" })}</p>
+                </div>
+              </div>
+              {inv.topConsumed.length > 0 && (() => {
+                const maxConsumed = Math.max(1, ...inv.topConsumed.map((i) => i.value));
+                return (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs font-semibold text-muted">{tr({ en: "Top consumed items", ar: "أكثر الأصناف استهلاكًا" })}</p>
+                    <div className="space-y-2">
+                      {inv.topConsumed.map((it) => (
+                        <div key={it.itemId} className="flex items-center gap-2">
+                          <span className="w-28 shrink-0 truncate text-xs text-ink" title={(lang === "ar" ? it.nameAr : it.nameEn) || ""}>{(lang === "ar" ? it.nameAr : it.nameEn) || "—"}</span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-primary/10">
+                            <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary-dark" style={{ width: `${(it.value / maxConsumed) * 100}%` }} />
+                          </div>
+                          <span className="w-20 shrink-0 text-right text-xs font-bold text-primary">{formatMoney(it.value, lang)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

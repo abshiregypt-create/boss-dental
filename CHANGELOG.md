@@ -11,6 +11,28 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 10 - Analytics: Inventory Consumption
+
+Additive, read-only analytics for the new inventory subsystem (Sprints 7-9), which
+until now was absent from the Analytics dashboard. No schema change, no migration,
+and the existing `GET /api/admin/analytics` response is byte-for-byte unchanged - the
+new figures live on a separate endpoint so nothing existing shifts.
+
+- **Consumption endpoint** - new `GET /api/admin/analytics/inventory?range=30d|90d|12m|all`
+  rolls up the append-only `StockMovement` ledger into consumed vs wasted totals
+  (valued at cost) plus the top items by value. Read-only; any signed-in staff. `range`
+  mirrors the dashboard selector (default `12m`); `all` drops the time bound.
+- **Movement value convention** - each movement's monetary value is its snapshot
+  `totalCost` when present, else `|quantityDelta| x unitCost`, always non-negative.
+- **Pure math** - new `src/lib/server/analytics-inventory.ts` (`movementValue`,
+  `summarizeConsumption`, `rangeStart`, `normalizeRange`), unit-tested (mirrored in
+  `tests/unit/analytics-inventory.test.mjs`, +6 tests).
+- **UI** - an "Inventory consumption" panel on the Analytics tab (consumed/wasted KPIs
+  + top-consumed bar list, bilingual EN/AR). Fetched independently of the main
+  analytics call so a failure in one never blanks the other.
+- **Verification** - tsc 0, eslint 0, **205/205 unit tests** (was 199), `next build`
+  registers `/api/admin/analytics/inventory`.
+
 #### Sprint 9 - Inventory: Purchasing Insights (reorder suggestions + supplier price history)
 
 Additive, read-only reporting on top of the existing inventory + purchase-order

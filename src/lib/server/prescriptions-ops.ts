@@ -442,6 +442,7 @@ export async function createPrescription(p: {
   appointmentId?: string | null;
   diagnosis?: string | null;
   notes?: string | null;
+  branchId?: string | null;
   items: RxItemInput[];
   actor: Actor;
   ip?: string | null;
@@ -479,6 +480,7 @@ export async function createPrescription(p: {
         doctorId: p.doctorId ?? null,
         doctorName,
         appointmentId: trimOrNull(p.appointmentId),
+        branchId: p.branchId ?? null,
         status: "issued",
         diagnosis: trimOrNull(p.diagnosis),
         notes: trimOrNull(p.notes),

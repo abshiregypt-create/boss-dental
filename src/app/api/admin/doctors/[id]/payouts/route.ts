@@ -4,6 +4,7 @@ import { requireSession, requireRole, OWNER_ROLES } from "@/lib/server/guard";
 import { writeAudit, auditIp } from "@/lib/server/audit";
 import { round2 } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
+import { resolveActiveBranchId } from "@/lib/server/branch-context";
 import { parseJson, z } from "@/lib/server/validate";
 import { withRoute } from "@/lib/server/http";
 
@@ -84,6 +85,7 @@ async function adminDoctorsIdPayoutsPOST(req: Request, ctx: { params: Promise<{ 
       reference: body.reference ? String(body.reference).trim() : null,
       note: body.note ? String(body.note).trim() : null,
       paidAt,
+      branchId: await resolveActiveBranchId(),
     },
   });
 

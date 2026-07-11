@@ -95,3 +95,26 @@ export function sortBranches<T extends BranchSortable>(branches: readonly T[]): 
     return a.id.localeCompare(b.id);
   });
 }
+
+/**
+ * Pure selection of the "active branch" id for stamping new rows. Given the raw
+ * `bdic_branch` cookie value and the list of selectable (active, non-deleted)
+ * branches, return:
+ *   1. the cookie's branch when it is still selectable,
+ *   2. otherwise the default branch (`branch_main`) when present,
+ *   3. otherwise the first selectable branch,
+ *   4. otherwise `DEFAULT_BRANCH_ID` as a last resort (always FK-safe — the
+ *      default branch row can never be hard-deleted).
+ * Pure + deterministic so it can be unit-tested without a database. The caller
+ * is responsible for passing `selectable` in its intended priority order.
+ */
+export function chooseActiveBranchId(
+  cookieValue: string | null | undefined,
+  selectable: readonly { id: string }[],
+): string {
+  const ids = new Set(selectable.map((b) => b.id));
+  const raw = typeof cookieValue === "string" ? cookieValue.trim() : "";
+  if (raw && ids.has(raw)) return raw;
+  if (ids.has(DEFAULT_BRANCH_ID)) return DEFAULT_BRANCH_ID;
+  return selectable[0]?.id ?? DEFAULT_BRANCH_ID;
+}

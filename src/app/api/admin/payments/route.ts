@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/server/guard";
 import { normalizePhone } from "@/lib/server/phone";
 import { ensurePatient } from "@/lib/server/appointments";
 import { normalizeMethod } from "@/lib/server/operations";
+import { resolveActiveBranchId } from "@/lib/server/branch-context";
 import { parseJson, z, zReqText, zOptText } from "@/lib/server/validate";
 import { withRoute } from "@/lib/server/http";
 
@@ -50,6 +51,7 @@ async function paymentsPost(req: Request) {
   }
 
   const paidAt = body.paidAt ? new Date(body.paidAt) : new Date();
+  const branchId = await resolveActiveBranchId();
   const payment = await prisma.payment.create({
     data: {
       patientId,
@@ -58,6 +60,7 @@ async function paymentsPost(req: Request) {
       method: normalizeMethod(body.method),
       note: body.note ? body.note : null,
       paidAt: isNaN(paidAt.getTime()) ? new Date() : paidAt,
+      branchId,
     },
   });
 

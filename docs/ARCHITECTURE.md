@@ -363,8 +363,53 @@ behaviour-neutral**: the plumbing exists, but nothing stamps or reads `branchId`
   badges plus create/edit/delete modals. Bilingual EN/AR; writes owner-gated; reached
   by direct URL (not wired into the WIP dashboard nav yet).
 - **Roadmap** — later phases add write-stamping of `branchId` + a branch switcher
-  (Phase 2), branch-scoped reads/reports (Phase 3), and staff/doctor assignment plus a
-  "shared patients" toggle and branch scheduling (Phase 4).
+  (Phase 2, shipped — see §11.1), branch-scoped reads/reports (Phase 3), and
+  staff/doctor assignment plus a "shared patients" toggle and branch scheduling
+  (Phase 4).
+
+### 11.1 Write stamping + branch switcher (Sprint 13, Phase 2)
+
+Phase 2 makes new records remember which branch they belong to and lets staff pick
+their working branch. Still **backward compatible**: everything defaults to
+`branch_main`, so single-branch clinics keep byte-identical roll-ups, and reads are
+**not** yet scoped by branch (Phase 3).
+
+- **Active-branch resolver** — `src/lib/server/branch-context.ts`.
+  `resolveActiveBranchId()` reads a `bdic_branch` cookie (deliberately **not** the
+  JWT, so switching branches needs no re-login and never invalidates the session
+  token). Fast path: when the cookie is absent or already `branch_main`, it returns
+  the default id with **no DB query** — identical to the historical backfill.
+  Otherwise it calls `listSelectableBranches()` (active, non-deleted, ordered) and
+  the pure, unit-tested `chooseActiveBranchId(cookieValue, selectable)` in
+  `branches.ts`: cookie branch if still selectable → else `branch_main` → else the
+  first selectable → else the default id. It therefore always returns a real,
+  FK-safe branch id (the default branch can never be hard-deleted).
+- **Stamp on CREATE only** — existing rows are never re-touched. The resolver runs at
+  the route boundary (it depends on `cookies()` from `next/headers`, which is
+  request-scoped) and the stamped id is passed into the create. Eight domains:
+  treatment record + its initial payment, standalone payment, clinic expense, doctor
+  payout, inventory item, stock receipt, purchase-order create, and prescription
+  (new `branchId` argument threaded through `createPrescription`).
+- **Stock movements inherit the batch's branch** — consumption/wastage/return
+  (`decreaseStock`) and manual adjustment (`adjustBatch`) stamp each ledger row from
+  the drawn-down `InventoryBatch`'s `branchId`, because physical stock belongs to the
+  branch that holds it, not to whoever is logged in. Receipts thread the active
+  branch (`receiveStock` → `postReceipt`); PO receiving keeps inheriting
+  `po.branchId`.
+- **Appointments default to `branch_main`** — bookings are created only from
+  public/background paths (the website form via `/api/bookings`, the WhatsApp agent,
+  and the demo seed), none of which carry a staff branch context. `createBooking`
+  applies the default so both callers get it for free; per-branch intake routing is
+  Phase 4.
+- **Switcher endpoints** — `GET/POST /api/admin/active-branch`. GET returns the
+  resolved working branch + the selectable list; POST validates the target is
+  selectable, sets the `bdic_branch` cookie (httpOnly, 1-year, `Secure` in
+  production non-desktop), and audits `branch.select`. Both require only a session:
+  any staff member may set their own working branch (a per-user preference).
+- **Switcher UI** — `BranchSwitcher.tsx`, mounted on `/dashboard/branches`. It
+  renders nothing when fewer than two branches exist (single-branch UX unchanged);
+  otherwise a "Working in" `<select>` persists the choice and confirms it. Bilingual
+  EN/AR. A global header mount waits until the WIP dashboard nav is editable.
 
 
 

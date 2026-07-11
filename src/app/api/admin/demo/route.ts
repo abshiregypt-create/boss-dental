@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/server/guard";
 import { confirmAppointment, createAppointmentWithUniqueCode } from "@/lib/server/appointments";
+import { DEFAULT_BRANCH_ID } from "@/lib/server/branches";
 import { withRoute } from "@/lib/server/http";
 
 /**
@@ -27,6 +28,7 @@ async function adminDemoPOST(req: Request) {
     scheduledAt: new Date(Date.now() + mins * 60000),
     durationMin: 30,
     lang,
+    branchId: DEFAULT_BRANCH_ID,
     status: "pending",
   });
 

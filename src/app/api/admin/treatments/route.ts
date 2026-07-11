@@ -6,6 +6,7 @@ import { ensurePatient } from "@/lib/server/appointments";
 import { computeTotals, normalizeMethod } from "@/lib/server/operations";
 import { clampPct, computeShares, type DoctorAssignmentInput } from "@/lib/server/doctors";
 import { num, numOrNull } from "@/lib/server/money";
+import { resolveActiveBranchId } from "@/lib/server/branch-context";
 import { parseJson, z } from "@/lib/server/validate";
 import { withRoute } from "@/lib/server/http";
 
@@ -204,6 +205,7 @@ async function adminTreatmentsPOST(req: Request) {
   const performedAt = body.performedAt ? new Date(body.performedAt) : new Date();
   const paidNow = Number(body.paidNow);
   const hasPayment = Number.isFinite(paidNow) && paidNow > 0;
+  const branchId = await resolveActiveBranchId();
 
   // Create the treatment (with its doctor splits) and the optional initial payment
   // atomically: a crash between the two writes must never leave a billed operation
@@ -221,6 +223,7 @@ async function adminTreatmentsPOST(req: Request) {
         cost,
         notes: body.notes ? String(body.notes).trim() : null,
         performedAt: isNaN(performedAt.getTime()) ? new Date() : performedAt,
+        branchId,
         doctors: shares.length
           ? { create: shares.map((s) => ({ doctorId: s.doctorId, commissionPct: s.commissionPct, amount: s.amount })) }
           : undefined,
@@ -235,6 +238,7 @@ async function adminTreatmentsPOST(req: Request) {
           amount: Math.min(paidNow, netPrice),
           method: normalizeMethod(body.method),
           paidAt: new Date(),
+          branchId,
         },
       });
     }

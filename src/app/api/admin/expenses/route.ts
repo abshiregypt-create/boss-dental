@@ -5,6 +5,7 @@ import { writeAudit, auditIp } from "@/lib/server/audit";
 import { expensesForMonth, normalizeExpenseKind } from "@/lib/server/expenses";
 import { isValidMonthKey, monthKeyOf } from "@/lib/server/doctors";
 import { num } from "@/lib/server/money";
+import { resolveActiveBranchId } from "@/lib/server/branch-context";
 import { parseJson, z, zOptText } from "@/lib/server/validate";
 import { withRoute } from "@/lib/server/http";
 
@@ -49,6 +50,7 @@ async function adminExpensesPOST(req: Request) {
 
   const amount = Number(body.amount);
   const max = await prisma.clinicExpense.aggregate({ _max: { sortOrder: true } });
+  const branchId = await resolveActiveBranchId();
   const expense = await prisma.clinicExpense.create({
     data: {
       labelEn: labelEn || labelAr,
@@ -57,6 +59,7 @@ async function adminExpensesPOST(req: Request) {
       amount: Number.isFinite(amount) && amount >= 0 ? amount : 0,
       active: true,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
+      branchId,
     },
   });
   await writeAudit({

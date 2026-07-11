@@ -4,6 +4,7 @@ import { auditIp } from "@/lib/server/audit";
 import { withRoute, errorJson } from "@/lib/server/http";
 import { parseJson, z, zMoney, zDateString } from "@/lib/server/validate";
 import { receiveStock } from "@/lib/server/inventory-ops";
+import { resolveActiveBranchId } from "@/lib/server/branch-context";
 
 /**
  * Receive stock into an item: creates a batch and appends a `receipt` movement
@@ -37,7 +38,7 @@ async function receivePost(req: Request, ctx: { params: Promise<{ id: string }> 
     expiryDate: b.expiryDate ? new Date(b.expiryDate) : null,
     unitCost: b.unitCost,
     quantity: b.quantity,
-    branchId: b.branchId ?? null,
+    branchId: b.branchId ?? (await resolveActiveBranchId()),
     notes: b.notes ?? null,
     actor: session,
     ip: auditIp(req),

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLang } from "@/lib/language";
+import { BranchSwitcher } from "./BranchSwitcher";
 
 type Branch = {
   id: string;
@@ -139,6 +140,8 @@ export function BranchesManager() {
           </button>
         )}
       </header>
+
+      <BranchSwitcher />
 
       {notice && (
         <div

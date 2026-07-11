@@ -2,6 +2,7 @@ import { Prisma, type Appointment } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { dispatchMessage } from "./notify";
 import { generateCode } from "./code";
+import { DEFAULT_BRANCH_ID } from "./branches";
 
 export type Stage =
   | "pending"
@@ -205,6 +206,7 @@ export type NewBooking = {
   lang?: "en" | "ar";
   source?: string;
   waChatId?: string | null;
+  branchId?: string | null;
 };
 
 /** A name is "real" if it has at least 2 letters (not just punctuation/digits). */
@@ -292,6 +294,10 @@ export async function createBooking(input: NewBooking): Promise<Appointment> {
     offerTitle: input.offerTitle ?? null,
     lang: input.lang === "ar" ? "ar" : "en",
     waChatId: input.waChatId ?? null,
+    // Public/background intake (website form, WhatsApp agent) has no staff branch
+    // context, so bookings default to the clinic's main branch. Per-branch intake
+    // routing is a later phase; this keeps new rows consistent with the backfill.
+    branchId: input.branchId ?? DEFAULT_BRANCH_ID,
     status: "pending",
   });
 }

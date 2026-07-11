@@ -5,6 +5,7 @@ import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { withRoute, errorJson } from "@/lib/server/http";
 import { parseJson, z } from "@/lib/server/validate";
 import { listPrescriptionsByPhone, createPrescription } from "@/lib/server/prescriptions-ops";
+import { resolveActiveBranchId } from "@/lib/server/branch-context";
 
 /**
  * Prescriptions collection, keyed by patient phone (like /admin/treatments).
@@ -70,6 +71,7 @@ async function rxCreatePost(req: Request) {
     appointmentId: b.appointmentId ?? null,
     diagnosis: b.diagnosis ?? null,
     notes: b.notes ?? null,
+    branchId: await resolveActiveBranchId(),
     items: b.items.map((it) => ({
       medicationId: it.medicationId ?? null,
       nameEn: it.nameEn ?? null,

@@ -6,6 +6,7 @@ import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { withRoute, errorJson } from "@/lib/server/http";
 import { parseJson, z, zOptText } from "@/lib/server/validate";
 import { listItemsWithStock, serializeItem } from "@/lib/server/inventory-ops";
+import { resolveActiveBranchId } from "@/lib/server/branch-context";
 
 /** Truthy query flag: `1`, `true`, `yes` (case-insensitive) all enable. */
 function flag(v: string | null): boolean {
@@ -84,6 +85,7 @@ async function itemsPost(req: Request) {
       notes: b.notes ?? null,
       active: b.active ?? true,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
+      branchId: await resolveActiveBranchId(),
     },
   });
   await writeAudit({

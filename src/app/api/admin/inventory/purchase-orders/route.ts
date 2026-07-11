@@ -5,6 +5,7 @@ import { getPagination, jsonWithPagination } from "@/lib/server/pagination";
 import { withRoute, errorJson } from "@/lib/server/http";
 import { parseJson, z, zMoney, zDateString } from "@/lib/server/validate";
 import { createPo, listPos } from "@/lib/server/purchase-orders-ops";
+import { resolveActiveBranchId } from "@/lib/server/branch-context";
 
 /**
  * Purchase orders collection.
@@ -57,7 +58,7 @@ async function poCreatePost(req: Request) {
 
   const r = await createPo({
     supplierId: b.supplierId ?? null,
-    branchId: b.branchId ?? null,
+    branchId: b.branchId ?? (await resolveActiveBranchId()),
     currency: b.currency ?? null,
     notes: b.notes ?? null,
     expectedAt: b.expectedAt ? new Date(b.expectedAt) : null,

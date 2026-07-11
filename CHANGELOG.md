@@ -11,6 +11,50 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 13 - Multi-Branch support (write stamping + switcher / Phase 2)
+
+Builds on the Sprint 12 foundation: new records now record which branch they
+belong to, and staff can choose their working branch. Fully backward compatible
+— everything defaults to the single `branch_main` branch, so a single-branch
+clinic's reports and roll-ups stay byte-identical. Reads are still NOT scoped by
+branch (Phase 3) and no existing financial number, workflow, API response, or
+screen changed.
+
+- **Active branch resolver** - `src/lib/server/branch-context.ts`:
+  `resolveActiveBranchId()` reads a `bdic_branch` cookie (NOT the JWT, so
+  switching needs no re-login). Fast-path returns the default branch with **no
+  DB query** when the cookie is absent or already `branch_main`; otherwise it
+  lists selectable branches and picks via the pure, unit-tested
+  `chooseActiveBranchId(cookieValue, selectable)` (cookie branch if selectable,
+  else `branch_main`, else the first selectable). Always returns a real,
+  FK-safe id (the default branch can never be hard-deleted).
+- **Stamp on CREATE only** (existing rows are never re-touched) across eight
+  domains: treatment record + its initial payment, standalone payment, clinic
+  expense, doctor payout, inventory item, stock receipt, purchase-order create,
+  and prescription (new `branchId` argument on `createPrescription`).
+- **Stock movements inherit the batch's branch** - consumption, wastage, return
+  (`decreaseStock`) and manual adjustment (`adjustBatch`) stamp each ledger row
+  from the drawn-down batch (stock physically belongs to a branch), not the
+  actor's active branch. Receipts thread the active branch; PO receiving keeps
+  inheriting `po.branchId`.
+- **Appointments default to `branch_main`** - public/background intake (website
+  booking form, WhatsApp agent, demo seed) has no staff branch context, so
+  `createBooking` and the demo route stamp the default branch. Per-branch intake
+  routing is a later phase.
+- **Switcher API (additive)** - `GET/POST /api/admin/active-branch`. GET returns
+  the resolved working branch id + the selectable branch list; POST validates the
+  target is selectable, writes the `bdic_branch` cookie, and audits
+  `branch.select`. Any signed-in staff member may switch their own working branch
+  (a per-user preference, not owner-only).
+- **Switcher UI** - `BranchSwitcher.tsx`, mounted on `/dashboard/branches`. It
+  renders **nothing** when the clinic has fewer than two branches, so
+  single-branch screens are unchanged; otherwise it shows a "Working in" selector
+  that persists the choice and confirms it, bilingual EN/AR.
+- **Verification** - `tsc` 0, ESLint 0, **225/225** unit tests (+4 for
+  `chooseActiveBranchId`), `next build` registers `/api/admin/active-branch` and
+  the branches page. Live stamping/switch behaviour verified on Railway (no local
+  Postgres).
+
 #### Sprint 12 - Multi-Branch support (foundation / Phase 1)
 
 Additive foundation for running one clinic as several physical locations from a

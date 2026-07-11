@@ -203,8 +203,10 @@ roles (`admin`/`doctor`) and are Zod-validated and audited. `code` is globally
 unique (a clash returns `409 code_taken`). The seeded default branch (`branch_main`,
 code `MAIN`) can be edited but **not deleted** (`400 default_branch`). Deletes are
 **soft deletes** (Recycle Bin); because every `branchId` link is ON DELETE SET NULL,
-a branch's records are never removed with it. Note: this phase does not yet stamp
-`branchId` on operational writes nor scope reads by branch.
+a branch's records are never removed with it. As of Sprint 13 (Phase 2), new
+operational records **are** stamped with the caller's active branch (see the
+Active branch endpoints below); reads are still not scoped by branch (that is a
+later phase), so single-branch clinics behave exactly as before.
 
 ### GET `/api/admin/branches`
 List branches, active-first then by `sortOrder`/name. `?search=` matches name/code;
@@ -228,6 +230,20 @@ Update a branch (owner). Same fields as POST (all optional). `200` → `{ branch
 Soft-delete a branch (owner) → Recycle Bin. `200` → `{ ok:true }` · `400 default_branch`
 (the default branch is protected) · `404` not found. Its records keep their history
 and become unassigned.
+
+### GET `/api/admin/active-branch`
+The current staff member's working branch — the branch new records are stamped
+against (multi-branch Phase 2). Resolved from the `bdic_branch` cookie, falling
+back to the default branch. Any signed-in staff. `200` → `{ branchId, branches:[
+{ id, nameEn, nameAr, code } ] }` where `branches` is the selectable (active,
+non-deleted) list.
+
+### POST `/api/admin/active-branch`
+Set the working branch (any signed-in staff — a per-user preference, not
+owner-only). Body: `{ branchId }`. The target must be an active, non-deleted
+branch; on success the `bdic_branch` cookie is written (httpOnly, 1-year) and a
+`branch.select` audit row recorded. `200` → `{ ok:true, branchId }` ·
+`404 branch_not_found`
 
 ---
 

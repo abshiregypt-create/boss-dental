@@ -45,6 +45,14 @@ const normalizeSortOrder = (n) => {
 
 const isDefaultBranch = (id) => id === DEFAULT_BRANCH_ID;
 
+const chooseActiveBranchId = (cookieValue, selectable) => {
+  const ids = new Set(selectable.map((b) => b.id));
+  const raw = typeof cookieValue === "string" ? cookieValue.trim() : "";
+  if (raw && ids.has(raw)) return raw;
+  if (ids.has(DEFAULT_BRANCH_ID)) return DEFAULT_BRANCH_ID;
+  return selectable[0]?.id ?? DEFAULT_BRANCH_ID;
+};
+
 const sortBranches = (branches) =>
   [...branches].sort((a, b) => {
     if (a.active !== b.active) return a.active ? -1 : 1;
@@ -138,4 +146,33 @@ test("sortBranches orders active-first, then sortOrder, name, id", () => {
   assert.deepEqual(out, ["c", "a", "b", "z"]);
   // pure: original array untouched
   assert.equal(input[0].id, "b");
+});
+
+test("chooseActiveBranchId honors a selectable cookie branch", () => {
+  const selectable = [{ id: "branch_main" }, { id: "branch_dt2" }];
+  assert.equal(chooseActiveBranchId("branch_dt2", selectable), "branch_dt2");
+  assert.equal(chooseActiveBranchId("  branch_dt2  ", selectable), "branch_dt2");
+});
+
+test("chooseActiveBranchId falls back to the default branch", () => {
+  const selectable = [{ id: "branch_main" }, { id: "branch_dt2" }];
+  // cookie missing / blank / unknown -> default
+  assert.equal(chooseActiveBranchId(null, selectable), DEFAULT_BRANCH_ID);
+  assert.equal(chooseActiveBranchId("", selectable), DEFAULT_BRANCH_ID);
+  assert.equal(chooseActiveBranchId("   ", selectable), DEFAULT_BRANCH_ID);
+  assert.equal(chooseActiveBranchId("branch_gone", selectable), DEFAULT_BRANCH_ID);
+  assert.equal(chooseActiveBranchId(123, selectable), DEFAULT_BRANCH_ID);
+});
+
+test("chooseActiveBranchId falls back to first selectable when default absent", () => {
+  const selectable = [{ id: "branch_north" }, { id: "branch_south" }];
+  // unknown cookie, no default in list -> first selectable (caller pre-sorts)
+  assert.equal(chooseActiveBranchId("branch_gone", selectable), "branch_north");
+  // a selectable cookie still wins
+  assert.equal(chooseActiveBranchId("branch_south", selectable), "branch_south");
+});
+
+test("chooseActiveBranchId returns the default id when nothing is selectable", () => {
+  assert.equal(chooseActiveBranchId("anything", []), DEFAULT_BRANCH_ID);
+  assert.equal(chooseActiveBranchId(null, []), DEFAULT_BRANCH_ID);
 });

@@ -375,7 +375,7 @@ export async function decreaseStock(p: {
   if (p.batchId) where.id = p.batchId;
   const rows = await prisma.inventoryBatch.findMany({
     where,
-    select: { id: true, remainingQty: true, unitCost: true, expiryDate: true, receivedAt: true },
+    select: { id: true, remainingQty: true, unitCost: true, expiryDate: true, receivedAt: true, branchId: true },
   });
   const available = onHandOf(rows.map((b) => ({ remainingQty: num(b.remainingQty) })));
   const plan = allocateFefo(
@@ -390,6 +390,9 @@ export async function decreaseStock(p: {
     });
   }
   const costByBatch = new Map(rows.map((b) => [b.id, num(b.unitCost)]));
+  // A movement belongs to the branch that physically holds the drawn-down batch,
+  // so consumption/wastage/return ledger rows inherit each batch's branchId.
+  const branchByBatch = new Map(rows.map((b) => [b.id, b.branchId ?? null]));
 
   let movements: Array<Record<string, unknown>>;
   try {
@@ -406,6 +409,7 @@ export async function decreaseStock(p: {
           data: {
             itemId: item.id,
             batchId: a.batchId,
+            branchId: branchByBatch.get(a.batchId) ?? null,
             type: p.type,
             quantityDelta: -a.qty,
             unitCost,
@@ -451,7 +455,7 @@ export async function adjustBatch(p: {
   if (!p.reason || !p.reason.trim()) return fail("reason_required", 400, "a reason is required for adjustments");
   const batch = await prisma.inventoryBatch.findUnique({
     where: { id: p.batchId },
-    select: { id: true, itemId: true, remainingQty: true, unitCost: true },
+    select: { id: true, itemId: true, remainingQty: true, unitCost: true, branchId: true },
   });
   if (!batch) return fail("batch_not_found", 404, "batch not found");
   const item = await prisma.inventoryItem.findFirst({ where: { id: batch.itemId }, select: { id: true, nameEn: true, nameAr: true } });
@@ -476,6 +480,7 @@ export async function adjustBatch(p: {
         data: {
           itemId: item.id,
           batchId: batch.id,
+          branchId: batch.branchId ?? null,
           type: "adjustment",
           quantityDelta: delta,
           unitCost,

@@ -632,7 +632,20 @@ export function DoctorDashboard() {
           <span className="text-base font-bold tracking-tight">{tr(t.brand)}</span>
         </div>
 
-        <nav className="mt-6 flex flex-col gap-1">
+        <nav className="custom-scroll mt-6 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+          {linkItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-primary/5 hover:text-ink"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d={item.icon} />
+              </svg>
+              {tr(item.label)}
+            </Link>
+          ))}
+          <div className="my-1 h-px bg-primary/10" />
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -653,19 +666,6 @@ export function DoctorDashboard() {
                 </span>
               )}
             </button>
-          ))}
-          <div className="my-1 h-px bg-primary/10" />
-          {linkItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-primary/5 hover:text-ink"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d={item.icon} />
-              </svg>
-              {tr(item.label)}
-            </Link>
           ))}
         </nav>
 
@@ -748,6 +748,18 @@ export function DoctorDashboard() {
         <main className="flex-1 space-y-5 p-4 lg:p-6">
           {/* mobile section switcher (sidebar is desktop-only) */}
           <div className="custom-scroll -mx-1 flex gap-2 overflow-x-auto px-1 lg:hidden">
+            {linkItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/15 px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-primary hover:text-primary"
+              >
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={item.icon} />
+                </svg>
+                {tr(item.label)}
+              </Link>
+            ))}
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -768,18 +780,6 @@ export function DoctorDashboard() {
                   </span>
                 )}
               </button>
-            ))}
-            {linkItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/15 px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-primary hover:text-primary"
-              >
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d={item.icon} />
-                </svg>
-                {tr(item.label)}
-              </Link>
             ))}
           </div>
 

@@ -97,6 +97,15 @@ const navItems = [
   { id: "settings", label: { en: "Settings", ar: "الإعدادات" }, icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7-3a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.3 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 2.5h5l.3-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6c.07-.33.1-.66.1-1Z" },
 ] as const;
 
+// Standalone dashboard screens that live on their own routes (not tab panels).
+// Rendered as links beneath the tab list so these shipped features are reachable
+// from the menu instead of only by typing the URL.
+const linkItems = [
+  { href: "/dashboard/inventory", label: { en: "Inventory", ar: "المخزون" }, icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7 12 12l8.7-5M12 22V12" },
+  { href: "/dashboard/branches", label: { en: "Branches", ar: "الفروع" }, icon: "M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4" },
+  { href: "/dashboard/recycle-bin", label: { en: "Recycle Bin", ar: "سلة المحذوفات" }, icon: "M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m1 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6" },
+] as const;
+
 export function DoctorDashboard() {
   const { tr, lang } = useLang();
   const {
@@ -645,6 +654,19 @@ export function DoctorDashboard() {
               )}
             </button>
           ))}
+          <div className="my-1 h-px bg-primary/10" />
+          {linkItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-primary/5 hover:text-ink"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d={item.icon} />
+              </svg>
+              {tr(item.label)}
+            </Link>
+          ))}
         </nav>
 
         <Link
@@ -746,6 +768,18 @@ export function DoctorDashboard() {
                   </span>
                 )}
               </button>
+            ))}
+            {linkItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/15 px-3.5 py-1.5 text-xs font-semibold text-muted transition hover:border-primary hover:text-primary"
+              >
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={item.icon} />
+                </svg>
+                {tr(item.label)}
+              </Link>
             ))}
           </div>
 

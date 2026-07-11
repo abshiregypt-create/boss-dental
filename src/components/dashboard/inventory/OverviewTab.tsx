@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLang } from "@/lib/language";
 import { api, ApiError } from "./api";
-import type { Report } from "./types";
+import type { ReorderReport, Report } from "./types";
 import { Badge, btnGhost, useFmt } from "./ui";
 
 type Notify = (kind: "ok" | "error", text: string) => void;
@@ -22,6 +22,7 @@ export function OverviewTab({ notify }: { notify: Notify }) {
   const { tr } = useLang();
   const fmt = useFmt();
   const [report, setReport] = useState<Report | null>(null);
+  const [reorder, setReorder] = useState<ReorderReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Manual refresh (button) — event-driven, so setState here is fine.
@@ -30,15 +31,21 @@ export function OverviewTab({ notify }: { notify: Notify }) {
       .report()
       .then(setReport)
       .catch((e) => notify("error", e instanceof ApiError ? e.message : String(e)));
+    api
+      .reorder()
+      .then(setReorder)
+      .catch((e) => notify("error", e instanceof ApiError ? e.message : String(e)));
   }, [notify]);
 
   // Initial load: inline the fetch so state is only set from the async callback.
   useEffect(() => {
     let alive = true;
-    api
-      .report()
-      .then((r) => {
-        if (alive) setReport(r);
+    Promise.all([api.report(), api.reorder()])
+      .then(([r, ro]) => {
+        if (alive) {
+          setReport(r);
+          setReorder(ro);
+        }
       })
       .catch((e) => notify("error", e instanceof ApiError ? e.message : String(e)))
       .finally(() => {
@@ -68,6 +75,38 @@ export function OverviewTab({ notify }: { notify: Notify }) {
         <Kpi label={tr({ en: "Expiring soon", ar: "قرب الانتهاء" })} value={fmt.qty(report.expiringCount)} tone={report.expiringCount ? "warn" : undefined} />
         <Kpi label={tr({ en: "Expired", ar: "منتهية" })} value={fmt.qty(report.expiredCount)} tone={report.expiredCount ? "danger" : undefined} />
       </div>
+
+      <Section
+        title={tr({ en: "To reorder", ar: "للطلب" })}
+        empty={tr({ en: "Nothing needs reordering.", ar: "لا يوجد ما يحتاج إعادة طلب." })}
+        rows={reorder?.items.length ?? 0}
+      >
+        {(reorder?.items ?? []).map((r) => (
+          <div key={r.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-ink">{tr({ en: r.nameEn, ar: r.nameAr })}</p>
+              <p className="text-xs text-muted">
+                {tr({ en: "On hand", ar: "المتاح" })} {fmt.qty(r.onHand)} / {fmt.qty(r.reorderLevel)} {r.unit}
+                {r.onOrder > 0 ? ` · ${tr({ en: "on order", ar: "قيد الطلب" })} ${fmt.qty(r.onOrder)}` : ""}
+                {r.lastSupplier
+                  ? ` · ${tr({ en: "last", ar: "آخر" })} ${tr({ en: r.lastSupplier.nameEn, ar: r.lastSupplier.nameAr })}${
+                      r.lastUnitCost != null ? ` @ ${fmt.money(r.lastUnitCost)}` : ""
+                    }`
+                  : ""}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm">
+              {r.suggestedQty > 0 ? (
+                <Badge tone="ok">
+                  {tr({ en: "Order", ar: "اطلب" })} {fmt.qty(r.suggestedQty)} {r.unit}
+                </Badge>
+              ) : (
+                <Badge tone="muted">{tr({ en: "On order", ar: "قيد الطلب" })}</Badge>
+              )}
+            </span>
+          </div>
+        ))}
+      </Section>
 
       <Section title={tr({ en: "Low stock", ar: "مخزون منخفض" })} empty={tr({ en: "Nothing is low on stock.", ar: "لا يوجد نقص في المخزون." })} rows={report.lowStock.length}>
         {report.lowStock.map((r) => (

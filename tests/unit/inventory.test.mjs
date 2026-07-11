@@ -33,6 +33,14 @@ const onHand = (batches) => round3(batches.reduce((s, b) => s + (Number(b.remain
 const valuation = (batches) =>
   round2(batches.reduce((s, b) => s + (Number(b.remainingQty) || 0) * (Number(b.unitCost) || 0), 0));
 const isLowStock = (q, level) => level > 0 && q <= level;
+function suggestedOrderQty(onHandQty, onOrderQty, reorderLevel, reorderQty) {
+  if (!(reorderLevel > 0)) return 0;
+  const covered = round3((Number(onHandQty) || 0) + Math.max(0, Number(onOrderQty) || 0));
+  if (covered > reorderLevel) return 0;
+  const rq = Number(reorderQty);
+  if (Number.isFinite(rq) && rq > 0) return round3(rq);
+  return round3(Math.max(0, reorderLevel - covered));
+}
 const toTime = (v) => {
   if (v == null) return null;
   const t = v instanceof Date ? v.getTime() : new Date(v).getTime();
@@ -133,6 +141,30 @@ test("isLowStock only fires when a reorder level is set", () => {
   assert.equal(isLowStock(5, 5), true); // at reorder point
   assert.equal(isLowStock(6, 5), false); // above
   assert.equal(isLowStock(0, 5), true); // out of stock
+});
+
+test("suggestedOrderQty: nets on-order and respects reorder policy", () => {
+  // No reorder level → never suggests an order.
+  assert.equal(suggestedOrderQty(0, 0, 0, null), 0);
+  // Above the reorder level on-hand alone → nothing to order.
+  assert.equal(suggestedOrderQty(10, 0, 5, null), 0);
+  // Low and no configured batch size → order the shortfall back to the level.
+  assert.equal(suggestedOrderQty(2, 0, 5, null), 3);
+  assert.equal(suggestedOrderQty(0, 0, 5, null), 5);
+  // Low but an open PO already covers the level → do not double-order.
+  assert.equal(suggestedOrderQty(2, 4, 5, null), 0);
+  // Low, partial coverage on order → order only the remaining shortfall.
+  assert.equal(suggestedOrderQty(1, 1, 5, null), 3);
+  // Configured reorderQty (batch size) wins over the raw shortfall when low.
+  assert.equal(suggestedOrderQty(2, 0, 5, 20), 20);
+  // reorderQty is ignored once coverage already exceeds the level.
+  assert.equal(suggestedOrderQty(6, 0, 5, 20), 0);
+  // At the reorder point exactly is still low; suggest the batch size.
+  assert.equal(suggestedOrderQty(5, 0, 5, 12), 12);
+  // Fractional quantities round to 3 dp.
+  assert.equal(suggestedOrderQty(1.111, 0, 3.333, null), 2.222);
+  // Junk on-order is clamped to zero, not treated as coverage.
+  assert.equal(suggestedOrderQty(2, NaN, 5, null), 3);
 });
 
 test("isExpired: past yes, future no, missing no", () => {

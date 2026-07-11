@@ -205,6 +205,12 @@ Adjust stock (owner roles). Body branches on `type`:
 
 `200` → `{ movements }` (or `{ movement }`) · `422` · `409`.
 
+### GET `/api/admin/inventory/items/[id]/purchase-history`
+Supplier price history for one item: recent receipts, newest first. `?limit=`
+(default 20, max 100). `200` → `{ item:{ id, nameEn, nameAr, unit },
+purchaseHistory:[ { batchId, lotNumber, unitCost, receivedQty, receivedAt,
+supplier:{ id, nameEn, nameAr }|null } ] }` · `404`.
+
 ### GET `/api/admin/inventory/movements`
 Paginated stock ledger, newest first. Filters `?itemId=&type=` (`limit` default 50,
 100 for the UI). `200` → `{ movements:[ { id, itemId, type, quantityDelta, unitCost,
@@ -214,6 +220,13 @@ totalCost, reason, actorName, createdAt, item:{ nameEn, nameAr, unit } } ] }`.
 KPIs + working lists. `?days=<n>` sets the expiry window (default 30). `200` →
 `{ totalItems, totalValuation, lowStockCount, expiringCount, expiredCount,
 lowStock:[…], expiring:[…], expired:[…] }`.
+
+### GET `/api/admin/inventory/reorder`
+Reorder suggestions: active items at/below their reorder level, each netted
+against stock already on open POs. `200` → `{ count, items:[ { id, nameEn, nameAr,
+unit, onHand, onOrder, reorderLevel, reorderQty, suggestedQty, lastUnitCost,
+lastPurchaseAt, lastSupplier:{ id, nameEn, nameAr }|null } ] }`. `suggestedQty` is
+`0` when an open PO already covers the level (don't double-order). Read-only.
 
 ### GET `/api/admin/inventory/lookup?code=|barcode=|sku=`
 Resolve an item by barcode or SKU (for scanners). `200` → `{ item }` · `404`.

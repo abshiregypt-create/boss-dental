@@ -11,6 +11,32 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 9 - Inventory: Purchasing Insights (reorder suggestions + supplier price history)
+
+Additive, read-only reporting on top of the existing inventory + purchase-order
+data. No schema change, no migration, no change to any existing endpoint, workflow,
+or screen — every figure is derived from tables the system already maintains.
+
+- **Reorder suggestions** - new `GET /api/admin/inventory/reorder` lists active items
+  at/below their reorder level, each annotated with quantity already on order (open
+  POs, `submitted`/`partially_received`; trashed POs excluded), a suggested buy
+  quantity, and the last purchase (supplier + unit cost + date). Suggested quantity
+  nets out open POs so the buyer never double-orders what is already inbound, and
+  honours a configured `reorderQty` batch size when present.
+- **Supplier price history** - new `GET /api/admin/inventory/items/[id]/purchase-history`
+  returns an item's recent receipts (newest first) with supplier, unit cost, quantity
+  and date, for spotting price creep and negotiating.
+- **Pure math** - `suggestedOrderQty(onHand, onOrder, reorderLevel, reorderQty)` added
+  to `inventory.ts` (consistent with `isLowStock`) and unit-tested (mirrored in
+  `tests/unit/inventory.test.mjs`).
+- **Service** - new `src/lib/server/purchasing-insights.ts` (`reorderReport`,
+  `itemPurchaseHistory`); read-only, uses the soft-delete read extension to skip
+  trashed POs automatically.
+- **UI** - a "To reorder" section on the inventory Overview tab and a "Purchase
+  history" table in the item detail modal (bilingual EN/AR). Both read-only.
+- **Verification** - tsc 0, eslint 0, **199/199 unit tests** (was 198), `next build`
+  registers both new routes. Reads are session-gated (any signed-in staff).
+
 #### Sprint 8 - Enterprise Inventory: Purchase Orders + Goods Receiving
 
 Approved feature sprint (inventory backlog #1). Adds supplier purchase orders and

@@ -1,4 +1,4 @@
-import type { Item, ItemDetail, Movement, PurchaseOrder, Report, Supplier } from "./types";
+import type { Item, ItemDetail, Movement, PurchaseHistory, PurchaseOrder, ReorderReport, Report, Supplier } from "./types";
 
 /** Error carrying the server's machine `code` + human message for the toast. */
 export class ApiError extends Error {
@@ -38,6 +38,10 @@ const qs = (params: Record<string, string | boolean | undefined>): string => {
 
 export const api = {
   report: (days?: number) => req<Report>(`/api/admin/inventory/report${qs({ days: days ? String(days) : undefined })}`),
+
+  reorder: () => req<ReorderReport>(`/api/admin/inventory/reorder`),
+  itemPurchaseHistory: (id: string, limit?: number) =>
+    req<PurchaseHistory>(`/api/admin/inventory/items/${id}/purchase-history${qs({ limit: limit ? String(limit) : undefined })}`),
 
   listItems: (opts: { search?: string; inactive?: boolean; low?: boolean } = {}) =>
     req<{ items: Item[] }>(`/api/admin/inventory/items${qs(opts)}`),

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/language";
 import { api, ApiError } from "./api";
-import type { Item, ItemDetail, MovementType, Supplier } from "./types";
+import type { Item, ItemDetail, MovementType, PurchaseHistory, Supplier } from "./types";
 import { Badge, btnGhost, btnPrimary, Field, inputCls, Modal, MOVEMENT_LABEL, UNIT_OPTIONS, useFmt } from "./ui";
 
 type Notify = (kind: "ok" | "error", text: string) => void;
@@ -355,6 +355,7 @@ export function DetailModal({ onClose, notify, item }: Omit<Common, "onDone"> & 
   const { tr } = useLang();
   const fmt = useFmt();
   const [detail, setDetail] = useState<ItemDetail | null>(null);
+  const [history, setHistory] = useState<PurchaseHistory | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -368,6 +369,13 @@ export function DetailModal({ onClose, notify, item }: Omit<Common, "onDone"> & 
       .finally(() => {
         if (alive) setLoading(false);
       });
+    // Purchase (supplier price) history — independent, non-blocking.
+    api
+      .itemPurchaseHistory(item.id)
+      .then((h) => {
+        if (alive) setHistory(h);
+      })
+      .catch((e) => notify("error", e instanceof ApiError ? e.message : String(e)));
     return () => {
       alive = false;
     };
@@ -440,6 +448,38 @@ export function DetailModal({ onClose, notify, item }: Omit<Common, "onDone"> & 
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h4 className="mb-1.5 text-sm font-bold text-ink">{tr({ en: "Purchase history", ar: "سجل الشراء" })}</h4>
+            {!history || history.purchaseHistory.length === 0 ? (
+              <p className="text-sm text-muted">{tr({ en: "No purchases recorded.", ar: "لا توجد مشتريات مسجلة." })}</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-primary/10">
+                <table className="w-full min-w-[32rem] text-sm">
+                  <thead>
+                    <tr className="border-b border-primary/10 text-xs text-muted">
+                      <th className="px-3 py-2 text-start font-semibold">{tr({ en: "Date", ar: "التاريخ" })}</th>
+                      <th className="px-3 py-2 text-start font-semibold">{tr({ en: "Supplier", ar: "المورد" })}</th>
+                      <th className="px-3 py-2 text-end font-semibold">{tr({ en: "Qty", ar: "الكمية" })}</th>
+                      <th className="px-3 py-2 text-end font-semibold">{tr({ en: "Unit cost", ar: "تكلفة الوحدة" })}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.purchaseHistory.map((p) => (
+                      <tr key={p.batchId} className="border-b border-primary/5 last:border-0">
+                        <td className="px-3 py-2 text-muted">{fmt.date(p.receivedAt)}</td>
+                        <td className="px-3 py-2 text-ink">
+                          {p.supplier ? tr({ en: p.supplier.nameEn, ar: p.supplier.nameAr }) : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-end text-ink">{fmt.qty(p.receivedQty)}</td>
+                        <td className="px-3 py-2 text-end text-muted">{fmt.money(p.unitCost)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

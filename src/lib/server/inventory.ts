@@ -107,6 +107,30 @@ export function isLowStock(onHandQty: number, reorderLevel: number): boolean {
   return reorderLevel > 0 && onHandQty <= reorderLevel;
 }
 
+/**
+ * Suggested quantity to order for an item, netting out stock already on order.
+ *
+ * Returns 0 when no reorder level is set, or when on-hand plus what is already
+ * on open purchase orders keeps the item above its reorder level (never
+ * double-order what a submitted PO will deliver). Otherwise, when the item has a
+ * configured `reorderQty` batch size, that value is suggested; when it does not,
+ * the suggestion is the shortfall needed to climb back to the reorder level.
+ * Pure — the caller supplies on-hand and on-order from the DB. Rounded to 3 dp.
+ */
+export function suggestedOrderQty(
+  onHandQty: number,
+  onOrderQty: number,
+  reorderLevel: number,
+  reorderQty: number | null | undefined,
+): number {
+  if (!(reorderLevel > 0)) return 0;
+  const covered = round3((Number(onHandQty) || 0) + Math.max(0, Number(onOrderQty) || 0));
+  if (covered > reorderLevel) return 0;
+  const rq = Number(reorderQty);
+  if (Number.isFinite(rq) && rq > 0) return round3(rq);
+  return round3(Math.max(0, reorderLevel - covered));
+}
+
 // ---------------------------------------------------------------------------
 // Expiry
 // ---------------------------------------------------------------------------

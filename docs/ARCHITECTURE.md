@@ -252,5 +252,24 @@ existing tables.
 - **Recoverability** — a PO is soft-deletable through the Recycle Bin (§8); trashing
   it never touches received stock, batches, or movements.
 
+### 9.2 Purchasing insights (reorder + supplier price history)
+
+Read-only reporting derived from the data above — no schema change, no writes
+(`purchasing-insights.ts`, Overview tab + item detail modal of `/dashboard/inventory`).
+
+- **Reorder suggestions** — `reorderReport()` lists active items at/below their
+  reorder level, netting on-hand against quantity still on open POs
+  (`submitted`/`partially_received`; trashed POs skipped by the soft-delete read
+  extension) and attaching the last purchase (supplier + unit cost + date). The
+  suggested buy quantity comes from the pure `suggestedOrderQty(onHand, onOrder,
+  reorderLevel, reorderQty)` in `inventory.ts` (unit-tested): it returns `0` when an
+  open PO already covers the level, otherwise the configured `reorderQty` batch size,
+  or the shortfall back to the level. Served by `GET /api/admin/inventory/reorder`.
+- **Supplier price history** — `itemPurchaseHistory(itemId, limit)` returns an item's
+  recent receipts (newest first) with supplier, unit cost, quantity and date, for
+  spotting price creep. Served by `GET /api/admin/inventory/items/[id]/purchase-history`.
+- **Access** — both endpoints are session-gated reads (any signed-in staff); nothing
+  here mutates stock or ledger.
+
 
 

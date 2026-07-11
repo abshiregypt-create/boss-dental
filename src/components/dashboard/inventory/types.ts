@@ -49,6 +49,39 @@ export type Movement = {
 
 export type ItemDetail = { item: Item; batches: Batch[]; movements: Movement[] };
 
+export type SupplierRef = { id: string; nameEn: string; nameAr: string } | null;
+
+export type ReorderRow = {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  unit: string;
+  onHand: number;
+  onOrder: number;
+  reorderLevel: number;
+  reorderQty: number | null;
+  suggestedQty: number;
+  lastUnitCost: number | null;
+  lastPurchaseAt: string | null;
+  lastSupplier: SupplierRef;
+};
+
+export type ReorderReport = { count: number; items: ReorderRow[] };
+
+export type PurchaseHistoryRow = {
+  batchId: string;
+  lotNumber: string | null;
+  unitCost: number;
+  receivedQty: number;
+  receivedAt: string;
+  supplier: SupplierRef;
+};
+
+export type PurchaseHistory = {
+  item: { id: string; nameEn: string; nameAr: string; unit: string };
+  purchaseHistory: PurchaseHistoryRow[];
+};
+
 export type Supplier = {
   id: string;
   nameEn: string;

@@ -42,9 +42,13 @@ headers: `X-Total-Count`, `X-Limit`, `X-Offset`, `X-Has-More`, `X-Next-Offset`.
 ### POST `/api/auth/login`
 Sign in a clinic user.
 
-- Body: `{ "email": string, "password": string }`
+- Body: `{ "email": string, "password": string }` (email or username accepted)
 - `200` → `{ ok:true, user:{ email, name, role } }` + `Set-Cookie` session
-- `400 {"error":"missing"}` · `401 {"error":"invalid_credentials"}`
+- When the user has a **home branch** (`User.branchId`), also sets the
+  `bdic_branch` cookie so their reads auto-scope to that branch (Sprint 15).
+  Users with no home branch keep their last-picked branch (cookie untouched).
+- `400 {"error":"missing"}` · `401 {"error":"invalid_credentials"}` ·
+  `429 {"error":"too_many_attempts"}` (per IP+identifier rate limit)
 
 ### GET `/api/auth/me`
 Return the current signed-in user.
@@ -262,6 +266,46 @@ Point the bot at a branch (owner). Body: `{ branchId }` (validated against the
 selectable branches; an unknown id collapses to the default). Persists the
 `whatsapp.branchId` setting and audits `whatsapp.branch.set`. `200` →
 `{ branchId }` (the id actually stored).
+
+---
+
+## Admin — Staff accounts (admin only)
+
+Manage who can sign in (Sprint 15, Multi-branch Phase 4a). **Admin-only** —
+because these endpoints can escalate privileges (mint an admin, reset a password,
+reassign a branch), they require the `admin` role, not all owner roles. A
+`passwordHash` is **never** returned. Passwords are bcrypt-hashed (rounds 12).
+Email is unique; a provided username is unique. A user's optional **home branch**
+auto-scopes their reads after login. Two safety guards always hold: you cannot
+delete your own account, and the clinic must keep at least one `admin` (so you
+cannot delete or demote the final admin). All writes are audited
+(`user.create`/`user.update`/`user.delete`).
+
+Roles: `admin` (owner / full back-office + manages accounts), `doctor`
+(owner-level practitioner), `staff` (limited account, e.g. reception).
+
+### GET `/api/admin/users`
+List all accounts (owners first, then by name). `200` → `{ users:[ { id, email,
+username, name, role, branchId, branch:{ nameEn, nameAr, code }|null, createdAt } ] }`
+· `403 forbidden` (non-admin).
+
+### POST `/api/admin/users`
+Create an account. Body: `{ name, email, username?, password, role?, branchId? }`
+(`role` defaults to `staff`; `branchId` must be a live branch or null). `200` →
+`{ user }` · `400 name_required`/`invalid_email`/`invalid_username`/`invalid_password`/`invalid_branch`
+· `409 email_taken`/`username_taken` · `403 forbidden`.
+
+### PATCH `/api/admin/users/[id]`
+Update an account (any subset of the create fields). A blank/omitted `password`
+leaves it unchanged; a provided one is re-hashed and **bumps `tokenVersion`**,
+revoking that user's existing sessions. `200` → `{ user }` · `404 user_not_found`
+· `409 email_taken`/`username_taken`/`last_admin` (demoting the only admin) ·
+`400` validation codes · `403 forbidden`.
+
+### DELETE `/api/admin/users/[id]`
+Delete an account (hard delete — users are not in the Recycle Bin). `200` →
+`{ ok:true }` · `404 user_not_found` · `409 cannot_delete_self`/`last_admin` ·
+`403 forbidden`.
 
 ---
 

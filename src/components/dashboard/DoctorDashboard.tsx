@@ -104,6 +104,7 @@ const navItems = [
 const linkItems = [
   { href: "/dashboard/inventory", label: { en: "Inventory", ar: "المخزون" }, icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7 12 12l8.7-5M12 22V12" },
   { href: "/dashboard/branches", label: { en: "Branches", ar: "الفروع" }, icon: "M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4" },
+  { href: "/dashboard/staff", label: { en: "Staff", ar: "الموظفون" }, icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" },
   { href: "/dashboard/recycle-bin", label: { en: "Recycle Bin", ar: "سلة المحذوفات" }, icon: "M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m1 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6" },
 ] as const;
 

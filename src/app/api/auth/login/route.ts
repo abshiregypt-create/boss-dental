@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { createSessionToken, SESSION_COOKIE, sessionCookieOptions } from "@/lib/server/auth";
+import { BRANCH_COOKIE, branchCookieOptions } from "@/lib/server/branch-context";
 import { loginRateLimiter, clientIp } from "@/lib/server/rate-limit";
 import { withRoute } from "@/lib/server/http";
 
@@ -38,5 +39,10 @@ async function authLoginPOST(req: Request) {
   const token = await createSessionToken({ sub: user.id, email: user.email, name: user.name, role: user.role, ver: user.tokenVersion });
   const res = NextResponse.json({ ok: true, user: { email: user.email, name: user.name, role: user.role } });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
+  // Land staff in their assigned branch so reads auto-scope to it. Owners with no
+  // home branch keep whatever branch they last picked (cookie untouched).
+  if (user.branchId) {
+    res.cookies.set(BRANCH_COOKIE, user.branchId, branchCookieOptions);
+  }
   return res;
 }

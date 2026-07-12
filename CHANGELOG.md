@@ -11,6 +11,49 @@ removed; business rules (financial calc, commissions, payments, appointment and
 inventory workflows, permissions, taxes) preserved. Every task ships with tests
 and docs. Backward compatible.
 
+#### Sprint 15 - Staff accounts + branch assignment + login auto-scope (Phase 4a)
+
+Cliniva can now manage **its own staff sign-in accounts** from the dashboard
+(previously accounts only existed via the database seed). An admin can create,
+edit and delete accounts, assign each one a **home branch**, and set/reset
+passwords. When a user with a home branch signs in, their session
+**auto-scopes** to that branch, so reception at Branch B lands in Branch B's
+schedule/inventory without touching the switcher. Backward compatible: the
+seeded owner is unchanged, accounts without a home branch behave exactly as
+before, and shared patients/doctors are unaffected.
+
+- **Admin-only user management** - new `ADMIN_ROLES = ["admin"]` gate
+  (`src/lib/server/guard.ts`). Creating/reading/editing/deleting accounts can
+  escalate privileges (mint an admin, reset a password, reassign a branch), so
+  it is restricted to `admin` rather than all owner roles. The seeded clinic
+  owner is an admin, so this is a real least-privilege boundary the moment extra
+  doctor/staff accounts exist.
+- **Pure helpers** - `src/lib/server/users.ts`: role model
+  (`admin`/`doctor`/`staff`), email/username/name normalizers + validators,
+  password length policy (8–200), and two safety guards — `deleteUserBlock`
+  (can't delete your own account or the final admin) and `changeRoleBlock`
+  (can't demote the only admin). Unit-tested in `tests/unit/users.test.mjs`.
+- **Service** - `src/lib/server/users-ops.ts` (`OpResult` pattern): `listUsers`,
+  `createUser`, `updateUser`, `deleteUser`. Passwords are bcrypt-hashed
+  (rounds 12) and a `passwordHash` is **never** returned. Email is unique and a
+  provided username is unique (proactive check + `P2002` guard → 409). A home
+  branch, if set, must be a real live branch. Changing a password bumps
+  `tokenVersion`, revoking that user's old sessions. Every write is audited
+  (`user.create`/`user.update`/`user.delete`).
+- **API** (admin-only, additive): `GET/POST /api/admin/users` and
+  `PATCH/DELETE /api/admin/users/[id]`. Zod-validated; domain errors surface as
+  precise codes (`email_taken`, `username_taken`, `invalid_branch`,
+  `last_admin`, `cannot_delete_self`, …).
+- **Login auto-scope** - `POST /api/auth/login` also sets the `bdic_branch`
+  cookie to the user's `branchId` when one is assigned, so their reads scope to
+  their branch immediately. Users with no home branch keep whatever branch they
+  last picked (cookie untouched) — byte-identical to today.
+- **UI** - new admin-only `/dashboard/staff` screen (`StaffManager.tsx`): list
+  (name / login / role / branch), create + edit modals (name, email, optional
+  username, role, home branch, set/reset password), and delete with a guard on
+  your own account. Bilingual EN/AR. A "Staff" link is added to the dashboard
+  side menu.
+
 #### Sprint 14 - Multi-Branch scoped reads + per-branch WhatsApp (Phase 3)
 
 Each branch now has its **own schedule, inventory and WhatsApp number**, while

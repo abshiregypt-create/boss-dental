@@ -11,6 +11,14 @@ import { prisma } from "@/lib/db";
  */
 export const OWNER_ROLES = ["admin", "doctor"] as const;
 
+/**
+ * Admin-only roles. User/staff-account management can escalate privileges (create
+ * an admin, reset a password, reassign a branch), so it is restricted to "admin"
+ * rather than all owner roles. The seeded clinic owner is an admin, so this is a
+ * real least-privilege boundary the moment additional doctor/staff accounts exist.
+ */
+export const ADMIN_ROLES = ["admin"] as const;
+
 export type GuardOk = { error: null; session: SessionPayload };
 export type GuardErr = { error: NextResponse; session: null };
 export type GuardResult = GuardOk | GuardErr;

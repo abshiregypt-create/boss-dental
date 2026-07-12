@@ -455,5 +455,47 @@ default-branch scope also matches legacy/unstamped (`branchId = NULL`) rows.
   toggle, per-branch intake routing (website/WhatsApp), branch scheduling, and
   optional `NOT NULL` tightening once every row is stamped.
 
+### 11.3 Staff accounts + branch assignment + login auto-scope (Sprint 15, Phase 4a)
+
+Phase 4a delivers the first slice of the Phase 4 roadmap: Cliniva can now manage
+its **own staff sign-in accounts** from the dashboard (previously accounts only
+existed via the database seed), assign each a **home branch**, and **auto-scope**
+a user to that branch at login. No schema change was needed — `User.branchId` and
+the `Branch.users` back-relation already existed from Sprint 12.
+
+- **Admin-only boundary** — `guard.ts` adds `ADMIN_ROLES = ["admin"]`. User
+  management can escalate privileges (mint an admin, reset a password, reassign a
+  branch), so it is gated to `admin` rather than `OWNER_ROLES`. The seeded owner
+  is an admin, so this is a real least-privilege boundary the moment extra
+  doctor/staff accounts exist.
+- **Pure helpers** — `users.ts`: the role model (`admin`/`doctor`/`staff`),
+  email/username/name normalizers + validators, the password length policy
+  (8–200), and two safety guards — `deleteUserBlock` (no self-delete, no
+  deleting the final admin) and `changeRoleBlock` (no demoting the only admin).
+  Mirrored + unit-tested in `tests/unit/users.test.mjs`.
+- **Service** — `users-ops.ts` (the `OpResult` pattern from `branches-ops.ts`):
+  `listUsers`, `createUser`, `updateUser`, `deleteUser`. `serializeUser` never
+  returns a `passwordHash`. Passwords are bcrypt-hashed (rounds 12). Email is
+  unique and a provided username is unique (proactive check + `P2002` guard). A
+  home branch, if set, must resolve to a live branch. A password change bumps
+  `tokenVersion` (revoking old JWTs — `requireSession` compares it every
+  request). Deletes are **hard** deletes (users are not in the soft-delete
+  registry). Every write is audited.
+- **API** — `admin/users/route.ts` (GET list, POST create) +
+  `admin/users/[id]/route.ts` (PATCH, DELETE), all `requireRole(ADMIN_ROLES)`,
+  Zod-validated, delegating domain rules to the service.
+- **Login auto-scope** — `auth/login/route.ts` sets the `bdic_branch` cookie to
+  the user's `branchId` when one is assigned, so their reads scope to their home
+  branch immediately (via §11.2's `resolveBranchScope`). A user with no home
+  branch keeps whatever branch they last picked — byte-identical to before.
+- **UI** — `/dashboard/staff` (`StaffManager.tsx`, admin-only, bilingual):
+  list (name / login / role / branch) with create/edit modals (name, email,
+  optional username, role, home branch, set/reset password) and delete guarded
+  on your own account. A "Staff" link sits in the dashboard side menu.
+- **Roadmap** — Phase 4b: granular staff RBAC (e.g. a receptionist who can book
+  and take payment but not touch financials/settings), which requires widening
+  the per-route role gates beyond `OWNER_ROLES`; approval-gated because it
+  changes the permission model.
+
 
 

@@ -14,6 +14,7 @@ import { OffersManager } from "./OffersManager";
 import { SiteEditor } from "./SiteEditor";
 import { OnlineBookings } from "./OnlineBookings";
 import { WhatsAppLink } from "./WhatsAppLink";
+import { OutreachManager } from "./OutreachManager";
 import { ClientMessages } from "./ClientMessages";
 import { SettingsSection } from "./SettingsSection";
 import { OperationsManager } from "./OperationsManager";
@@ -35,6 +36,7 @@ import {
   freeSlotCount,
   fmtTime,
   hhmmToMin,
+  minToHHMM,
   sessionTypeById,
   isClosed,
   isoDate,
@@ -87,6 +89,7 @@ const navItems = [
   { id: "earnings", label: { en: "Earnings", ar: "الأرباح" }, icon: "M3 3v18h18M7 14l4-4 3 3 5-6" },
   { id: "bookings", label: { en: "Bookings", ar: "الحجوزات" }, icon: "M4 5h16v10H7l-3 3V5Z" },
   { id: "whatsapp", label: { en: "WhatsApp", ar: "واتساب" }, icon: "M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2Z" },
+  { id: "outreach", label: { en: "Outreach", ar: "التسويق" }, icon: "M3 11l18-8-8 18-2-7-8-3Z" },
   { id: "messages", label: { en: "Client Messages", ar: "رسائل العملاء" }, icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" },
   { id: "reminders", label: { en: "Reminders", ar: "التذكيرات" }, icon: "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" },
   { id: "calendar", label: { en: "Calendar", ar: "التقويم" }, icon: "M3 9h18M7 3v4m10-4v4M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" },
@@ -105,6 +108,8 @@ const linkItems = [
   { href: "/dashboard/inventory", label: { en: "Inventory", ar: "المخزون" }, icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7 12 12l8.7-5M12 22V12" },
   { href: "/dashboard/branches", label: { en: "Branches", ar: "الفروع" }, icon: "M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4" },
   { href: "/dashboard/staff", label: { en: "Staff", ar: "الموظفون" }, icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm14 10v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" },
+  { href: "/dashboard/security", label: { en: "Security", ar: "الأمان" }, icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" },
+  { href: "/dashboard/diagnostics", label: { en: "Diagnostics", ar: "التشخيص" }, icon: "M3 12h4l2 8 4-16 2 8h4" },
   { href: "/dashboard/recycle-bin", label: { en: "Recycle Bin", ar: "سلة المحذوفات" }, icon: "M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m1 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6" },
 ] as const;
 
@@ -253,6 +258,7 @@ export function DoctorDashboard() {
 
   // Quick-add (appointment / operation) modals on the overview + their catalogs.
   const [quickAdd, setQuickAdd] = useState<null | "appointment" | "operation">(null);
+  const [appointmentDraft, setAppointmentDraft] = useState<{ date: string; time: string } | null>(null);
   const [qaDoctors, setQaDoctors] = useState<DoctorLite[]>([]);
   const [qaProcedures, setQaProcedures] = useState<Procedure[]>([]);
   const loadQuickCatalogs = useCallback(async () => {
@@ -441,6 +447,21 @@ export function DoctorDashboard() {
     setFollowupReplies((prev) => prev.filter((x) => x.phone !== r.phone));
   };
   const handleChatOpened = useCallback(() => setOpenChatPhone(null), []);
+  const openAppointmentSlot = useCallback(
+    (slot: { dayOffset: number; startMin: number }) => {
+      loadQuickCatalogs();
+      setAppointmentDraft({
+        date: isoDate(base, slot.dayOffset),
+        time: minToHHMM(slot.startMin),
+      });
+      setQuickAdd("appointment");
+    },
+    [base, loadQuickCatalogs]
+  );
+  const closeQuickAdd = useCallback(() => {
+    setQuickAdd(null);
+    setAppointmentDraft(null);
+  }, []);
 
   // Confirm an online booking lead: lock its slot, create the client + session.
   const confirmLead = (lead: Lead) => {
@@ -979,7 +1000,13 @@ export function DoctorDashboard() {
           {/* panels */}
           <div className="grid gap-5 lg:grid-cols-3">
             <div className="h-[38rem] lg:col-span-2">
-              <DaySchedule base={base} dayOffset={selectedOffset} appointments={scheduleAppts} onFinish={finishSession} />
+              <DaySchedule
+                base={base}
+                dayOffset={selectedOffset}
+                appointments={scheduleAppts}
+                onFinish={finishSession}
+                onBookSlot={openAppointmentSlot}
+              />
             </div>
             <div className="h-[38rem]">
               <BookingRequests
@@ -1021,6 +1048,8 @@ export function DoctorDashboard() {
 
           {activeNav === "whatsapp" && <WhatsAppLink />}
 
+          {activeNav === "outreach" && <OutreachManager />}
+
           {activeNav === "messages" && (
             <ClientMessages initialPhone={openChatPhone} onOpened={handleChatOpened} />
           )}
@@ -1039,9 +1068,11 @@ export function DoctorDashboard() {
         <AddAppointmentModal
           procedures={qaProcedures}
           doctors={qaDoctors}
-          onClose={() => setQuickAdd(null)}
+          initialDate={appointmentDraft?.date}
+          initialTime={appointmentDraft?.time}
+          onClose={closeQuickAdd}
           onSaved={() => {
-            setQuickAdd(null);
+            closeQuickAdd();
             loadDbAppts();
           }}
         />
@@ -1050,9 +1081,9 @@ export function DoctorDashboard() {
         <QuickOperationModal
           procedures={qaProcedures.filter((p) => p.active)}
           doctors={qaDoctors.filter((d) => d.active)}
-          onClose={() => setQuickAdd(null)}
+          onClose={closeQuickAdd}
           onSaved={() => {
-            setQuickAdd(null);
+            closeQuickAdd();
             loadDbAppts();
           }}
         />

@@ -230,11 +230,15 @@ function ClientSummary({ client, onChange }: { client: PickedClient | "later"; o
 export function AddAppointmentModal({
   procedures,
   doctors,
+  initialDate,
+  initialTime,
   onClose,
   onSaved,
 }: {
   procedures: Procedure[];
   doctors: DoctorLite[];
+  initialDate?: string;
+  initialTime?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -243,8 +247,8 @@ export function AddAppointmentModal({
 
   const today = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
-  const [date, setDate] = useState(`${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`);
-  const [time, setTime] = useState("10:00");
+  const [date, setDate] = useState(initialDate ?? `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`);
+  const [time, setTime] = useState(initialTime ?? "10:00");
   const serviceOptions = useMemo(() => {
     const active = procedures.filter((p) => p.active);
     if (active.length > 0) {

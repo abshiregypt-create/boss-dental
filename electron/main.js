@@ -13,6 +13,8 @@ const { spawn } = require("child_process");
 
 const isDev = !app.isPackaged;
 let serverProcess = null;
+let waWorkerProcess = null;
+let waRestartTimer = null;
 let mainWindow = null;
 let serverPort = 0;
 
@@ -37,9 +39,29 @@ function getFreePort() {
 function loadConfig() {
   const file = path.join(app.getPath("userData"), "clinva-config.json");
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+    let changed = false;
+    if (!parsed.authSecret) {
+      parsed.authSecret = crypto.randomBytes(48).toString("base64url");
+      changed = true;
+    }
+    if (!parsed.waAgentSecret) {
+      parsed.waAgentSecret = crypto.randomBytes(32).toString("base64url");
+      changed = true;
+    }
+    if (changed) {
+      try {
+        fs.writeFileSync(file, JSON.stringify(parsed, null, 2));
+      } catch (e) {
+        console.error("[clinva] could not persist config:", e);
+      }
+    }
+    return parsed;
   } catch {
-    const cfg = { authSecret: crypto.randomBytes(48).toString("base64url") };
+    const cfg = {
+      authSecret: crypto.randomBytes(48).toString("base64url"),
+      waAgentSecret: crypto.randomBytes(32).toString("base64url"),
+    };
     try {
       fs.writeFileSync(file, JSON.stringify(cfg, null, 2));
     } catch (e) {
@@ -108,7 +130,8 @@ async function startServer() {
     NEXT_PUBLIC_CLINIC: "clinva",
     CLINIC: "clinva",
     AUTH_SECRET: cfg.authSecret,
-    WHATSAPP_PROVIDER: "mock",
+    WA_AGENT_SECRET: cfg.waAgentSecret,
+    WHATSAPP_PROVIDER: "waweb",
     SCHEDULER_ENABLED: "0",
     APP_URL: `http://127.0.0.1:${serverPort}`,
     NEXT_TELEMETRY_DISABLED: "1",
@@ -129,6 +152,45 @@ async function startServer() {
   });
 
   await waitForServer(serverPort);
+  startWhatsAppWorker(appDir, cfg.waAgentSecret);
+}
+
+function startWhatsAppWorker(appDir, waAgentSecret) {
+  const workerEntry = path.join(appDir, "worker", "whatsapp-web.mjs");
+  if (!fs.existsSync(workerEntry)) {
+    console.error("[clinva] whatsapp worker missing at", workerEntry);
+    return;
+  }
+
+  if (waWorkerProcess && !waWorkerProcess.killed) return;
+
+  const env = {
+    ...process.env,
+    APP_BASE_URL: `http://127.0.0.1:${serverPort}`,
+    WA_AGENT_SECRET: waAgentSecret,
+    WA_SESSION_DIR: path.join(app.getPath("userData"), ".wwebjs_auth"),
+    WHATSAPP_PROVIDER: "waweb",
+    NEXT_PUBLIC_CLINIC: "clinva",
+    CLINIC: "clinva",
+    ELECTRON_RUN_AS_NODE: "1",
+  };
+
+  waWorkerProcess = spawn(process.execPath, [workerEntry], {
+    cwd: appDir,
+    env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  waWorkerProcess.stdout.on("data", (d) => process.stdout.write(`[wa] ${d}`));
+  waWorkerProcess.stderr.on("data", (d) => process.stderr.write(`[wa] ${d}`));
+  waWorkerProcess.on("exit", (code) => {
+    console.log("[clinva] whatsapp worker exited", code);
+    waWorkerProcess = null;
+    if (!app.isQuiting) {
+      if (waRestartTimer) clearTimeout(waRestartTimer);
+      waRestartTimer = setTimeout(() => startWhatsAppWorker(appDir, waAgentSecret), 3000);
+    }
+  });
 }
 
 function createWindow(url) {
@@ -140,7 +202,7 @@ function createWindow(url) {
     backgroundColor: "#f7f5f1",
     title: "Clinva",
     icon: path.join(__dirname, "assets", "icon.ico"),
-    show: false,
+    show: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -160,6 +222,7 @@ function createWindow(url) {
   });
 
   mainWindow.loadURL(url);
+  if (!mainWindow.isVisible()) mainWindow.show();
   mainWindow.webContents.on("render-process-gone", (_event, details) => {
     console.error("[clinva] renderer crashed:", details);
     if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -239,9 +302,16 @@ app.on("window-all-closed", () => {
 });
 
 app.on("quit", () => {
+  app.isQuiting = true;
   if (serverProcess) {
     try {
       serverProcess.kill();
+    } catch {}
+  }
+  if (waRestartTimer) clearTimeout(waRestartTimer);
+  if (waWorkerProcess) {
+    try {
+      waWorkerProcess.kill();
     } catch {}
   }
 });

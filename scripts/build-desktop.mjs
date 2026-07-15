@@ -107,6 +107,7 @@ function main() {
     if (!fs.existsSync(STANDALONE)) throw new Error("standalone output missing — did next build run with output:standalone?");
     copyDir(path.join(ROOT, "public"), path.join(STANDALONE, "public"));
     copyDir(path.join(ROOT, ".next", "static"), path.join(STANDALONE, ".next", "static"));
+    copyDir(path.join(ROOT, "worker"), path.join(STANDALONE, "worker"));
     ensurePrismaEngine();
 
     // 6. Package installer.

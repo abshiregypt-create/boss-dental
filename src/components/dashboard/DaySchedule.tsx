@@ -37,11 +37,13 @@ export function DaySchedule({
   dayOffset,
   appointments,
   onFinish,
+  onBookSlot,
 }: {
   base: Date;
   dayOffset: number;
   appointments: Appointment[];
   onFinish?: (code: string) => void;
+  onBookSlot?: (slot: { dayOffset: number; startMin: number }) => void;
 }) {
   const { tr, lang } = useLang();
   const dayAppts = appointments.filter((a) => a.dayOffset === dayOffset);
@@ -86,9 +88,12 @@ export function DaySchedule({
           timeline.map((e, i) => {
             if (e.kind === "free") {
               return (
-                <div
+                <button
                   key={`free-${i}`}
-                  className="group flex items-center gap-3 rounded-xl border border-dashed border-primary/15 px-4 py-2.5 transition hover:border-primary/40 hover:bg-primary/5"
+                  type="button"
+                  onClick={() => onBookSlot?.({ dayOffset, startMin: e.startMin })}
+                  disabled={!onBookSlot}
+                  className="group flex w-full items-center gap-3 rounded-xl border border-dashed border-primary/15 px-4 py-2.5 text-start transition hover:border-primary/40 hover:bg-primary/5 disabled:cursor-default disabled:hover:border-primary/15 disabled:hover:bg-transparent"
                 >
                   <span className="w-20 shrink-0 text-xs font-semibold text-muted">
                     {fmtTime(base, dayOffset, e.startMin, lang)}
@@ -99,7 +104,7 @@ export function DaySchedule({
                     </svg>
                     {tr({ en: "Available", ar: "موعد متاح" })}
                   </span>
-                </div>
+                </button>
               );
             }
             const type = sessionTypeById(e.appt.typeId);
